@@ -26,12 +26,31 @@
       "name": "Launch Chrome against localhost",
       "url": "http://localhost:10000",
       "webRoot": "${workspaceFolder}"
+    },
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against my localhost",
+      "url": "http://localhost:4001",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "name": "Budibase yarn",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "yarn",
+      "runtimeArgs": ["dev:server"],
+      "cwd": "${workspaceFolder}"
     }
   ],
   "compounds": [
     {
       "name": "Start Budibase",
       "configurations": ["Budibase Server", "Budibase Worker"]
+    },
+    {
+      "name": "Start My Budibase",
+      "configurations": ["Budibase yarn", "Launch Chrome against my localhost"]
     }
   ]
 }

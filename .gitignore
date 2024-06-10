@@ -110,3 +110,7 @@ budibase-datasource
 
 *.iml
 .nx
+
+crack.js
+hosting/meta
+license.txt
