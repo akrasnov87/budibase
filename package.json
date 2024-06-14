@@ -3,6 +3,7 @@
   "version": "0.0.434",
   "birthday": "2024-06-14",
   "private": true,
+  "author": "Russian developer",
   "devDependencies": {
     "@babel/core": "^7.22.5",
     "@babel/eslint-parser": "^7.22.5",
