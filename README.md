@@ -262,7 +262,9 @@ git pull upstream master
 
 `yarn build:docker:single:undeground`
 
-Либо вручную вызвать скрипт `./scripts/build-single-image-undeground.sh`
+Либо вручную вызвать скрипт `./scripts/build-single-image-undeground.sh`.
+
+Образ хранится на сайте [hub.docker.com](https://hub.docker.com/repository/docker/akrasnov87/budibase/general).
 
 ### Старт контейнера single-undeground
 
