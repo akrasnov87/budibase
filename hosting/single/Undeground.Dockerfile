@@ -1,0 +1,99 @@
+ARG BASEIMG=budibase/couchdb:v3.3.3
+
+FROM node:20-slim as build
+
+# install node-gyp dependencies
+#RUN apt-get update && apt-get install -y --no-install-recommends g++ make python3 jq
+
+# copy and install dependencies
+WORKDIR /app
+COPY package.json .
+COPY yarn.lock .
+COPY lerna.json .
+COPY .yarnrc .
+
+COPY packages/server/package.json packages/server/package.json
+COPY packages/worker/package.json packages/worker/package.json
+
+#RUN yarn install --production --frozen-lockfile
+COPY .node_modules /app/node_modules
+
+# copy the actual code
+COPY packages/server/dist packages/server/dist
+COPY packages/server/pm2.config.js packages/server/pm2.config.js
+COPY packages/server/client packages/server/client
+COPY packages/server/builder packages/server/builder
+COPY packages/worker/dist packages/worker/dist
+COPY packages/worker/pm2.config.js packages/worker/pm2.config.js
+
+
+FROM $BASEIMG as runner
+ARG TARGETARCH
+ENV TARGETARCH $TARGETARCH
+#TARGETBUILD can be set to single (for single docker image) or aas (for azure app service)
+# e.g. docker build --build-arg TARGETBUILD=aas ....
+ARG TARGETBUILD=single
+ENV TARGETBUILD $TARGETBUILD
+
+# install base dependencies
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends software-properties-common nginx uuid-runtime redis-server libaio1
+
+# Install postgres client for pg_dump utils
+RUN apt install -y software-properties-common apt-transport-https ca-certificates gnupg \
+  && curl -fsSl https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /usr/share/keyrings/postgresql.gpg > /dev/null \
+  && echo deb [arch=amd64,arm64,ppc64el signed-by=/usr/share/keyrings/postgresql.gpg] http://apt.postgresql.org/pub/repos/apt/ $(lsb_release -cs)-pgdg main | tee /etc/apt/sources.list.d/postgresql.list \
+  && apt update -y \
+  && apt install postgresql-client-15 -y \
+  && apt remove software-properties-common apt-transport-https gpg -y
+
+# We use pm2 in order to run multiple node processes in a single container
+RUN npm install --global pm2
+
+# setup nginx
+COPY hosting/single/nginx/nginx.conf /etc/nginx
+COPY hosting/single/nginx/nginx-default-site.conf /etc/nginx/sites-enabled/default
+RUN mkdir -p /var/log/nginx && \
+  touch /var/log/nginx/error.log && \
+  touch /var/run/nginx.pid && \
+  usermod -a -G tty www-data
+
+WORKDIR /
+RUN mkdir -p scripts/integrations/oracle
+COPY packages/server/scripts/integrations/oracle scripts/integrations/oracle
+RUN /bin/bash -e ./scripts/integrations/oracle/instantclient/linux/install.sh
+
+# setup minio
+WORKDIR /minio
+COPY scripts/install-minio.sh ./install.sh
+RUN chmod +x install.sh && ./install.sh
+
+# setup runner file
+WORKDIR /
+COPY hosting/single/runner.sh .
+RUN chmod +x ./runner.sh
+COPY hosting/single/healthcheck.sh .
+RUN chmod +x ./healthcheck.sh
+
+COPY --from=build /app/node_modules /node_modules
+COPY --from=build /app/package.json /package.json
+COPY --from=build /app/packages/server /app
+COPY --from=build /app/packages/worker /worker
+
+EXPOSE 80
+VOLUME /data
+
+ARG BUDIBASE_VERSION
+# Ensuring the version argument is sent
+RUN test -n "$BUDIBASE_VERSION"
+ENV BUDIBASE_VERSION=$BUDIBASE_VERSION
+
+HEALTHCHECK --interval=15s --timeout=15s --start-period=45s CMD "/healthcheck.sh"
+
+# must set this just before running
+ENV NODE_ENV=production
+# this is required for isolated-vm to work on Node 20+
+ENV NODE_OPTIONS="--no-node-snapshot"
+WORKDIR /
+
+CMD ["./runner.sh"]

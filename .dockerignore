@@ -8,6 +8,7 @@ packages/server/scripts/
 !/hosting/single/
 !/hosting/letsencrypt /
 
+!.node_modules
 !package.json
 !yarn.lock
 !lerna.json

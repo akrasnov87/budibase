@@ -243,6 +243,8 @@ yarn build
 
 Если запускаем контейнер, то файл находится `hosting/.env`.
 
+**Примечание**: перед локальным запуском требуется выполнить команду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up`
+
 ### Активация
 
 В корне проекта выполнить скрипт `node ./crack.js [installation identifier]`
@@ -253,3 +255,17 @@ yarn build
 git remote add upstream https://github.com/Budibase/budibase.git
 git pull upstream master
 </pre>
+
+## Сборка
+
+В корне проекта выполнить:
+
+`yarn build:docker:single:undeground`
+
+Либо вручную вызвать скрипт `./scripts/build-single-image-undeground.sh`
+
+### Старт контейнера single-undeground
+
+`docker run --rm --name=budibase -p 10000:80 -v [your path to data]:/data -e OFFLINE_MODE=true akrasnov87/budibase:latest`
+
+**Примечание**: нужно обязательно передать `OFFLINE_MODE` с параметром `true`
