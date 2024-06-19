@@ -10,7 +10,7 @@
   import { groups, licensing, admin } from "stores/portal"
   import { emailValidator } from "helpers/validation"
   import { Constants } from "@budibase/frontend-core"
-  import { capitalise } from "helpers"
+  import { capitalise, isEn } from "helpers"
 
   const BYTES_IN_MB = 1000000
   const FILE_SIZE_LIMIT = BYTES_IN_MB * 5
@@ -44,7 +44,8 @@
       return false
     }
     for (const email of userEmails) {
-      if (emailValidator(email) !== true) invalidEmails.push(email)
+      if ((isEn() ? emailValidator(email) : true) !== true)
+        invalidEmails.push(email)
     }
 
     if (!invalidEmails.length) return true

@@ -8,4 +8,5 @@ export {
   get_capitalised_name,
   lowercase,
   isBuilderInputFocused,
+  isEn,
 } from "./helpers"

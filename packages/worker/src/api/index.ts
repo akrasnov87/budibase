@@ -9,7 +9,7 @@ import { auth, middleware } from "@budibase/backend-core"
 import env from "../environment"
 
 if (env.SQS_SEARCH_ENABLE) {
-  sdk.auditLogs.useSQLSearch()
+  //sdk.auditLogs.useSQLSearch()
 }
 
 const PUBLIC_ENDPOINTS = [
@@ -76,6 +76,10 @@ const PUBLIC_ENDPOINTS = [
     route: "/api/global/users/invite",
     method: "GET",
   },
+  {
+    route: "/api/global/tenant",
+    method: "POST",
+  },
 ]
 
 const NO_TENANCY_ENDPOINTS = [
@@ -119,6 +123,14 @@ const NO_TENANCY_ENDPOINTS = [
   },
   {
     route: "/api/global/users/invite/:code",
+    method: "GET",
+  },
+  {
+    route: "/api/global/tenant",
+    method: "POST",
+  },
+  {
+    route: "/api/global/tenant/:id",
     method: "GET",
   },
 ]

@@ -6,7 +6,7 @@ import {
 } from "../constants"
 import { checkSlashesInUrl } from "./index"
 
-const BASE_COMPANY = "From Russia with love"
+const BASE_COMPANY = "Budibase"
 import * as pro from "@budibase/pro"
 
 export async function getSettingsTemplateContext(

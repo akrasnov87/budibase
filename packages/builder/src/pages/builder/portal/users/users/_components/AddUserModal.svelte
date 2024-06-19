@@ -12,7 +12,7 @@
   import { groups, licensing } from "stores/portal"
   import { Constants } from "@budibase/frontend-core"
   import { emailValidator } from "helpers/validation"
-  import { capitalise } from "helpers"
+  import { capitalise, isEn } from "helpers"
 
   export let showOnboardingTypeModal
 
@@ -57,7 +57,7 @@
     }
     const email = input.email
     if (email) {
-      const res = emailValidator(email)
+      const res = isEn() ? emailValidator(email) : true
       if (res === true) {
         userData[index].error = null
       } else {

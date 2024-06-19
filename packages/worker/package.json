@@ -42,7 +42,7 @@
     "@budibase/string-templates": "0.0.0",
     "@budibase/types": "0.0.0",
     "@koa/router": "8.0.8",
-    "@techpass/passport-openidconnect": "0.3.2",
+    "@techpass/passport-openidconnect": "https://github.com/akrasnov87/passport-openidconnect#v0.3.2a",
     "@types/global-agent": "2.1.1",
     "aws-sdk": "2.1030.0",
     "bcrypt": "5.1.0",
