@@ -271,3 +271,17 @@ git pull upstream master
 `docker run --rm --name=budibase -p 10000:80 -v [your path to data]:/data -e OFFLINE_MODE=true akrasnov87/budibase:latest`
 
 **Примечание**: нужно обязательно передать `OFFLINE_MODE` с параметром `true`
+
+## Подключение OIDC провайдера
+
+В интерфейса Budibase есть возможность подключить сторонний Open Connect (OIDC) сервис. Для взаимодействия с текущим решением на RPC создан проект [node-oidc-provider] (https://github.com/akrasnov87/node-oidc-provider)
+
+Проект можно запустить выполнив команду `docker run -d --rm --env-file=./.env --name node-oidc-provider -p 3000:3000 akrasnov87/node-oidc-provider:0.0.1`
+
+Требуется лишь создать файл `dev.conf` в папке `.conf` и указать туда корректные настройки. По умолчанию авторизованные пользователи создаются с ролью `App User`
+
+Обязательными для передачи параметрами в Budibase являются:
+
+- email
+- Имя
+- Фамилия

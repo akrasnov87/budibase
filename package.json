@@ -1,9 +1,9 @@
 {
   "name": "budibase-root",
-  "version": "0.5.561",
+  "version": "0.5.588",
   "birthday": "2024-06-14",
   "private": true,
-  "author": "Russian developer",
+  "author": "Budibase",
   "devDependencies": {
     "@babel/core": "^7.22.5",
     "@babel/eslint-parser": "^7.22.5",
