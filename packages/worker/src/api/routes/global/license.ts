@@ -40,5 +40,9 @@ router
     "/api/global/license/offline/identifier",
     controller.getOfflineLicenseIdentifier
   )
+  .get(
+    "/api/global/license/offline/activate",
+    controller.getOfflineLicenseActivate
+  )
 
 export default router

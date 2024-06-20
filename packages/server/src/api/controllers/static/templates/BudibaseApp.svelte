@@ -30,7 +30,7 @@
   <meta name="description" content={metaDescription} />
 
   <!-- Opengraph Meta Tags -->
-  <meta property="og:site_name" content="From Russia with love" />
+  <meta property="og:site_name" content="Budibase" />
   <meta property="og:title" content={metaTitle} />
   <meta property="og:description" content={metaDescription} />
   <meta property="og:type" content="website" />

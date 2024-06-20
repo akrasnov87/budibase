@@ -23,3 +23,10 @@ export interface GetOfflineLicenseTokenResponse {
 export interface GetOfflineIdentifierResponse {
   identifierBase64: string
 }
+
+// LICENSE
+
+export interface GetOfflineActivateResponse {
+  readme: string
+  license: string
+}

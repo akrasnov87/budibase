@@ -1,3 +1,8 @@
+const jwa = require("jwa")
+
+const { createSecretKey } = require("crypto")
+var secretOrPublicKey = createSecretKey(Buffer.from("testsecret"))
+
 import { licensing, quotas } from "@budibase/pro"
 import {
   ActivateLicenseKeyRequest,
@@ -5,6 +10,7 @@ import {
   GetLicenseKeyResponse,
   GetOfflineIdentifierResponse,
   GetOfflineLicenseTokenResponse,
+  GetOfflineActivateResponse,
   UserCtx,
 } from "@budibase/types"
 
@@ -66,6 +72,38 @@ export async function getOfflineLicenseIdentifier(
   const identifierBase64 = await licensing.offline.getIdentifierBase64()
   ctx.body = { identifierBase64 }
   ctx.status = 200
+}
+
+export async function getOfflineLicenseActivate(
+  ctx: UserCtx<void, GetOfflineActivateResponse>
+) {
+  const identifierBase64 = await licensing.offline.getIdentifierBase64()
+  var identifier = Buffer.from(identifierBase64, "base64").toString("ascii")
+
+  if (identifier) {
+    var data = {
+      expireAt: "2099-01-01", // срок лицензии
+      plan: { type: "enterprise" }, // план free, pro, team, premium, premium_plus, premium_plus_trial, business, enterprise_basic, enterprise_basic_trial, enterprise
+      identifier: JSON.parse(identifier),
+    }
+    var securedInput = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(
+      JSON.stringify(data)
+    )
+      .toString("base64")
+      .replace(/=/g, "")}`
+
+    var factory = jwa("HS256")
+    var sign = factory.sign(securedInput, secretOrPublicKey)
+
+    var license = `${securedInput}.${sign}`
+
+    await licensing.offline.activateOfflineLicenseToken(license)
+
+    var readme = 'Поздравляю!!! Это Ваша "Enterprise" лицензия до 2099 года.'
+
+    ctx.body = { license, readme }
+    ctx.status = 200
+  }
 }
 
 // LICENSES

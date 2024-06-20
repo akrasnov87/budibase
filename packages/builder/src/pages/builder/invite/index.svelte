@@ -22,7 +22,7 @@
   let errors = {}
   let loaded = false
 
-  $: company = $organisation.company || "From Russia with love"
+  $: company = $organisation.company || "Budibase"
 
   async function acceptInvite() {
     form.validate()

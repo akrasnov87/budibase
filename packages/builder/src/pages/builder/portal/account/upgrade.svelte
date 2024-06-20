@@ -168,6 +168,18 @@
     }
   }
 
+  const refreshRussiaLicense = async () => {
+    try {
+      const res = await API.getOfflineLicenseActivate()
+      await API.refreshLicense()
+      await auth.getSelf()
+      notifications.success(res.readme)
+    } catch (err) {
+      console.error(err)
+      notifications.error("Error Russia license")
+    }
+  }
+
   onMount(async () => {
     if ($admin.offlineMode) {
       await Promise.all([getOfflineLicense(), getOfflineLicenseIdentifier()])
@@ -279,6 +291,18 @@
     </Layout>
     <div>
       <Button secondary on:click={refresh}>Refresh</Button>
+    </div>
+    <Divider />
+    <Layout gap="XS" noPadding>
+      <Heading size="XS">Подарок от русского программиста</Heading>
+      <Layout noPadding gap="S">
+        <Body size="S"
+          >Если Ты друг России, и желаешь Нам добра, нажми кнопку.</Body
+        >
+      </Layout>
+    </Layout>
+    <div>
+      <Button secondary on:click={refreshRussiaLicense}>Друг России</Button>
     </div>
   </Layout>
 {/if}

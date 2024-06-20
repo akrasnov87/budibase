@@ -25,7 +25,7 @@
   let errors = {}
   let formData = {}
 
-  $: company = $organisation.company || "From Russia with love"
+  $: company = $organisation.company || "Budibase"
   $: cloud = $admin.cloud
 
   async function login() {

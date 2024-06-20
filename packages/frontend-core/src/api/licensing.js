@@ -55,6 +55,11 @@ export const buildLicensingEndpoints = API => ({
       url: "/api/global/license/offline/identifier",
     })
   },
+  getOfflineLicenseActivate: async () => {
+    return await API.get({
+      url: "/api/global/license/offline/activate",
+    })
+  },
 
   /**
    * Refreshes the license cache
