@@ -10,6 +10,7 @@
     TooltipWrapper,
   } from "@budibase/bbui"
   import { onMount } from "svelte"
+  import { _ } from "svelte-i18n"
   import { admin, auth, licensing } from "stores/portal"
   import { Constants } from "@budibase/frontend-core"
   import { DashCard, Usage } from "components/usage"
@@ -187,7 +188,7 @@
 {#if loaded}
   <Layout noPadding>
     <Layout noPadding gap="XS">
-      <Heading>Usage</Heading>
+      <Heading>{$_("Usage")}</Heading>
       <Body>
         <div>Get information about your current usage within Budibase</div>
       </Body>

@@ -1,4 +1,5 @@
 const jwa = require("jwa")
+const i18n = require("i18n")
 
 const { createSecretKey } = require("crypto")
 var secretOrPublicKey = createSecretKey(Buffer.from("testsecret"))
@@ -99,7 +100,7 @@ export async function getOfflineLicenseActivate(
 
     await licensing.offline.activateOfflineLicenseToken(license)
 
-    var readme = 'Поздравляю!!! Это Ваша "Enterprise" лицензия до 2099 года.'
+    var readme = i18n.__("global.license.offline.activate", "2099")
 
     ctx.body = { license, readme }
     ctx.status = 200

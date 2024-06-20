@@ -17,6 +17,7 @@ COPY packages/worker/package.json packages/worker/package.json
 
 #RUN yarn install --production --frozen-lockfile
 COPY .node_modules /app/node_modules
+COPY locales locales
 
 # copy the actual code
 COPY packages/server/dist packages/server/dist
@@ -76,6 +77,7 @@ COPY hosting/single/healthcheck.sh .
 RUN chmod +x ./healthcheck.sh
 
 COPY --from=build /app/node_modules /node_modules
+COPY --from=build /app/locales /app/locales
 COPY --from=build /app/package.json /package.json
 COPY --from=build /app/packages/server /app
 COPY --from=build /app/packages/worker /worker

@@ -1,5 +1,17 @@
 import { bootstrap } from "global-agent"
 import { checkDevelopmentEnvironment } from "./utilities/fileSystem"
+const i18n = require("i18n")
+
+/**
+ * configure shared state
+ */
+i18n.configure({
+  staticCatalog: {
+    ru: require("../../../locales/ru.json"),
+    en: require("../../../locales/en.json"),
+  },
+  defaultLocale: "en",
+})
 
 function runServer() {
   // this will shutdown the system if development environment not ready
