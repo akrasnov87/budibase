@@ -4,3 +4,6 @@
 [submodule "packages/account-portal"]
 	path = packages/account-portal
 	url = git@github.com:Budibase/account-portal.git
+[submodule "packages/budibase-locales"]
+	path = packages/budibase-locales
+	url = https://github.com/akrasnov87/budibase-locales
