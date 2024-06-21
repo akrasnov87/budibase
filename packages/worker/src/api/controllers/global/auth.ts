@@ -65,7 +65,7 @@ export const login = async (ctx: Ctx<LoginRequest>, next: any) => {
     async (err: any, user: User, info: any) => {
       await passportCallback(ctx, user, err, info)
       await context.identity.doInUserContext(user, ctx, async () => {
-        await events.auth.login("local", user.email)
+        await events.auth.login("local", user.email) // bt-ignore
       })
       ctx.status = 200
     }
@@ -211,7 +211,7 @@ export const googleCallback = async (ctx: any, next: any) => {
     async (err: any, user: SSOUser, info: any) => {
       await passportCallback(ctx, user, err, info)
       await context.identity.doInUserContext(user, ctx, async () => {
-        await events.auth.login("google-internal", user.email)
+        await events.auth.login("google-internal", user.email) // bt-ignore
       })
       ctx.redirect(env.PASSPORT_GOOGLEAUTH_SUCCESS_REDIRECT)
     }
@@ -278,7 +278,7 @@ export const oidcCallback = async (ctx: any, next: any) => {
     async (err: any, user: SSOUser, info: any) => {
       await passportCallback(ctx, user, err, info)
       await context.identity.doInUserContext(user, ctx, async () => {
-        await events.auth.login("oidc", user.email)
+        await events.auth.login("oidc", user.email)  // bt-ignore
       })
       ctx.redirect(env.PASSPORT_OIDCAUTH_SUCCESS_REDIRECT)
     }

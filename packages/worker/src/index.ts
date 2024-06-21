@@ -33,20 +33,10 @@ import destroyable from "server-destroy"
 import { initPro } from "./initPro"
 import { handleScimBody } from "./middleware/handleScimBody"
 
-const i18n = require("i18n")
-import { join } from "path"
+// @ts-ignore
+import { initJSLocales } from "../../budibase-locales/modules/js"
 
-/**
- * configure shared state
- */
-
-i18n.configure({
-  staticCatalog: {
-    ru: require("../../../locales/ru.json"),
-    en: require("../../../locales/en.json"),
-  },
-  defaultLocale: "en",
-})
+initJSLocales()
 
 if (coreEnv.ENABLE_SSO_MAINTENANCE_MODE) {
   console.warn(

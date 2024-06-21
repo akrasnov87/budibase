@@ -1,4 +1,7 @@
 <script>
+  import { initSvelteLocales } from "../../budibase-locales/modules/svelte"
+  initSvelteLocales()
+
   import { Router } from "@roxi/routify"
   import { routes } from "../.routify/routes"
   import { NotificationDisplay, BannerDisplay } from "@budibase/bbui"
@@ -7,15 +10,7 @@
 
   const queryHandler = { parse, stringify }
 
-  import { register, init, getLocaleFromNavigator } from "svelte-i18n"
-
-  register("en", () => import("../../../locales/en.json"))
-  register("ru", () => import("../../../locales/ru.json"))
-
-  init({
-    fallbackLocale: "en",
-    initialLocale: window.BB.lang || getLocaleFromNavigator(),
-  })
+  
 </script>
 
 <div class="banner-container" />

@@ -199,11 +199,10 @@
       <Heading size="M">Upgrade</Heading>
       <Body size="M">
         {#if license.plan.type === "free"}
-          Upgrade your Budibase installation to unlock additional features. To
-          subscribe to a plan visit your
+          <span>Upgrade your Budibase installation to unlock additional features. To subscribe to a plan visit your</span>
           <Link size="L" href={upgradeUrl}>account</Link>.
         {:else}
-          To manage your plan visit your
+          <span>To manage your plan visit your</span>
           <Link size="L" href={upgradeUrl}>account</Link>
           <div>&nbsp</div>
         {/if}
@@ -213,9 +212,7 @@
     {#if $admin.offlineMode}
       <Layout gap="XS" noPadding>
         <Heading size="XS">Installation identifier</Heading>
-        <Body size="S"
-          >Share this with support@budibase.com to obtain your offline license</Body
-        >
+        <Body size="S">Share this with support@budibase.com to obtain your offline license</Body>
       </Layout>
       <Layout noPadding>
         <div class="identifier-input">
@@ -257,13 +254,9 @@
           </div>
         </div>
         <ButtonGroup gap="M">
-          <Button cta on:click={activateLicenseKey} disabled={activateDisabled}>
-            Activate
-          </Button>
+          <Button cta on:click={activateLicenseKey} disabled={activateDisabled}>Activate</Button>
           {#if licenseKey}
-            <Button warning on:click={() => deleteLicenseKeyModal.show()}>
-              Delete
-            </Button>
+            <Button warning on:click={() => deleteLicenseKeyModal.show()}>Delete</Button>
           {/if}
         </ButtonGroup>
       </Layout>
@@ -274,12 +267,8 @@
       <Layout noPadding gap="S">
         <Body size="S">You are currently on the {license.plan.type} plan</Body>
         <div>
-          <Body size="S"
-            >If you purchase or update your plan on the account</Body
-          >
-          <Body size="S"
-            >portal, click the refresh button to sync those changes</Body
-          >
+          <Body size="S">If you purchase or update your plan on the account</Body>
+          <Body size="S">portal, click the refresh button to sync those changes</Body>
         </div>
         <Body size="XS">
           {processStringSync("Updated {{ duration time 'millisecond' }} ago", {
@@ -294,15 +283,13 @@
     </div>
     <Divider />
     <Layout gap="XS" noPadding>
-      <Heading size="XS">Подарок от русского программиста</Heading>
+      <Heading size="XS">A gift from a Russian programmer</Heading>
       <Layout noPadding gap="S">
-        <Body size="S"
-          >Если Ты друг России, и желаешь Нам добра, нажми кнопку.</Body
-        >
+        <Body size="S">If You are a friend of Russia, and you wish Us well, press the button.</Body>
       </Layout>
     </Layout>
     <div>
-      <Button secondary on:click={refreshRussiaLicense}>Друг России</Button>
+      <Button secondary on:click={refreshRussiaLicense}>A friend of Russia</Button>
     </div>
   </Layout>
 {/if}

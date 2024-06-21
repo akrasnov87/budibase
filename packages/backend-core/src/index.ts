@@ -40,6 +40,10 @@ export * as sql from "./sql"
 // circular dependencies
 import * as context from "./context"
 import * as _tenancy from "./tenancy"
+// @ts-ignore
+import { initJSLocales } from "../../budibase-locales/modules/js"
+
+initJSLocales()
 
 export const tenancy = {
   ..._tenancy,

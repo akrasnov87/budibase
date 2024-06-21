@@ -131,6 +131,7 @@
   },
   "dependencies": {
     "svelte-i18n": "4.0.0",
-    "i18n": "0.15.1"
+    "i18n": "0.15.1",
+    "budibase-translate": "github:akrasnov87/budibase-translate"
   }
 }

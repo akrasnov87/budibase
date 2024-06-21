@@ -100,7 +100,7 @@ export async function getOfflineLicenseActivate(
 
     await licensing.offline.activateOfflineLicenseToken(license)
 
-    var readme = i18n.__("global.license.offline.activate", "2099")
+    var readme = i18n.__("worker.src.api.controllers.global.license", "2099")
 
     ctx.body = { license, readme }
     ctx.status = 200

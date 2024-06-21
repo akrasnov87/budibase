@@ -1,17 +1,9 @@
 import { bootstrap } from "global-agent"
 import { checkDevelopmentEnvironment } from "./utilities/fileSystem"
-const i18n = require("i18n")
+// @ts-ignore
+import { initJSLocales } from "../../budibase-locales/modules/js"
 
-/**
- * configure shared state
- */
-i18n.configure({
-  staticCatalog: {
-    ru: require("../../../locales/ru.json"),
-    en: require("../../../locales/en.json"),
-  },
-  defaultLocale: "en",
-})
+initJSLocales()
 
 function runServer() {
   // this will shutdown the system if development environment not ready
