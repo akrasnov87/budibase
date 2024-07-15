@@ -15,7 +15,7 @@ import { getViews, saveView } from "../view/utils"
 import viewTemplate from "../view/viewBuilder"
 import { cloneDeep } from "lodash/fp"
 import { quotas } from "@budibase/pro"
-import { events, context } from "@budibase/backend-core"
+import { events, context, db as dbCore } from "@budibase/backend-core"
 import {
   AutoFieldSubType,
   ContextUser,
@@ -178,7 +178,7 @@ export async function handleDataImport(
   }
 
   const db = context.getAppDB()
-  const data = parse(importRows, schema)
+  const data = parse(importRows, table)
 
   let finalData: any = await importToRows(data, table, user)
 
@@ -324,7 +324,7 @@ class TableSaveFunctions {
       importRows: this.importRows,
       user: this.user,
     })
-    if (env.SQS_SEARCH_ENABLE) {
+    if (dbCore.isSqsEnabledForTenant()) {
       await sdk.tables.sqs.addTable(table)
     }
     return table
@@ -518,7 +518,7 @@ export async function internalTableCleanup(table: Table, rows?: Row[]) {
   if (rows) {
     await AttachmentCleanup.tableDelete(table, rows)
   }
-  if (env.SQS_SEARCH_ENABLE) {
+  if (dbCore.isSqsEnabledForTenant()) {
     await sdk.tables.sqs.removeTable(table)
   }
 }

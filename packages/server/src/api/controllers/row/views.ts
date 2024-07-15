@@ -25,7 +25,9 @@ export async function searchView(
     ctx.throw(400, `This method only supports viewsV2`)
   }
 
-  const viewFields = Object.keys(view.schema || {})
+  const viewFields = Object.entries(view.schema || {})
+    .filter(([_, value]) => value.visible)
+    .map(([key]) => key)
   const { body } = ctx.request
 
   // Enrich saved query with ephemeral query params.
@@ -69,6 +71,7 @@ export async function searchView(
     limit: body.limit,
     bookmark: body.bookmark,
     paginate: body.paginate,
+    countRows: body.countRows,
   }
 
   const result = await sdk.rows.search(searchOptions)

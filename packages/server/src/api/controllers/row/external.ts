@@ -72,15 +72,23 @@ export async function patch(ctx: UserCtx<PatchRowRequest, PatchRowResponse>) {
   const row = await sdk.rows.external.getRow(tableId, updatedId, {
     relationships: true,
   })
-  const enrichedRow = await outputProcessing(table, row, {
-    squash: true,
-    preserveLinks: true,
-  })
+
+  const [enrichedRow, oldRow] = await Promise.all([
+    outputProcessing(table, row, {
+      squash: true,
+      preserveLinks: true,
+    }),
+    outputProcessing(table, beforeRow, {
+      squash: true,
+      preserveLinks: true,
+    }),
+  ])
+
   return {
     ...response,
     row: enrichedRow,
     table,
-    oldRow: beforeRow,
+    oldRow,
   }
 }
 
@@ -136,10 +144,7 @@ export async function fetchEnrichedRow(ctx: UserCtx) {
   const id = ctx.params.rowId
   const tableId = utils.getTableId(ctx)
   const { datasourceId, tableName } = breakExternalTableId(tableId)
-  const datasource: Datasource = await sdk.datasources.get(datasourceId!)
-  if (!tableName) {
-    ctx.throw(400, "Unable to find table.")
-  }
+  const datasource: Datasource = await sdk.datasources.get(datasourceId)
   if (!datasource || !datasource.entities) {
     ctx.throw(400, "Datasource has not been configured for plus API.")
   }
@@ -163,7 +168,7 @@ export async function fetchEnrichedRow(ctx: UserCtx) {
     }
     const links = row[fieldName]
     const linkedTableId = field.tableId
-    const linkedTableName = breakExternalTableId(linkedTableId).tableName!
+    const linkedTableName = breakExternalTableId(linkedTableId).tableName
     const linkedTable = tables[linkedTableName]
     // don't support composite keys right now
     const linkedIds = links.map((link: Row) => breakRowIdField(link._id!)[0])
