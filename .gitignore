@@ -116,5 +116,5 @@ budibase-datasource
 crack.js
 hosting/meta
 license.txt
-/data
+/temp
 .node_modules

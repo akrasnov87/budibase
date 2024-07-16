@@ -58,6 +58,10 @@ if [[ -z "${COUCH_DB_SQL_URL}" ]]; then
     export COUCH_DB_SQL_URL=http://127.0.0.1:4984
 fi
 
+if [[ -z "${DEFAULT_LOCALE}" ]]; then
+    export DEFAULT_LOCALE=ru
+fi
+
 if [ ! -f "${DATA_DIR}/.env" ]; then
     touch ${DATA_DIR}/.env
     for ENV_VAR in "${ENV_VARS[@]}"

@@ -49,6 +49,7 @@ async function init() {
     VERSION: "0.0.0+local",
     PASSWORD_MIN_LENGTH: "1",
     SQS_SEARCH_ENABLE: "1",
+    DEFAULT_LOCALE: "ru",
   }
 
   config = { ...config, ...existingConfig }

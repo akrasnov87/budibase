@@ -17,7 +17,7 @@ COPY packages/worker/package.json packages/worker/package.json
 
 #RUN yarn install --production --frozen-lockfile
 COPY .node_modules /app/node_modules
-COPY locales locales
+COPY packages/budibase-locales/locales locales
 
 # copy the actual code
 COPY packages/server/dist packages/server/dist

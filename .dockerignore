@@ -3,6 +3,7 @@
 !/scripts/
 /packages/*/node_modules
 packages/server/scripts/
+!packages/budibase-locales/locales
 !packages/server/scripts/integrations/oracle
 !nx.json
 !/hosting/single/

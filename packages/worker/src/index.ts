@@ -36,7 +36,7 @@ import { handleScimBody } from "./middleware/handleScimBody"
 // @ts-ignore
 import { initJSLocales } from "../../budibase-locales/modules/js"
 
-initJSLocales()
+initJSLocales(env.DEFAULT_LOCALE)
 
 if (coreEnv.ENABLE_SSO_MAINTENANCE_MODE) {
   console.warn(

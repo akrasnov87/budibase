@@ -103,7 +103,7 @@ Budibase integrates with a number of popular tools allowing you to build apps th
 
 Budibase is made to scale. With Budibase, you can self-host on your own infrastructure and globally manage users, onboarding, SMTP, apps, groups, theming and more. You can also provide users/groups with an app portal and disseminate user management to the group manager.
 
-- Checkout the promo video: https://youtu.be/xoljVpty_Kw
+- Checkout the promo video: <https://youtu.be/xoljVpty_Kw>
 
 <br />
 
@@ -220,7 +220,7 @@ echo "deb [signed-by=/usr/share/keyrings/yarn-archive-keyring.gpg] https://dl.ya
 sudo apt update && sudo apt install yarn
 </pre>
 
-git clone https://github.com/akrasnov87/budibase
+git clone <https://github.com/akrasnov87/budibase>
 cd budibase
 yarn install
 sudo npm install -g jest lerna
@@ -231,9 +231,11 @@ yarn build
 
 В корне проекта выполнить скрипт `node ./crack.js`
 
+Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
+
 Далее выполняем yarn dev:server
 
-Открываем страницу http://localhost:4001/
+Открываем страницу <http://localhost:4001/>
 
 Если будет выходить ошибка, что папка не найдена, то нужно перейти в packages/server и открыть файл .env
 
@@ -243,7 +245,7 @@ yarn build
 
 Если запускаем контейнер, то файл находится `hosting/.env`.
 
-**Примечание**: перед локальным запуском требуется выполнить команду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up`
+Для очистки кэша выполнить: `yarn cache clean`
 
 ### Активация
 
@@ -274,7 +276,7 @@ git pull upstream master
 
 ## Подключение OIDC провайдера
 
-В интерфейса Budibase есть возможность подключить сторонний Open Connect (OIDC) сервис. Для взаимодействия с текущим решением на RPC создан проект [node-oidc-provider] (https://github.com/akrasnov87/node-oidc-provider)
+В интерфейса Budibase есть возможность подключить сторонний Open Connect (OIDC) сервис. Для взаимодействия с текущим решением на RPC создан проект [node-oidc-provider] (<https://github.com/akrasnov87/node-oidc-provider>)
 
 Проект можно запустить выполнив команду `docker run -d --rm --env-file=./.env --name node-oidc-provider -p 3000:3000 akrasnov87/node-oidc-provider:0.0.1`
 
