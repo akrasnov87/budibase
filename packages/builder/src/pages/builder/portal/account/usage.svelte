@@ -188,7 +188,7 @@
 {#if loaded}
   <Layout noPadding>
     <Layout noPadding gap="XS">
-      <Heading>{$_("Usage")}</Heading>
+      <Heading>Usage</Heading>
       <Body>
         <div>Get information about your current usage within Budibase</div>
       </Body>
