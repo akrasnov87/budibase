@@ -287,3 +287,46 @@ git pull upstream master
 - email
 - Имя
 - Фамилия
+
+## Настройка backups
+
+Устанавливаем [Budibase CLI](https://docs.budibase.com/docs/budibase-cli-setup)
+
+Выполнил `budi hosting --init` в корне проект. Был создан файл .env
+
+Взял от туда:
+
+<pre>
+# This section contains all secrets pertaining to the system
+API_ENCRYPTION_KEY=DVc9rHS9B2CnAQVtH4OJuMRzC9Wxr7tS
+JWT_SECRET=jDoVHyTGC72pM7adI2eshjMLHO5X5B8y
+MINIO_ACCESS_KEY=R71VBy97UZGrPr6mZoYFgUP09Fcg3UZY
+MINIO_SECRET_KEY=YrrUtUuFGg09MNrcQchtjpUER4ps8GaC
+REDIS_PASSWORD=Th2LJU7lO3KmAi9LbUTh34vy3y37nhoi
+INTERNAL_API_KEY=85l1kIWHVtg2493YDLcXoapKTrTHomNT
+COUCH_DB_USER=admin
+COUCH_DB_PASSWORD=IdbIWtAHLXcYiDIxesjocnPobWFgmhEs
+OFFLINE_MODE=true
+</pre>
+
+И переименовал файл в .env.single
+
+Запустил контейнер `docker run --rm --name=budibase -p 10000:80 -v --env-file ./.env.single akrasnov87/budibase:latest`
+
+Для архивации использовал:
+
+<pre>
+# https://docs.budibase.com/docs/server-migration
+
+COUCH_DB_URL=http://admin:admin@localhost:10000/db/
+MINIO_URL=http://localhost:10000
+MINIO_ACCESS_KEY=R71VBy97UZGrPr6mZoYFgUP09Fcg3UZY
+MINIO_SECRET_KEY=YrrUtUuFGg09MNrcQchtjpUER4ps8GaC
+MAIN_PORT=10000
+</pre>
+
+В итоге backups создаётся по команде `budi backups --export --env .env.backups`
+
+Восстановление выполняется при помощи
+
+`budi backups --import backup-2024-07-17T13:29:47.368Z.tar.gz --env ./.env.backups`

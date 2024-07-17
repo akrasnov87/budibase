@@ -118,3 +118,5 @@ hosting/meta
 license.txt
 /temp
 .node_modules
+.env.*
+*.tar.gz
