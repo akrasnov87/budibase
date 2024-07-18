@@ -227,7 +227,7 @@ sudo npm install -g jest lerna
 
 node ./hosting/scripts/setup.js
 yarn
-yarn build
+yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size=4096 lerna run build --stream`)
 
 В корне проекта выполнить скрипт `node ./crack.js`
 
@@ -330,3 +330,19 @@ MAIN_PORT=10000
 Восстановление выполняется при помощи
 
 `budi backups --import backup-2024-07-17T13:29:47.368Z.tar.gz --env ./.env.backups`
+
+## Ошибки budi hosting --start
+
+<pre>
+budi hosting --start
+Starting services, this may take a moment - first time this may take a few minutes to download images.
+Error - Failed to start - logs written to file: docker-error.log
+</pre>
+
+Нужно установить `sudo apt  install docker-compose`
+
+## Разработка плагина
+
+* budi hosting --init
+* budi hosting --watch-plugin-dir /path-to-your-plugins-directory
+* Finally, run `budi hosting --start` and then do a `yarn watch` within your plugin repo.

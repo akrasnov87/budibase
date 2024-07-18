@@ -120,3 +120,4 @@ license.txt
 .node_modules
 .env.*
 *.tar.gz
+docker-compose.yaml
