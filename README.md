@@ -346,3 +346,11 @@ Error - Failed to start - logs written to file: docker-error.log
 * budi hosting --init
 * budi hosting --watch-plugin-dir /path-to-your-plugins-directory
 * Finally, run `budi hosting --start` and then do a `yarn watch` within your plugin repo.
+
+## budi
+
+[Budibase CLI](https://docs.budibase.com/docs/budibase-cli-setup)
+
+<pre>
+budi hosting --start
+</pre>
