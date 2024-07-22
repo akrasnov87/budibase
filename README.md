@@ -231,8 +231,11 @@ yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size
 
 В корне проекта выполнить скрипт `node ./crack.js`
 
-Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
+<pre>
+  deprecated
 
+  Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
+</pre>
 Далее выполняем yarn dev:server
 
 Открываем страницу <http://localhost:4001/>

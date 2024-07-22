@@ -15,6 +15,7 @@ import {
   queries as queriesStores,
   tables as tablesStore,
   roles as rolesStore,
+  groups as groupStore,
   selectedScreen,
 } from "stores/builder"
 import {
@@ -56,6 +57,7 @@ export const getBindableProperties = (asset, componentId) => {
   const stateBindings = getStateBindings()
   const selectedRowsBindings = getSelectedRowsBindings(asset)
   const roleBindings = getRoleBindings()
+  const groupBindings = getGroupBindings()
   return [
     ...contextBindings,
     ...urlBindings,
@@ -64,6 +66,7 @@ export const getBindableProperties = (asset, componentId) => {
     ...deviceBindings,
     ...selectedRowsBindings,
     ...roleBindings,
+    ...groupBindings,
   ]
 }
 
@@ -559,6 +562,10 @@ export const getUserBindings = () => {
   // add props that are not in the user metadata table schema
   // but will be there for logged-in user
   schema["globalId"] = { type: FieldType.STRING }
+  // groups
+  if (get(licensing).groupsEnabled) {
+    schema["groups"] = { type: FieldType.STRING }
+  }
   const keys = Object.keys(schema).sort()
   const safeUser = makePropSafe("user")
 
@@ -737,6 +744,22 @@ const getRoleBindings = () => {
       category: "Role",
       icon: "UserGroup",
       display: { type: "string", name: role.name },
+    }
+  })
+}
+
+/**
+ * Generates all bindings for role IDs
+ */
+const getGroupBindings = () => {
+  return (get(groupStore) || []).map(group => {
+    return {
+      type: "context",
+      runtimeBinding: `'${group._id}'`,
+      readableBinding: `Group.${group.name}`,
+      category: "Group",
+      icon: "UserGroup",
+      display: { type: "string", name: group.name },
     }
   })
 }

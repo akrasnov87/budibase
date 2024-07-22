@@ -22,6 +22,7 @@ import { views } from "./views"
 import { viewsV2 } from "./viewsV2"
 import { permissions } from "./permissions"
 import { roles } from "./roles"
+import { groups } from "./groups.js"
 import { datasources } from "./datasources"
 import { integrations } from "./integrations"
 import { sortedIntegrations } from "./sortedIntegrations"
@@ -54,6 +55,7 @@ export {
   viewsV2,
   permissions,
   roles,
+  groups,
   datasources,
   integrations,
   sortedIntegrations,
@@ -79,6 +81,7 @@ const refreshBuilderData = async () => {
     integrations.init(),
     queries.init(),
     tables.init(),
+    groups.fetch(),
     roles.fetch(),
     flags.fetch(),
   ])

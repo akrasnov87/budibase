@@ -66,6 +66,16 @@ export async function processUser(
   if (!user.roleId) {
     user.roleId = roles.BUILTIN_ROLE_IDS.PUBLIC
   }
+
+  // get groups
+  if(groupList && groupList.length > 0) {
+    user.groups = '.';
+
+    groupList.map((val, idx) => {
+      user.groups += val._id + '.';
+    });
+  }
+
   // remove the roles as it is now set
   delete user.roles
   return user
