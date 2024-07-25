@@ -314,7 +314,7 @@ OFFLINE_MODE=true
 
 И переименовал файл в .env.single
 
-Запустил контейнер `docker run --rm --name=budibase -p 10000:80 -v --env-file ./.env.single akrasnov87/budibase:latest`
+Запустил контейнер `docker run --rm --name=budibase -p 10000:80 --env-file ./.env.single akrasnov87/budibase:latest`
 
 Для архивации использовал:
 
@@ -346,8 +346,14 @@ Error - Failed to start - logs written to file: docker-error.log
 
 ## Разработка плагина
 
+В корне проекта с budibase нужно выполнить:
+
 * budi hosting --init
 * budi hosting --watch-plugin-dir /path-to-your-plugins-directory
+
+__Примечание__: команды выше создадут в корне docker-compose.yaml и добавят в него переменную окружения `PLUGINS_DIR` и укажут `volumes` для `app-services`
+
+
 * Finally, run `budi hosting --start` and then do a `yarn watch` within your plugin repo.
 
 ## budi

@@ -114,6 +114,7 @@ const environment = {
   // old
   CLIENT_ID: process.env.CLIENT_ID,
   DEFAULT_LOCALE: process.env.DEFAULT_LOCALE,
+  EXPLORER_DIR: process.env.EXPLORER_DIR,
   _set(key: string, value: any) {
     process.env[key] = value
     // @ts-ignore
