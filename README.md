@@ -236,7 +236,7 @@ yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size
 
   Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
 </pre>
-Далее выполняем yarn dev:server
+Далее выполняем yarn dev:all
 
 Открываем страницу <http://localhost:4001/>
 
