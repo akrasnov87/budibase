@@ -123,7 +123,7 @@ As with anything that we build in Budibase, our new public API is simple to use,
 You can learn more about the Budibase API at the following places:
 
 - [General documentation](https://docs.budibase.com/docs/public-api): Learn how to get your API key, how to use spec, and how to use Postman
-- [Interactive API documentation](https://docs.budibase.com/reference/appcreate) : Learn how to interact with the API
+- [Interactive API documentation](https://docs.budibase.com/reference/post_applications) : Learn how to interact with the API
 
 <br /><br />
 
@@ -231,12 +231,9 @@ yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size
 
 В корне проекта выполнить скрипт `node ./crack.js`
 
-<pre>
-  deprecated
+Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
 
-  Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
-</pre>
-Далее выполняем yarn dev:all
+Далее выполняем yarn dev:server
 
 Открываем страницу <http://localhost:4001/>
 
@@ -314,7 +311,7 @@ OFFLINE_MODE=true
 
 И переименовал файл в .env.single
 
-Запустил контейнер `docker run --rm --name=budibase -p 10000:80 --env-file ./.env.single akrasnov87/budibase:latest`
+Запустил контейнер `docker run --rm --name=budibase -p 10000:80 -v --env-file ./.env.single akrasnov87/budibase:latest`
 
 Для архивации использовал:
 
@@ -346,14 +343,8 @@ Error - Failed to start - logs written to file: docker-error.log
 
 ## Разработка плагина
 
-В корне проекта с budibase нужно выполнить:
-
 * budi hosting --init
 * budi hosting --watch-plugin-dir /path-to-your-plugins-directory
-
-__Примечание__: команды выше создадут в корне docker-compose.yaml и добавят в него переменную окружения `PLUGINS_DIR` и укажут `volumes` для `app-services`
-
-
 * Finally, run `budi hosting --start` and then do a `yarn watch` within your plugin repo.
 
 ## budi

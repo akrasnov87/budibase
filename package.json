@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.38.1009",
+  "version": "0.35.877",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -13,7 +13,7 @@
     "@types/proper-lockfile": "^4.1.4",
     "@typescript-eslint/parser": "6.9.0",
     "esbuild": "^0.18.17",
-    "esbuild-node-externals": "^1.14.0",
+    "esbuild-node-externals": "^1.8.0",
     "eslint": "^8.52.0",
     "eslint-plugin-import": "^2.29.0",
     "eslint-plugin-jest": "^27.9.0",
