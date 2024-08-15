@@ -10,6 +10,7 @@ function buildAuthValidation() {
   return auth.joiValidator.body(Joi.object({
     username: Joi.string().required(),
     password: Joi.string().required(),
+    permissionInfo: Joi.boolean().optional()
   }).required().unknown(false))
 }
 

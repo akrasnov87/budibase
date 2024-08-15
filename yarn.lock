@@ -2031,7 +2031,7 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@budibase/backend-core@2.23.12":
+"@budibase/backend-core@2.29.24":
   version "0.0.0"
   dependencies:
     "@budibase/nano" "10.1.5"
@@ -2059,7 +2059,7 @@
     passport-oauth2-refresh "^2.1.0"
     pino "8.11.0"
     pino-http "8.3.3"
-    posthog-node "1.3.0"
+    posthog-node "4.0.1"
     pouchdb "7.3.0"
     pouchdb-find "7.2.2"
     redlock "4.2.0"
@@ -2112,14 +2112,14 @@
     through2 "^2.0.0"
 
 "@budibase/pro@0.0.0", "@budibase/pro@npm:@budibase/pro@latest":
-  version "2.23.12"
-  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-2.23.12.tgz#b2e813c547a5ed22b5bd86b1158159fe4b918260"
-  integrity sha512-DMtfkrJDSIF9V7AL6brpuWWw7Ot5XxO4YQ32ggmr0264uU9KYsTFvlFXFP3MSF2H+247ZYUouSJU76+XeC13qQ==
+  version "2.29.24"
+  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-2.29.24.tgz#2dbd4c6c0f757aab7e17c413c6d6e4520086f9ac"
+  integrity sha512-m1v24UD6O21Vbrfsuo5kC5oeg7FzjWO2w8TQMw1VvPKmdIqqclaKDPTPytxwllTMkapMDRNzM5cQzqnQ3yHf6A==
   dependencies:
-    "@budibase/backend-core" "2.23.12"
-    "@budibase/shared-core" "2.23.12"
-    "@budibase/string-templates" "2.23.12"
-    "@budibase/types" "2.23.12"
+    "@budibase/backend-core" "2.29.24"
+    "@budibase/shared-core" "2.29.24"
+    "@budibase/string-templates" "2.29.24"
+    "@budibase/types" "2.29.24"
     "@koa/router" "8.0.8"
     bull "4.10.1"
     joi "17.6.0"
@@ -2130,13 +2130,13 @@
     scim-patch "^0.8.1"
     scim2-parse-filter "^0.2.8"
 
-"@budibase/shared-core@2.23.12":
+"@budibase/shared-core@2.29.24":
   version "0.0.0"
   dependencies:
     "@budibase/types" "0.0.0"
     cron-validate "1.4.5"
 
-"@budibase/string-templates@2.23.12":
+"@budibase/string-templates@2.29.24":
   version "0.0.0"
   dependencies:
     "@budibase/handlebars-helpers" "^0.13.2"
@@ -2144,7 +2144,7 @@
     handlebars "^4.7.8"
     lodash.clonedeep "^4.5.0"
 
-"@budibase/types@2.23.12":
+"@budibase/types@2.29.24":
   version "0.0.0"
   dependencies:
     scim-patch "^0.8.1"
@@ -5640,13 +5640,12 @@
   resolved "https://registry.yarnpkg.com/@types/normalize-package-data/-/normalize-package-data-2.4.1.tgz#d3357479a0fdfdd5907fe67e17e0a85c906e1301"
   integrity sha512-Gj7cI7z+98M282Tqmp2K5EIsoouUEzbBJhQQzDE3jSIRk6r9gsz0oUokqIUR4u1R3dMHo0pDHM7sNOHyhulypw==
 
-"@types/oracledb@5.2.2":
-  version "5.2.2"
-  resolved "https://registry.yarnpkg.com/@types/oracledb/-/oracledb-5.2.2.tgz#ae7ba795969e3bbd8d57ab141873a1aa012b86cd"
-  integrity sha512-aYb2DdZOQVIgSCSXjXNikQuyiHAY09SkRA4cjwoj+F/mhLJDahdjNeBmvQvfFojyChCKLuupSJHqoAXPExgV5w==
+"@types/oracledb@6.5.1":
+  version "6.5.1"
+  resolved "https://registry.yarnpkg.com/@types/oracledb/-/oracledb-6.5.1.tgz#17d021cabc9d216dfa6d3d65ae3ee585c33baab3"
+  integrity sha512-Ll0bKGXmCZVngBL3juSaytA8Jeocx0VghDHTt+FEC2bs8fdl9pzoaBXYWXjBUxCCT8Y/69m5AzuTgBd79j24WA==
   dependencies:
     "@types/node" "*"
-    dotenv "^8.2.0"
 
 "@types/pg@8.6.6":
   version "8.6.6"
@@ -7043,7 +7042,7 @@ axios-retry@^3.1.9:
     "@babel/runtime" "^7.15.4"
     is-retry-allowed "^2.2.0"
 
-axios@0.24.0, axios@1.1.3, axios@1.6.3, axios@^0.21.1, axios@^1.0.0, axios@^1.1.3, axios@^1.4.0, axios@^1.5.0:
+axios@0.24.0, axios@1.1.3, axios@1.6.3, axios@^0.21.1, axios@^1.0.0, axios@^1.1.3, axios@^1.4.0, axios@^1.5.0, axios@^1.6.2:
   version "1.6.3"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.6.3.tgz#7f50f23b3aa246eff43c54834272346c396613f4"
   integrity sha512-fWyNdeawGam70jXSVlKl+SUNVcL6j6W79CuSIPfi6HnDUmSCH6gyUys/HrqHeA/wU0Az41rRgean494d0Jb+ww==
@@ -7580,6 +7579,14 @@ buffer@4.9.2:
     ieee754 "^1.1.4"
     isarray "^1.0.0"
 
+buffer@6.0.3, buffer@^6.0.3:
+  version "6.0.3"
+  resolved "https://registry.yarnpkg.com/buffer/-/buffer-6.0.3.tgz#2ace578459cc8fbe2a70aaa8f52ee63b6a74c6c6"
+  integrity sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==
+  dependencies:
+    base64-js "^1.3.1"
+    ieee754 "^1.2.1"
+
 buffer@^5.1.0, buffer@^5.2.0, buffer@^5.2.1, buffer@^5.5.0, buffer@^5.6.0:
   version "5.7.1"
   resolved "https://registry.yarnpkg.com/buffer/-/buffer-5.7.1.tgz#ba62e7c13133053582197160851a8f648e99eed0"
@@ -7587,14 +7594,6 @@ buffer@^5.1.0, buffer@^5.2.0, buffer@^5.2.1, buffer@^5.5.0, buffer@^5.6.0:
   dependencies:
     base64-js "^1.3.1"
     ieee754 "^1.1.13"
-
-buffer@^6.0.3:
-  version "6.0.3"
-  resolved "https://registry.yarnpkg.com/buffer/-/buffer-6.0.3.tgz#2ace578459cc8fbe2a70aaa8f52ee63b6a74c6c6"
-  integrity sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==
-  dependencies:
-    base64-js "^1.3.1"
-    ieee754 "^1.2.1"
 
 bufferutil@^4.0.1:
   version "4.0.7"
@@ -10114,10 +10113,10 @@ es6-weak-map@^2.0.3:
     es6-iterator "^2.0.3"
     es6-symbol "^3.1.1"
 
-esbuild-node-externals@^1.8.0:
-  version "1.8.0"
-  resolved "https://registry.yarnpkg.com/esbuild-node-externals/-/esbuild-node-externals-1.8.0.tgz#878fbe458d4e58337753c2eacfd7200dc1077bd1"
-  integrity sha512-pYslmT8Bl383UnfxzHQQRpCgBNIOwAzDaYheuIeI4CODxelsN/eQroVn5STDow5QOpRalMgWUR+R8LfSgUROcw==
+esbuild-node-externals@^1.14.0:
+  version "1.14.0"
+  resolved "https://registry.yarnpkg.com/esbuild-node-externals/-/esbuild-node-externals-1.14.0.tgz#fc2950c67a068dc2b538fd1381ad7d8e20a6f54d"
+  integrity sha512-jMWnTlCII3cLEjR5+u0JRSTJuP+MgbjEHKfwSIAI41NgLQ0ZjfzjchlbEn0r7v2u5gCBMSEYvYlkO7GDG8gG3A==
   dependencies:
     find-up "^5.0.0"
     tslib "^2.4.1"
@@ -11670,10 +11669,10 @@ google-p12-pem@^4.0.0:
   dependencies:
     node-forge "^1.3.1"
 
-"google-spreadsheet@npm:@budibase/google-spreadsheet@4.1.2":
-  version "4.1.2"
-  resolved "https://registry.yarnpkg.com/@budibase/google-spreadsheet/-/google-spreadsheet-4.1.2.tgz#90548ccba2284b3042b08d2974ef3caeaf772ad9"
-  integrity sha512-dxoY3rQGGnuNeZiXhNc9oYPduzU8xnIjWujFwNvaRRv3zWeUV7mj6HE2o/OJOeekPGt7o44B+w6DfkiaoteZgg==
+"google-spreadsheet@npm:@budibase/google-spreadsheet@4.1.3":
+  version "4.1.3"
+  resolved "https://registry.yarnpkg.com/@budibase/google-spreadsheet/-/google-spreadsheet-4.1.3.tgz#bcee7bd9d90f82c54b16a9aca963b87aceb050ad"
+  integrity sha512-03VX3/K5NXIh6+XAIDZgcHPmR76xwd8vIDL7RedMpvM2IcXK0Iq/KU7FmLY0t/mKqORAGC7+0rajd0jLFezC4w==
   dependencies:
     axios "^1.4.0"
     lodash "^4.17.21"
@@ -13166,7 +13165,7 @@ jest-config@^29.7.0:
     slash "^3.0.0"
     strip-json-comments "^3.1.1"
 
-"jest-diff@>=29.4.3 < 30", jest-diff@^29.4.1, jest-diff@^29.7.0:
+"jest-diff@>=29.4.3 < 30", jest-diff@^29.0.0, jest-diff@^29.4.1, jest-diff@^29.7.0:
   version "29.7.0"
   resolved "https://registry.yarnpkg.com/jest-diff/-/jest-diff-29.7.0.tgz#017934a66ebb7ecf6f205e84699be10afd70458a"
   integrity sha512-LMIgiIrhigmPrs03JHpxUh2yISK3vLFPkAodPeo0+BuF7wA2FoQbkEg1u8gBYBThncu7e1oEDUfIXVuTqLRUjw==
@@ -13216,12 +13215,20 @@ jest-environment-node@^29.7.0:
     jest-mock "^29.7.0"
     jest-util "^29.7.0"
 
+jest-extended@^4.0.2:
+  version "4.0.2"
+  resolved "https://registry.yarnpkg.com/jest-extended/-/jest-extended-4.0.2.tgz#d23b52e687cedf66694e6b2d77f65e211e99e021"
+  integrity sha512-FH7aaPgtGYHc9mRjriS0ZEHYM5/W69tLrFTIdzm+yJgeoCmmrSB/luSfMSqWP9O29QWHPEmJ4qmU6EwsZideog==
+  dependencies:
+    jest-diff "^29.0.0"
+    jest-get-type "^29.0.0"
+
 jest-get-type@^26.3.0:
   version "26.3.0"
   resolved "https://registry.yarnpkg.com/jest-get-type/-/jest-get-type-26.3.0.tgz#e97dc3c3f53c2b406ca7afaed4493b1d099199e0"
   integrity sha512-TpfaviN1R2pQWkIihlfEanwOXK0zcxrKEE4MlU6Tn7keoXdN6/3gK/xl0yEh8DOunn5pOVGKf8hB4R9gVh04ig==
 
-jest-get-type@^29.6.3:
+jest-get-type@^29.0.0, jest-get-type@^29.6.3:
   version "29.6.3"
   resolved "https://registry.yarnpkg.com/jest-get-type/-/jest-get-type-29.6.3.tgz#36f499fdcea197c1045a127319c0481723908fd1"
   integrity sha512-zrteXnqYxfQh7l5FHyL38jL39di8H8rHoecLH3JNxH3BwOrBsNeabdap5e0I23lD4HHI8W5VFBZqG4Eaq5LNcw==
@@ -16374,10 +16381,10 @@ ora@^5.4.1:
     strip-ansi "^6.0.0"
     wcwidth "^1.0.1"
 
-oracledb@5.3.0:
-  version "5.3.0"
-  resolved "https://registry.yarnpkg.com/oracledb/-/oracledb-5.3.0.tgz#a15e6cd16757d8711a2c006a28bd7ecd3b8466f7"
-  integrity sha512-HMJzQ6lCf287ztvvehTEmjCWA21FQ3RMvM+mgoqd4i8pkREuqFWO+y3ovsGR9moJUg4T0xjcwS8rl4mggWPxmg==
+oracledb@6.5.1:
+  version "6.5.1"
+  resolved "https://registry.yarnpkg.com/oracledb/-/oracledb-6.5.1.tgz#814d985035acdb1a6470b1152af0ca3767569ede"
+  integrity sha512-JzoSGei1wnvmqgKnAZK1W650mzHTZXx+7hClV4mwsbY/ZjUtrpnojNJMYJ2jkOhj7XG5oJPfXc4GqDKaNzkxqg==
 
 os-locale@^3.1.0:
   version "3.1.0"
@@ -17498,6 +17505,14 @@ posthog-node@1.3.0:
     remove-trailing-slash "^0.1.1"
     uuid "^8.3.2"
 
+posthog-node@4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/posthog-node/-/posthog-node-4.0.1.tgz#eb8b6cdf68c3fdd0dc2b75e8aab2e0ec3727fb2a"
+  integrity sha512-rtqm2h22QxLGBrW2bLYzbRhliIrqgZ0k+gF0LkQ1SNdeD06YE5eilV0MxZppFSxC8TfH0+B0cWCuebEnreIDgQ==
+  dependencies:
+    axios "^1.6.2"
+    rusha "^0.8.14"
+
 pouch-stream@^0.4.0:
   version "0.4.1"
   resolved "https://registry.yarnpkg.com/pouch-stream/-/pouch-stream-0.4.1.tgz#0c6d8475c9307677627991a2f079b301c3b89bdd"
@@ -18550,9 +18565,9 @@ requirejs-config-file@^4.0.0:
     stringify-object "^3.2.1"
 
 requirejs@^2.3.5:
-  version "2.3.6"
-  resolved "https://registry.yarnpkg.com/requirejs/-/requirejs-2.3.6.tgz#e5093d9601c2829251258c0b9445d4d19fa9e7c9"
-  integrity sha512-ipEzlWQe6RK3jkzikgCupiTbTvm4S0/CAU5GlgptkN5SO6F3u0UD0K18wy6ErDqiCyP4J4YYe1HuAShvsxePLg==
+  version "2.3.7"
+  resolved "https://registry.yarnpkg.com/requirejs/-/requirejs-2.3.7.tgz#0b22032e51a967900e0ae9f32762c23a87036bd0"
+  integrity sha512-DouTG8T1WanGok6Qjg2SXuCMzszOo0eHeH9hDZ5Y4x8Je+9JB38HdTLT4/VA8OaUhBa0JPVHJ0pyBkM1z+pDsw==
 
 requires-port@^1.0.0:
   version "1.0.0"
@@ -18877,6 +18892,11 @@ run-parallel@^1.1.9:
   integrity sha512-5l4VyZR86LZ/lDxZTR6jqL8AFE2S0IFLMP26AbjsLVADxHdhB/c0GUsH+y39UfCi3dzz8OlQuPmnaJOMoDHQBA==
   dependencies:
     queue-microtask "^1.2.2"
+
+rusha@^0.8.14:
+  version "0.8.14"
+  resolved "https://registry.yarnpkg.com/rusha/-/rusha-0.8.14.tgz#a977d0de9428406138b7bb90d3de5dcd024e2f68"
+  integrity sha512-cLgakCUf6PedEu15t8kbsjnwIFFR2D4RfL+W3iWFJ4iac7z4B0ZI8fxy4R3J956kAI68HclCFGL8MPoUVC3qVA==
 
 rxjs@^6.6.6:
   version "6.6.7"

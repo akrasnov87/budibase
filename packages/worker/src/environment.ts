@@ -20,7 +20,6 @@ function parseIntSafe(number: any) {
 
 const environment = {
   // features
-  WORKER_FEATURES: process.env.WORKER_FEATURES,
   DEFAULT_LOCALE: process.env.DEFAULT_LOCALE,
   // auth
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
@@ -29,6 +28,7 @@ const environment = {
   SALT_ROUNDS: process.env.SALT_ROUNDS,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
   COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
+  PASSWORD_MIN_LENGTH: process.env.PASSWORD_MIN_LENGTH,
   // urls
   MINIO_URL: process.env.MINIO_URL,
   COUCH_DB_URL: process.env.COUCH_DB_URL,

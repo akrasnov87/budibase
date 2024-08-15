@@ -54,7 +54,7 @@ export const clearAllApps = async (
 }
 
 export const clearAllAutomations = async (config: TestConfiguration) => {
-  const automations = await config.getAllAutomations()
+  const { automations } = await config.getAllAutomations()
   for (let auto of automations) {
     await context.doInAppContext(config.getAppId(), async () => {
       await config.deleteAutomation(auto)
@@ -183,4 +183,8 @@ export const runInProd = async (func: any) => {
   await func()
   env._set("NODE_ENV", nodeEnv)
   env._set("JEST_WORKER_ID", workerId)
+}
+
+export function allowUndefined(expectation: jest.Expect) {
+  return expect.toBeOneOf([expectation, undefined, null])
 }

@@ -58,6 +58,7 @@
     AutomationEventType,
     AutomationStepType,
     AutomationActionStepId,
+    AutomationCustomIOType,
   } from "@budibase/types"
   import { FIELDS } from "constants/backend"
   import PropField from "./PropField.svelte"
@@ -69,6 +70,7 @@
 
   // Stop unnecessary rendering
   const memoBlock = memo(block)
+  const memoEnvVariables = memo($environment.variables)
 
   const rowTriggers = [
     TriggerStepID.ROW_UPDATED,
@@ -90,11 +92,20 @@
   let insertAtPos, getCaretPosition
   let stepLayouts = {}
 
+  $: memoEnvVariables.set($environment.variables)
   $: memoBlock.set(block)
+
   $: filters = lookForFilters(schemaProperties) || []
   $: tempFilters = filters
-  $: stepId = block.stepId
-  $: bindings = getAvailableBindings(block, $selectedAutomation?.definition)
+  $: stepId = $memoBlock.stepId
+
+  $: automationBindings = getAvailableBindings(
+    $memoBlock,
+    $selectedAutomation?.definition
+  )
+  $: environmentBindings = buildEnvironmentBindings($memoEnvVariables)
+  $: bindings = [...automationBindings, ...environmentBindings]
+
   $: getInputData(testData, $memoBlock.inputs)
   $: tableId = inputData ? inputData.tableId : null
   $: table = tableId
@@ -109,7 +120,7 @@
     { allowLinks: true }
   )
   $: queryLimit = tableId?.includes("datasource") ? "∞" : "1000"
-  $: isTrigger = block?.type === AutomationStepType.TRIGGER
+  $: isTrigger = $memoBlock?.type === AutomationStepType.TRIGGER
   $: codeMode =
     stepId === AutomationActionStepId.EXECUTE_BASH
       ? EditorModes.Handlebars
@@ -118,12 +129,29 @@
     disableWrapping: true,
   })
   $: editingJs = codeMode === EditorModes.JS
-  $: requiredProperties = isTestModal ? [] : block.schema["inputs"].required
+  $: requiredProperties = isTestModal
+    ? []
+    : $memoBlock.schema["inputs"].required
 
   $: stepCompletions =
     codeMode === EditorModes.Handlebars
       ? [hbAutocomplete([...bindingsToCompletions(bindings, codeMode)])]
       : []
+
+  const buildEnvironmentBindings = () => {
+    if ($licensing.environmentVariablesEnabled) {
+      return getEnvironmentBindings().map(binding => {
+        return {
+          ...binding,
+          display: {
+            ...binding.display,
+            rank: 98,
+          },
+        }
+      })
+    }
+    return []
+  }
 
   const getInputData = (testData, blockInputs) => {
     // Test data is not cloned for reactivity
@@ -150,9 +178,9 @@
 
   // Store for any UX related data
   const stepStore = writable({})
-  $: currentStep = $stepStore?.[block.id]
+  $: stepState = $stepStore?.[block.id]
 
-  $: customStepLayouts($memoBlock, schemaProperties, currentStep)
+  $: customStepLayouts($memoBlock, schemaProperties, stepState)
 
   const customStepLayouts = block => {
     if (
@@ -184,7 +212,6 @@
                   onChange: e => {
                     onChange({ ["revision"]: e.detail })
                   },
-                  bindings,
                   updateOnChange: false,
                   forceModal: true,
                 },
@@ -213,7 +240,6 @@
               onChange: e => {
                 onChange({ [rowIdentifier]: e.detail })
               },
-              bindings,
               updateOnChange: false,
               forceModal: true,
             },
@@ -274,7 +300,7 @@
           isUpdateRow: block.stepId === ActionStepID.UPDATE_ROW,
         }
 
-        if (isTestModal && currentStep?.rowType === "oldRow") {
+        if (isTestModal && stepState?.rowType === "oldRow") {
           return [
             {
               type: RowSelector,
@@ -394,7 +420,9 @@
    */
   const onRowTriggerUpdate = async update => {
     if (
-      ["tableId", "filters", "meta"].some(key => Object.hasOwn(update, key))
+      ["tableId", AutomationCustomIOType.FILTERS, "meta"].some(key =>
+        Object.hasOwn(update, key)
+      )
     ) {
       try {
         let updatedAutomation
@@ -719,22 +747,9 @@
       )
     }
 
-    // Environment bindings
-    if ($licensing.environmentVariablesEnabled) {
-      bindings = bindings.concat(
-        getEnvironmentBindings().map(binding => {
-          return {
-            ...binding,
-            display: {
-              ...binding.display,
-              rank: 98,
-            },
-          }
-        })
-      )
-    }
     return bindings
   }
+
   function lookForFilters(properties) {
     if (!properties) {
       return []
@@ -744,7 +759,11 @@
     for (let [key, field] of properties) {
       // need to look for the builder definition (keyed separately, see saveFilters)
       const defKey = `${key}-def`
-      if (field.customType === "filters" && inputs?.[defKey]) {
+      if (
+        (field.customType === AutomationCustomIOType.FILTERS ||
+          field.customType === AutomationCustomIOType.TRIGGER_FILTER) &&
+        inputs?.[defKey]
+      ) {
         filters = inputs[defKey]
         break
       }
@@ -763,7 +782,7 @@
     drawer.hide()
   }
 
-  function canShowField(key, value) {
+  function canShowField(value) {
     const dependsOn = value?.dependsOn
     return !dependsOn || !!inputData[dependsOn]
   }
@@ -822,6 +841,7 @@
               <svelte:component
                 this={config.type}
                 {...config.props}
+                {bindings}
                 on:change={config.props.onChange}
               />
             </PropField>
@@ -829,6 +849,7 @@
             <svelte:component
               this={config.type}
               {...config.props}
+              {bindings}
               on:change={config.props.onChange}
             />
           {/if}
@@ -846,7 +867,7 @@
               <Label>
                 {label}
               </Label>
-              {#if value.customType === "trigger_filter"}
+              {#if value.customType === AutomationCustomIOType.TRIGGER_FILTER}
                 <Icon
                   hoverable
                   on:click={() =>
@@ -869,6 +890,7 @@
                 options={value.enum}
                 getOptionLabel={(x, idx) =>
                   value.pretty ? value.pretty[idx] : x}
+                disabled={value.readonly}
               />
             {:else if value.type === "json"}
               <Editor
@@ -877,6 +899,7 @@
                 mode="json"
                 value={inputData[key]?.value}
                 on:change={e => onChange({ [key]: e.detail })}
+                readOnly={value.readonly}
               />
             {:else if value.type === "boolean"}
               <div style="margin-top: 10px">
@@ -884,6 +907,7 @@
                   text={value.title}
                   value={inputData[key]}
                   on:change={e => onChange({ [key]: e.detail })}
+                  disabled={value.readonly}
                 />
               </div>
             {:else if value.type === "date"}
@@ -897,6 +921,7 @@
                 allowJS={true}
                 updateOnChange={false}
                 drawerLeft="260px"
+                disabled={value.readonly}
               >
                 <DatePicker
                   value={inputData[key]}
@@ -908,6 +933,7 @@
                 on:change={e => onChange({ [key]: e.detail })}
                 value={inputData[key]}
                 options={Object.keys(table?.schema || {})}
+                disabled={value.readonly}
               />
             {:else if value.type === "attachment" || value.type === "signature_single"}
               <div class="attachment-field-wrapper">
@@ -977,7 +1003,7 @@
                   {/if}
                 </div>
               </div>
-            {:else if value.customType === "filters" || value.customType === "trigger_filter"}
+            {:else if value.customType === AutomationCustomIOType.FILTERS || value.customType === AutomationCustomIOType.TRIGGER_FILTER}
               <ActionButton fullWidth on:click={drawer.show}
                 >{filters.length > 0
                   ? "Update Filter"
@@ -1021,6 +1047,7 @@
                 {isTrigger}
                 value={inputData[key]}
                 on:change={e => onChange({ [key]: e.detail })}
+                disabled={value.readonly}
               />
             {:else if value.customType === "webhookUrl"}
               <WebhookDisplay value={inputData[key]} />

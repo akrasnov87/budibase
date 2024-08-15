@@ -24,7 +24,12 @@ import { generator, mocks } from "@budibase/backend-core/tests"
 import { DatabaseName, getDatasource } from "../../../integrations/tests/utils"
 import merge from "lodash/merge"
 import { quotas } from "@budibase/pro"
-import { db, roles } from "@budibase/backend-core"
+import {
+  db,
+  roles,
+  withEnv as withCoreEnv,
+  setEnv as setCoreEnv,
+} from "@budibase/backend-core"
 
 describe.each([
   ["lucene", undefined],
@@ -33,6 +38,7 @@ describe.each([
   [DatabaseName.MYSQL, getDatasource(DatabaseName.MYSQL)],
   [DatabaseName.SQL_SERVER, getDatasource(DatabaseName.SQL_SERVER)],
   [DatabaseName.MARIADB, getDatasource(DatabaseName.MARIADB)],
+  [DatabaseName.ORACLE, getDatasource(DatabaseName.ORACLE)],
 ])("/v2/views (%s)", (name, dsProvider) => {
   const config = setup.getConfig()
   const isSqs = name === "sqs"
@@ -56,7 +62,7 @@ describe.each([
       primary: ["id"],
       schema: {
         id: {
-          type: FieldType.AUTO,
+          type: FieldType.NUMBER,
           name: "id",
           autocolumn: true,
           constraints: {
@@ -88,12 +94,11 @@ describe.each([
   }
 
   beforeAll(async () => {
-    await config.withCoreEnv(
-      { SQS_SEARCH_ENABLE: isSqs ? "true" : "false" },
-      () => config.init()
+    await withCoreEnv({ SQS_SEARCH_ENABLE: isSqs ? "true" : "false" }, () =>
+      config.init()
     )
     if (isSqs) {
-      envCleanup = config.setCoreEnv({
+      envCleanup = setCoreEnv({
         SQS_SEARCH_ENABLE: "true",
         SQS_SEARCH_ENABLE_TENANTS: [config.getTenantId()],
       })
@@ -241,7 +246,7 @@ describe.each([
         schema: {
           id: {
             name: "id",
-            type: FieldType.AUTO,
+            type: FieldType.NUMBER,
             autocolumn: true,
             visible: true,
           },
@@ -1022,6 +1027,11 @@ describe.each([
           schema: {
             one: { type: FieldType.STRING, name: "one" },
             two: { type: FieldType.STRING, name: "two" },
+            default: {
+              type: FieldType.STRING,
+              name: "default",
+              default: "default",
+            },
           },
         })
       )
@@ -1042,11 +1052,13 @@ describe.each([
           _viewId: view.id,
           one: "foo",
           two: "bar",
+          default: "ohnoes",
         })
 
         const row = await config.api.row.get(table._id!, newRow._id!)
         expect(row.one).toBeUndefined()
         expect(row.two).toEqual("bar")
+        expect(row.default).toEqual("default")
       })
 
       it("can't persist readonly columns", async () => {
@@ -1477,6 +1489,119 @@ describe.each([
           }
         )
       })
+
+      isLucene &&
+        it("in lucene, cannot override a view filter", async () => {
+          await config.api.row.save(table._id!, {
+            one: "foo",
+            two: "bar",
+          })
+          const two = await config.api.row.save(table._id!, {
+            one: "foo2",
+            two: "bar2",
+          })
+
+          const view = await config.api.viewV2.create({
+            tableId: table._id!,
+            name: generator.guid(),
+            query: [
+              {
+                operator: BasicOperator.EQUAL,
+                field: "two",
+                value: "bar2",
+              },
+            ],
+            schema: {
+              id: { visible: true },
+              one: { visible: false },
+              two: { visible: true },
+            },
+          })
+
+          const response = await config.api.viewV2.search(view.id, {
+            query: {
+              equal: {
+                two: "bar",
+              },
+            },
+          })
+          expect(response.rows).toHaveLength(1)
+          expect(response.rows).toEqual([
+            expect.objectContaining({ _id: two._id }),
+          ])
+        })
+
+      !isLucene &&
+        it("can filter a view without a view filter", async () => {
+          const one = await config.api.row.save(table._id!, {
+            one: "foo",
+            two: "bar",
+          })
+          await config.api.row.save(table._id!, {
+            one: "foo2",
+            two: "bar2",
+          })
+
+          const view = await config.api.viewV2.create({
+            tableId: table._id!,
+            name: generator.guid(),
+            schema: {
+              id: { visible: true },
+              one: { visible: false },
+              two: { visible: true },
+            },
+          })
+
+          const response = await config.api.viewV2.search(view.id, {
+            query: {
+              equal: {
+                two: "bar",
+              },
+            },
+          })
+          expect(response.rows).toHaveLength(1)
+          expect(response.rows).toEqual([
+            expect.objectContaining({ _id: one._id }),
+          ])
+        })
+
+      !isLucene &&
+        it("cannot bypass a view filter", async () => {
+          await config.api.row.save(table._id!, {
+            one: "foo",
+            two: "bar",
+          })
+          await config.api.row.save(table._id!, {
+            one: "foo2",
+            two: "bar2",
+          })
+
+          const view = await config.api.viewV2.create({
+            tableId: table._id!,
+            name: generator.guid(),
+            query: [
+              {
+                operator: BasicOperator.EQUAL,
+                field: "two",
+                value: "bar2",
+              },
+            ],
+            schema: {
+              id: { visible: true },
+              one: { visible: false },
+              two: { visible: true },
+            },
+          })
+
+          const response = await config.api.viewV2.search(view.id, {
+            query: {
+              equal: {
+                two: "bar",
+              },
+            },
+          })
+          expect(response.rows).toHaveLength(0)
+        })
     })
 
     describe("permissions", () => {
@@ -1548,7 +1673,7 @@ describe.each([
             schema: {
               id: {
                 name: "id",
-                type: FieldType.AUTO,
+                type: FieldType.NUMBER,
                 autocolumn: true,
               },
               name: {

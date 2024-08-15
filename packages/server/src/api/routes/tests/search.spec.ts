@@ -5,10 +5,14 @@ import {
   knexClient,
 } from "../../../integrations/tests/utils"
 import {
+  context,
   db as dbCore,
   MAX_VALID_DATE,
   MIN_VALID_DATE,
+  SQLITE_DESIGN_DOC_ID,
   utils,
+  withEnv as withCoreEnv,
+  setEnv as setCoreEnv,
 } from "@budibase/backend-core"
 
 import * as setup from "./utilities"
@@ -18,6 +22,7 @@ import {
   Datasource,
   EmptyFilterOption,
   FieldType,
+  JsonFieldSubType,
   RelationshipType,
   Row,
   RowSearchParams,
@@ -36,6 +41,7 @@ import { dataFilters } from "@budibase/shared-core"
 import { Knex } from "knex"
 import { structures } from "@budibase/backend-core/tests"
 import { DEFAULT_EMPLOYEE_TABLE_SCHEMA } from "../../../db/defaultData/datasource_bb_default"
+import { generateRowIdField } from "../../../integrations/utils"
 
 describe.each([
   ["in-memory", undefined],
@@ -45,11 +51,13 @@ describe.each([
   [DatabaseName.MYSQL, getDatasource(DatabaseName.MYSQL)],
   [DatabaseName.SQL_SERVER, getDatasource(DatabaseName.SQL_SERVER)],
   [DatabaseName.MARIADB, getDatasource(DatabaseName.MARIADB)],
+  [DatabaseName.ORACLE, getDatasource(DatabaseName.ORACLE)],
 ])("search (%s)", (name, dsProvider) => {
   const isSqs = name === "sqs"
   const isLucene = name === "lucene"
   const isInMemory = name === "in-memory"
   const isInternal = isSqs || isLucene || isInMemory
+  const isSql = !isInMemory && !isLucene
   const config = setup.getConfig()
 
   let envCleanup: (() => void) | undefined
@@ -59,9 +67,9 @@ describe.each([
   let rows: Row[]
 
   beforeAll(async () => {
-    await config.withCoreEnv({ SQS_SEARCH_ENABLE: "true" }, () => config.init())
+    await withCoreEnv({ SQS_SEARCH_ENABLE: "true" }, () => config.init())
     if (isSqs) {
-      envCleanup = config.setCoreEnv({
+      envCleanup = setCoreEnv({
         SQS_SEARCH_ENABLE: "true",
         SQS_SEARCH_ENABLE_TENANTS: [config.getTenantId()],
       })
@@ -189,7 +197,8 @@ describe.each([
     // different to the one passed in will cause the assertion to fail.  Extra
     // rows returned by the query will also cause the assertion to fail.
     async toMatchExactly(expectedRows: any[]) {
-      const { rows: foundRows } = await this.performSearch()
+      const response = await this.performSearch()
+      const foundRows = response.rows
 
       // eslint-disable-next-line jest/no-standalone-expect
       expect(foundRows).toHaveLength(expectedRows.length)
@@ -199,13 +208,15 @@ describe.each([
           expect.objectContaining(this.popRow(expectedRow, foundRows))
         )
       )
+      return response
     }
 
     // Asserts that the query returns rows matching exactly the set of rows
     // passed in. The order of the rows is not important, but extra rows will
     // cause the assertion to fail.
     async toContainExactly(expectedRows: any[]) {
-      const { rows: foundRows } = await this.performSearch()
+      const response = await this.performSearch()
+      const foundRows = response.rows
 
       // eslint-disable-next-line jest/no-standalone-expect
       expect(foundRows).toHaveLength(expectedRows.length)
@@ -217,6 +228,7 @@ describe.each([
           )
         )
       )
+      return response
     }
 
     // Asserts that the query returns some property values - this cannot be used
@@ -233,6 +245,7 @@ describe.each([
           expect(response[key]).toEqual(properties[key])
         }
       }
+      return response
     }
 
     // Asserts that the query doesn't return a property, e.g. pagination parameters.
@@ -242,13 +255,15 @@ describe.each([
         // eslint-disable-next-line jest/no-standalone-expect
         expect(response[property]).toBeUndefined()
       }
+      return response
     }
 
     // Asserts that the query returns rows matching the set of rows passed in.
     // The order of the rows is not important. Extra rows will not cause the
     // assertion to fail.
     async toContain(expectedRows: any[]) {
-      const { rows: foundRows } = await this.performSearch()
+      const response = await this.performSearch()
+      const foundRows = response.rows
 
       // eslint-disable-next-line jest/no-standalone-expect
       expect([...foundRows]).toEqual(
@@ -258,6 +273,7 @@ describe.each([
           )
         )
       )
+      return response
     }
 
     async toFindNothing() {
@@ -1492,7 +1508,10 @@ describe.each([
         numbers: {
           name: "numbers",
           type: FieldType.ARRAY,
-          constraints: { inclusion: ["one", "two", "three"] },
+          constraints: {
+            type: JsonFieldSubType.ARRAY,
+            inclusion: ["one", "two", "three"],
+          },
         },
       })
       await createRows([{ numbers: ["one", "two"] }, { numbers: ["three"] }])
@@ -1579,7 +1598,7 @@ describe.each([
     const MEDIUM = "10000000"
 
     // Our bigints are int64s in most datasources.
-    const BIG = "9223372036854775807"
+    let BIG = "9223372036854775807"
 
     beforeAll(async () => {
       table = await createTable({
@@ -2337,6 +2356,35 @@ describe.each([
       })
     })
 
+  describe("Invalid column definitions", () => {
+    beforeAll(async () => {
+      // need to create an invalid table - means ignoring typescript
+      table = await createTable({
+        // @ts-ignore
+        invalid: {
+          type: FieldType.STRING,
+        },
+        name: {
+          name: "name",
+          type: FieldType.STRING,
+        },
+      })
+      await createRows([
+        { name: "foo", invalid: "id1" },
+        { name: "bar", invalid: "id2" },
+      ])
+    })
+
+    it("can get rows with all table data", async () => {
+      await expectSearch({
+        query: {},
+      }).toContain([
+        { name: "foo", invalid: "id1" },
+        { name: "bar", invalid: "id2" },
+      ])
+    })
+  })
+
   describe.each(["data_name_test", "name_data_test", "name_test_data_"])(
     "special (%s) case",
     column => {
@@ -2522,6 +2570,430 @@ describe.each([
             },
           },
         }).toContainExactly([{ [" name"]: "foo" }])
+      })
+    })
+
+  isSqs &&
+    describe("duplicate columns", () => {
+      beforeAll(async () => {
+        table = await createTable({
+          name: {
+            name: "name",
+            type: FieldType.STRING,
+          },
+        })
+        await context.doInAppContext(config.getAppId(), async () => {
+          const db = context.getAppDB()
+          const tableDoc = await db.get<Table>(table._id!)
+          tableDoc.schema.Name = {
+            name: "Name",
+            type: FieldType.STRING,
+          }
+          try {
+            // remove the SQLite definitions so that they can be rebuilt as part of the search
+            const sqliteDoc = await db.get(SQLITE_DESIGN_DOC_ID)
+            await db.remove(sqliteDoc)
+          } catch (err) {
+            // no-op
+          }
+        })
+        await createRows([{ name: "foo", Name: "bar" }])
+      })
+
+      it("should handle invalid duplicate column names", async () => {
+        await expectSearch({
+          query: {},
+        }).toContainExactly([{ name: "foo" }])
+      })
+    })
+
+  !isInMemory &&
+    describe("search by _id", () => {
+      let row: Row
+
+      beforeAll(async () => {
+        const toRelateTable = await createTable({
+          name: {
+            name: "name",
+            type: FieldType.STRING,
+          },
+        })
+        table = await createTable({
+          name: {
+            name: "name",
+            type: FieldType.STRING,
+          },
+          rel: {
+            name: "rel",
+            type: FieldType.LINK,
+            relationshipType: RelationshipType.MANY_TO_MANY,
+            tableId: toRelateTable._id!,
+            fieldName: "rel",
+          },
+        })
+        const [row1, row2] = await Promise.all([
+          config.api.row.save(toRelateTable._id!, { name: "tag 1" }),
+          config.api.row.save(toRelateTable._id!, { name: "tag 2" }),
+        ])
+        row = await config.api.row.save(table._id!, {
+          name: "product 1",
+          rel: [row1._id, row2._id],
+        })
+      })
+
+      it("can filter by the row ID with limit 1", async () => {
+        await expectSearch({
+          query: {
+            equal: { _id: row._id },
+          },
+          limit: 1,
+        }).toContainExactly([row])
+      })
+    })
+
+  !isInternal &&
+    describe("search by composite key", () => {
+      beforeAll(async () => {
+        table = await config.api.table.save(
+          tableForDatasource(datasource, {
+            schema: {
+              idColumn1: {
+                name: "idColumn1",
+                type: FieldType.NUMBER,
+              },
+              idColumn2: {
+                name: "idColumn2",
+                type: FieldType.NUMBER,
+              },
+            },
+            primary: ["idColumn1", "idColumn2"],
+          })
+        )
+        await createRows([{ idColumn1: 1, idColumn2: 2 }])
+      })
+
+      it("can filter by the row ID with limit 1", async () => {
+        await expectSearch({
+          query: {
+            equal: { _id: generateRowIdField([1, 2]) },
+          },
+          limit: 1,
+        }).toContain([
+          {
+            idColumn1: 1,
+            idColumn2: 2,
+          },
+        ])
+      })
+    })
+
+  isSql &&
+    describe("pagination edge case with relationships", () => {
+      let mainRows: Row[] = []
+
+      beforeAll(async () => {
+        const toRelateTable = await createTable({
+          name: {
+            name: "name",
+            type: FieldType.STRING,
+          },
+        })
+        table = await createTable({
+          name: {
+            name: "name",
+            type: FieldType.STRING,
+          },
+          rel: {
+            name: "rel",
+            type: FieldType.LINK,
+            relationshipType: RelationshipType.MANY_TO_ONE,
+            tableId: toRelateTable._id!,
+            fieldName: "rel",
+          },
+        })
+        const relatedRows = await Promise.all([
+          config.api.row.save(toRelateTable._id!, { name: "tag 1" }),
+          config.api.row.save(toRelateTable._id!, { name: "tag 2" }),
+          config.api.row.save(toRelateTable._id!, { name: "tag 3" }),
+          config.api.row.save(toRelateTable._id!, { name: "tag 4" }),
+          config.api.row.save(toRelateTable._id!, { name: "tag 5" }),
+          config.api.row.save(toRelateTable._id!, { name: "tag 6" }),
+        ])
+        mainRows = await Promise.all([
+          config.api.row.save(table._id!, {
+            name: "product 1",
+            rel: relatedRows.map(row => row._id),
+          }),
+          config.api.row.save(table._id!, {
+            name: "product 2",
+            rel: [],
+          }),
+          config.api.row.save(table._id!, {
+            name: "product 3",
+            rel: [],
+          }),
+        ])
+      })
+
+      it("can still page when the hard limit is hit", async () => {
+        await withCoreEnv(
+          {
+            SQL_MAX_ROWS: "6",
+          },
+          async () => {
+            const params: Omit<RowSearchParams, "tableId"> = {
+              query: {},
+              paginate: true,
+              limit: 3,
+              sort: "name",
+              sortType: SortType.STRING,
+              sortOrder: SortOrder.ASCENDING,
+            }
+            const page1 = await expectSearch(params).toContain([mainRows[0]])
+            expect(page1.hasNextPage).toBe(true)
+            expect(page1.bookmark).toBeDefined()
+            const page2 = await expectSearch({
+              ...params,
+              bookmark: page1.bookmark,
+            }).toContain([mainRows[1], mainRows[2]])
+            expect(page2.hasNextPage).toBe(false)
+          }
+        )
+      })
+    })
+
+  !isLucene &&
+    describe("$and", () => {
+      beforeAll(async () => {
+        table = await createTable({
+          age: { name: "age", type: FieldType.NUMBER },
+          name: { name: "name", type: FieldType.STRING },
+        })
+        await createRows([
+          { age: 1, name: "Jane" },
+          { age: 10, name: "Jack" },
+          { age: 7, name: "Hanna" },
+          { age: 8, name: "Jan" },
+        ])
+      })
+
+      it("successfully finds a row for one level condition", async () => {
+        await expectQuery({
+          $and: {
+            conditions: [{ equal: { age: 10 } }, { equal: { name: "Jack" } }],
+          },
+        }).toContainExactly([{ age: 10, name: "Jack" }])
+      })
+
+      it("successfully finds a row for one level with multiple conditions", async () => {
+        await expectQuery({
+          $and: {
+            conditions: [{ equal: { age: 10 } }, { equal: { name: "Jack" } }],
+          },
+        }).toContainExactly([{ age: 10, name: "Jack" }])
+      })
+
+      it("successfully finds multiple rows for one level with multiple conditions", async () => {
+        await expectQuery({
+          $and: {
+            conditions: [
+              { range: { age: { low: 1, high: 9 } } },
+              { string: { name: "Ja" } },
+            ],
+          },
+        }).toContainExactly([
+          { age: 1, name: "Jane" },
+          { age: 8, name: "Jan" },
+        ])
+      })
+
+      it("successfully finds rows for nested filters", async () => {
+        await expectQuery({
+          $and: {
+            conditions: [
+              {
+                $and: {
+                  conditions: [
+                    {
+                      range: { age: { low: 1, high: 10 } },
+                    },
+                    { string: { name: "Ja" } },
+                  ],
+                },
+                equal: { name: "Jane" },
+              },
+            ],
+          },
+        }).toContainExactly([{ age: 1, name: "Jane" }])
+      })
+
+      it("returns nothing when filtering out all data", async () => {
+        await expectQuery({
+          $and: {
+            conditions: [{ equal: { age: 7 } }, { equal: { name: "Jack" } }],
+          },
+        }).toFindNothing()
+      })
+
+      !isInMemory &&
+        it("validates conditions that are not objects", async () => {
+          await expect(
+            expectQuery({
+              $and: {
+                conditions: [{ equal: { age: 10 } }, "invalidCondition" as any],
+              },
+            }).toFindNothing()
+          ).rejects.toThrow(
+            'Invalid body - "query.$and.conditions[1]" must be of type object'
+          )
+        })
+
+      !isInMemory &&
+        it("validates $and without conditions", async () => {
+          await expect(
+            expectQuery({
+              $and: {
+                conditions: [
+                  { equal: { age: 10 } },
+                  {
+                    $and: {
+                      conditions: undefined as any,
+                    },
+                  },
+                ],
+              },
+            }).toFindNothing()
+          ).rejects.toThrow(
+            'Invalid body - "query.$and.conditions[1].$and.conditions" is required'
+          )
+        })
+    })
+
+  !isLucene &&
+    describe("$or", () => {
+      beforeAll(async () => {
+        table = await createTable({
+          age: { name: "age", type: FieldType.NUMBER },
+          name: { name: "name", type: FieldType.STRING },
+        })
+        await createRows([
+          { age: 1, name: "Jane" },
+          { age: 10, name: "Jack" },
+          { age: 7, name: "Hanna" },
+          { age: 8, name: "Jan" },
+        ])
+      })
+
+      it("successfully finds a row for one level condition", async () => {
+        await expectQuery({
+          $or: {
+            conditions: [{ equal: { age: 7 } }, { equal: { name: "Jack" } }],
+          },
+        }).toContainExactly([
+          { age: 10, name: "Jack" },
+          { age: 7, name: "Hanna" },
+        ])
+      })
+
+      it("successfully finds a row for one level with multiple conditions", async () => {
+        await expectQuery({
+          $or: {
+            conditions: [{ equal: { age: 7 } }, { equal: { name: "Jack" } }],
+          },
+        }).toContainExactly([
+          { age: 10, name: "Jack" },
+          { age: 7, name: "Hanna" },
+        ])
+      })
+
+      it("successfully finds multiple rows for one level with multiple conditions", async () => {
+        await expectQuery({
+          $or: {
+            conditions: [
+              { range: { age: { low: 1, high: 9 } } },
+              { string: { name: "Jan" } },
+            ],
+          },
+        }).toContainExactly([
+          { age: 1, name: "Jane" },
+          { age: 7, name: "Hanna" },
+          { age: 8, name: "Jan" },
+        ])
+      })
+
+      it("successfully finds rows for nested filters", async () => {
+        await expectQuery({
+          $or: {
+            conditions: [
+              {
+                $or: {
+                  conditions: [
+                    {
+                      range: { age: { low: 1, high: 7 } },
+                    },
+                    { string: { name: "Jan" } },
+                  ],
+                },
+                equal: { name: "Jane" },
+              },
+            ],
+          },
+        }).toContainExactly([
+          { age: 1, name: "Jane" },
+          { age: 7, name: "Hanna" },
+          { age: 8, name: "Jan" },
+        ])
+      })
+
+      it("returns nothing when filtering out all data", async () => {
+        await expectQuery({
+          $or: {
+            conditions: [{ equal: { age: 6 } }, { equal: { name: "John" } }],
+          },
+        }).toFindNothing()
+      })
+
+      it("can nest $and under $or filters", async () => {
+        await expectQuery({
+          $or: {
+            conditions: [
+              {
+                $and: {
+                  conditions: [
+                    {
+                      range: { age: { low: 1, high: 8 } },
+                    },
+                    { equal: { name: "Jan" } },
+                  ],
+                },
+                equal: { name: "Jane" },
+              },
+            ],
+          },
+        }).toContainExactly([
+          { age: 1, name: "Jane" },
+          { age: 8, name: "Jan" },
+        ])
+      })
+
+      it("can nest $or under $and filters", async () => {
+        await expectQuery({
+          $and: {
+            conditions: [
+              {
+                $or: {
+                  conditions: [
+                    {
+                      range: { age: { low: 1, high: 8 } },
+                    },
+                    { equal: { name: "Jan" } },
+                  ],
+                },
+                equal: { name: "Jane" },
+              },
+            ],
+          },
+        }).toContainExactly([{ age: 1, name: "Jane" }])
       })
     })
 })

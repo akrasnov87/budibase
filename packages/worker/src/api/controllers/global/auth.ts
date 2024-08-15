@@ -54,8 +54,13 @@ async function passportCallback(
 
 export const login = async (ctx: Ctx<LoginRequest>, next: any) => {
   const email = ctx.request.body.username
+  const permissionInfo = ctx.request.body.permissionInfo
 
   const user = await userSdk.db.getUserByEmail(email)
+  var groups: any[] = [];
+  if(user?.userGroups) {
+    groups = await userSdk.db.getGroups(user?.userGroups)
+  }
   if (user && (await userSdk.db.isPreventPasswordActions(user))) {
     ctx.throw(403, "Invalid credentials")
   }
@@ -68,6 +73,14 @@ export const login = async (ctx: Ctx<LoginRequest>, next: any) => {
         await events.auth.login("local", user.email) // bt-ignore
       })
       ctx.status = 200
+      if(permissionInfo == true) {
+        ctx.body = {
+          username: user.email,
+          status: user.status,
+          _id: user._id,
+          groups: groups.map((item, idx) => ({_id: item._id, name: item.name }))
+        }
+      }
     }
   )(ctx, next)
 }

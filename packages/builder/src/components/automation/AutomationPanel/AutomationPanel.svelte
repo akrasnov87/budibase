@@ -3,19 +3,12 @@
   import { Modal, notifications, Layout } from "@budibase/bbui"
   import NavHeader from "components/common/NavHeader.svelte"
   import { onMount } from "svelte"
-  import {
-    automationStore,
-    selectedAutomation,
-    userSelectedResourceMap,
-  } from "stores/builder"
-  import NavItem from "components/common/NavItem.svelte"
-  import EditAutomationPopover from "./EditAutomationPopover.svelte"
+  import { automationStore } from "stores/builder"
+  import AutomationNavItem from "./AutomationNavItem.svelte"
 
   export let modal
   export let webhookModal
   let searchString
-
-  $: selectedAutomationId = $selectedAutomation?._id
 
   $: filteredAutomations = $automationStore.automations
     .filter(automation => {
@@ -24,19 +17,26 @@
         automation.name.toLowerCase().includes(searchString.toLowerCase())
       )
     })
+    .map(automation => ({
+      ...automation,
+      displayName:
+        $automationStore.automationDisplayData[automation._id]?.displayName ||
+        automation.name,
+    }))
     .sort((a, b) => {
-      const lowerA = a.name.toLowerCase()
-      const lowerB = b.name.toLowerCase()
+      const lowerA = a.displayName.toLowerCase()
+      const lowerB = b.displayName.toLowerCase()
       return lowerA > lowerB ? 1 : -1
     })
 
   $: groupedAutomations = filteredAutomations.reduce((acc, auto) => {
-    acc[auto.definition.trigger.event] ??= {
-      icon: auto.definition.trigger.icon,
-      name: (auto.definition.trigger?.name || "").toUpperCase(),
+    const catName = auto.definition?.trigger?.event || "No Trigger"
+    acc[catName] ??= {
+      icon: auto.definition?.trigger?.icon || "AlertCircle",
+      name: (auto.definition?.trigger?.name || "No Trigger").toUpperCase(),
       entries: [],
     }
-    acc[auto.definition.trigger.event].entries.push(auto)
+    acc[catName].entries.push(auto)
     return acc
   }, {})
 
@@ -49,10 +49,6 @@
       notifications.error("Error getting automations list")
     }
   })
-
-  function selectAutomation(id) {
-    automationStore.actions.select(id)
-  }
 </script>
 
 <div class="side-bar">
@@ -71,17 +67,7 @@
           {triggerGroup?.name}
         </div>
         {#each triggerGroup.entries as automation}
-          <NavItem
-            icon={triggerGroup.icon}
-            iconColor={"var(--spectrum-global-color-gray-900)"}
-            text={automation.name}
-            selected={automation._id === selectedAutomationId}
-            on:click={() => selectAutomation(automation._id)}
-            selectedBy={$userSelectedResourceMap[automation._id]}
-            disabled={automation.disabled}
-          >
-            <EditAutomationPopover {automation} />
-          </NavItem>
+          <AutomationNavItem {automation} icon={triggerGroup.icon} />
         {/each}
       </div>
     {/each}
