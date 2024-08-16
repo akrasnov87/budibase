@@ -194,13 +194,15 @@
       </Body>
     </Layout>
     <Divider />
-    {#if canManagePlan}
-      <Body>
-        To upgrade your plan and usage limits visit your
-        <Link size="L" on:click={goToAccountPortal}>account</Link>.
-      </Body>
-    {:else}
-      <Body>Contact your account holder to upgrade your plan.</Body>
+    {#if license.plan.type != "enterprise"}
+      {#if canManagePlan}
+        <Body>
+          To upgrade your plan and usage limits visit your
+          <Link size="L" on:click={goToAccountPortal}>account</Link>.
+        </Body>
+      {:else}
+        <Body>Contact your account holder to upgrade your plan.</Body>
+      {/if}
     {/if}
 
     <DashCard

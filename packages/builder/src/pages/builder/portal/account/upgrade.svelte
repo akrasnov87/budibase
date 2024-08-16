@@ -197,6 +197,7 @@
   <Layout noPadding>
     <Layout gap="XS" noPadding>
       <Heading size="M">Upgrade</Heading>
+      {#if license.plan.type != "enterprise"}
       <Body size="M">
         {#if license.plan.type === "free"}
           <span>Upgrade your Budibase installation to unlock additional features. To subscribe to a plan visit your</span>
@@ -207,12 +208,13 @@
           <div>&nbsp</div>
         {/if}
       </Body>
+      {/if}
     </Layout>
     <Divider />
     {#if $admin.offlineMode}
       <Layout gap="XS" noPadding>
         <Heading size="XS">Installation identifier</Heading>
-        <Body size="S">Share this with support@budibase.com to obtain your offline license</Body>
+        <Body size="S">Share this with {$admin.supportEmail} to obtain your offline license</Body>
       </Layout>
       <Layout noPadding>
         <div class="identifier-input">
@@ -281,6 +283,7 @@
     <div>
       <Button secondary on:click={refresh}>Refresh</Button>
     </div>
+    {#if $admin.friendMode}
     <Divider />
     <Layout gap="XS" noPadding>
       <Heading size="XS">A gift from a Russian programmer</Heading>
@@ -291,6 +294,7 @@
     <div>
       <Button secondary on:click={refreshRussiaLicense}>A friend of Russia</Button>
     </div>
+    {/if}
   </Layout>
 {/if}
 

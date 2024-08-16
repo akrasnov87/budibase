@@ -19,6 +19,8 @@ export const DEFAULT_CONFIG = {
   },
   maintenance: [],
   offlineMode: false,
+  friendMode: false,
+  supportEmail: 'support@budibase.com'
 }
 
 export function createAdminStore() {
@@ -51,6 +53,8 @@ export function createAdminStore() {
       store.offlineMode = environment.offlineMode
       store.maintenance = environment.maintenance
       store.passwordMinLength = environment.passwordMinLength
+      store.friendMode = environment.friendMode
+      store.supportEmail = environment.supportEmail
       return store
     })
   }

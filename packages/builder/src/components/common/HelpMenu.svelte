@@ -2,7 +2,7 @@
   import FontAwesomeIcon from "./FontAwesomeIcon.svelte"
   import { Popover, Heading, Body } from "@budibase/bbui"
   import { isEnabled, TENANT_FEATURE_FLAGS } from "helpers/featureFlags"
-  import { licensing } from "stores/portal"
+  import { licensing, admin } from "stores/portal"
   import { isPremiumOrAbove } from "helpers/planTitle"
   import { ChangelogURL } from "constants"
 
@@ -65,7 +65,7 @@
       {#if isEnabled(TENANT_FEATURE_FLAGS.LICENSING)}
         <a
           href={premiumOrAboveLicense
-            ? "mailto:support@budibase.com"
+            ? "mailto:" + $admin.supportEmail
             : "/builder/portal/account/usage"}
         >
           <div

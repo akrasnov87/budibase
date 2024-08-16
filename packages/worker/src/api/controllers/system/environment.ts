@@ -43,6 +43,8 @@ export const fetch = async (ctx: Ctx) => {
     isDev: env.isDev() && !env.isTest(),
     maintenance: [],
     passwordMinLength: env.PASSWORD_MIN_LENGTH,
+    friendMode: env.FRIEND_MODE,
+    supportEmail: env.SUPPORT_EMAIL,
   }
 
   if (env.SELF_HOSTED) {
