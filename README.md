@@ -256,6 +256,12 @@ git remote add upstream https://github.com/Budibase/budibase.git
 git pull upstream master
 </pre>
 
+Возможно понадобиться выполнить:
+<pre>
+git rm packages/pro
+git rm packages/account-portal
+</pre>
+
 ## Сборка
 
 В корне проекта выполнить:
