@@ -1342,6 +1342,17 @@
         "label": "URL",
         "key": "url",
         "required": true
+      },
+      {
+        "type": "text",
+        "label": "Title",
+        "key": "title",
+        "required": false
+      },
+      {
+        "type": "event",
+        "label": "On click",
+        "key": "onClick"
       }
     ]
   },

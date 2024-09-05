@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 Created:
 
 - добавлена возможность для EmbeddedMap указывать цвет меток на карте: red, green, blue, fiolet;
+- добавлено событие нажатия на изображение: onclick
 
 ## [2.31.6.0] - 05.09.2024
 

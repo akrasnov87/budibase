@@ -6,10 +6,12 @@
   const component = getContext("component")
 
   export let url
+  export let title
+  export let onClick
 </script>
 
 {#if url}
-  <img src={url} alt={$component.name} use:styleable={$component.styles} />
+  <img src={url} alt={$component.name} title={title} use:styleable={$component.styles} on:click={onClick} />
 {:else if $builderStore.inBuilder}
   <div
     class="placeholder"

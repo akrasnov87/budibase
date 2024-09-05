@@ -245,7 +245,7 @@
 
     validRows.forEach(row => {
       let markerCoords = [row[latKey], row[lngKey]]
-      debugger;
+
       if(row[markeType]) {
         mapMarkerOptions.icon.options.className = "embedded-map-marker-" + row[markeType]
       }
