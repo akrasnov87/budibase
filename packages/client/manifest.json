@@ -4511,6 +4511,13 @@
         "dependsOn": "dataProvider"
       },
       {
+        "type": "text",
+        "label": "Marker type",
+        "key": "markerType",
+        "dependsOn": "dataProvider",
+        "placeholder": "red; blue; green; fiolet"
+      },
+      {
         "type": "event",
         "label": "On click marker",
         "key": "onClickMarker",

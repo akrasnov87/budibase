@@ -19,6 +19,7 @@
   export let latitudeKey = null
   export let longitudeKey = null
   export let titleKey = null
+  export let markerType = null
   export let fullScreenEnabled = true
   export let locationEnabled = true
   export let defaultLocation
@@ -125,6 +126,7 @@
     latitudeKey,
     longitudeKey,
     titleKey,
+    markerType,
     onClickMarker
   )
 
@@ -229,6 +231,7 @@
     latKey,
     lngKey,
     titleKey,
+    markeType,
     onClick
   ) => {
     if (!mapInstance) {
@@ -242,6 +245,11 @@
 
     validRows.forEach(row => {
       let markerCoords = [row[latKey], row[lngKey]]
+      debugger;
+      if(row[markeType]) {
+        mapMarkerOptions.icon.options.className = "embedded-map-marker-" + row[markeType]
+      }
+
       let marker = L.marker(markerCoords, mapMarkerOptions).addTo(mapInstance)
       let markerContent = generateMarkerPopupContent(
         row[latKey],
@@ -390,6 +398,18 @@
   }
   .embedded-map :global(.embedded-map-marker) {
     color: #ee3b35;
+  }  
+  .embedded-map :global(.embedded-map-marker-red) {
+    color: #ee3b35;
+  }  
+  .embedded-map :global(.embedded-map-marker-green) {
+    color: #8bee35;
+  }
+  .embedded-map :global(.embedded-map-marker-blue) {
+    color: #35e8ee;
+  }
+  .embedded-map :global(.embedded-map-marker-fiolet) {
+    color: #9735ee;
   }
   .embedded-map :global(.embedded-map-marker--candidate) {
     color: var(--primaryColor);
