@@ -59,6 +59,7 @@ export const getBindableProperties = (asset, componentId) => {
   const selectedRowsBindings = getSelectedRowsBindings(asset)
   const roleBindings = getRoleBindings()
   const groupBindings = getGroupBindings()
+  const embedBindings = getEmbedBindings()
   return [
     ...contextBindings,
     ...urlBindings,
@@ -67,7 +68,7 @@ export const getBindableProperties = (asset, componentId) => {
     ...deviceBindings,
     ...selectedRowsBindings,
     ...roleBindings,
-    ...groupBindings,
+    ...embedBindings,
   ]
 }
 
@@ -833,6 +834,25 @@ export const getActionBindings = (actions, actionId) => {
       })
     }
   })
+  return bindings
+}
+
+/**
+ * Gets all device bindings for embeds.
+ */
+const getEmbedBindings = () => {
+  let bindings = []
+  const safeEmbed = makePropSafe("embed")
+
+  bindings = [
+    {
+      type: "context",
+      runtimeBinding: `${safeEmbed}`,
+      readableBinding: `ParentWindow`,
+      category: "Embed",
+      icon: "DistributeVertically",
+    },
+  ]
   return bindings
 }
 
