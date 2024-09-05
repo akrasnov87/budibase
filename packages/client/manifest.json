@@ -6989,6 +6989,12 @@
     "info": "Side panels are hidden by default. They will only be revealed when triggered by the 'Open Side Panel' action.",
     "settings": [
       {
+        "type": "text",
+        "key": "containerWidthPanel",
+        "label": "Container width",
+        "placeholder": "400px, 50%"
+      },
+      {
         "type": "boolean",
         "key": "ignoreClicksOutside",
         "label": "Ignore clicks outside",

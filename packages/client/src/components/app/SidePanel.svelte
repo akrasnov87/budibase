@@ -7,6 +7,7 @@
 
   export let onClose
   export let ignoreClicksOutside
+  export let containerWidthPanel
 
   // Automatically show and hide the side panel when inside the builder.
   // For some unknown reason, svelte reactivity breaks if we reference the
@@ -40,7 +41,10 @@
   $: {
     if (open) {
       sidePanelStore.actions.setIgnoreClicksOutside(ignoreClicksOutside)
+      sidePanelStore.actions.setContainerWidthPanel(containerWidthPanel)
       renderKey = Math.random()
+
+      updateWidthPanel();
     }
   }
 
@@ -50,9 +54,23 @@
     }
   }
 
+  const updateWidthPanel = () => {
+    const target = document.getElementById("side-panel-container")
+    if(target) {
+      if(containerWidthPanel) {
+        target.style.width = containerWidthPanel;
+      } else {
+        target.style.width = '400px';
+      }
+    }
+  };
+
   const showInSidePanel = (el, visible) => {
     const update = visible => {
       const target = document.getElementById("side-panel-container")
+      
+      updateWidthPanel();
+
       const node = el
       if (visible) {
         if (!target.contains(node)) {
@@ -74,6 +92,7 @@
       destroy: () => update(false),
     }
   }
+
 </script>
 
 <div

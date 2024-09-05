@@ -39,12 +39,20 @@ export const createSidePanelStore = () => {
       return state
     })
   }
+
+  const setContainerWidthPanel = txt => {
+    store.update(state => {
+      state.containerWidthPanel = txt
+      return state
+    })
+  }
   return {
     subscribe: derivedStore.subscribe,
     actions: {
       open,
       close,
       setIgnoreClicksOutside,
+      setContainerWidthPanel,
     },
   }
 }

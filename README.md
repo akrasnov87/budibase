@@ -229,8 +229,6 @@ node ./hosting/scripts/setup.js
 yarn
 yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size=4096 lerna run build --stream`)
 
-В корне проекта выполнить скрипт `node ./crack.js`
-
 Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
 
 Далее выполняем yarn dev:all
@@ -340,16 +338,6 @@ Error - Failed to start - logs written to file: docker-error.log
 </pre>
 
 Нужно установить `sudo apt  install docker-compose`
-
-## Разработка плагина
-В корне проекта с budibase нужно выполнить:
-
-* budi hosting --init
-* budi hosting --watch-plugin-dir /path-to-your-plugins-directory
-
-__Примечание__: команды выше создадут в корне docker-compose.yaml и добавят в него переменную окружения `PLUGINS_DIR` и укажут `volumes` для `app-services`
-
-* Finally, run `budi hosting --start` and then do a `yarn watch` within your plugin repo.
 
 ## budi
 
