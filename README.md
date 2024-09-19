@@ -352,3 +352,9 @@ Error - Failed to start - logs written to file: docker-error.log
 <pre>
 budi hosting --start
 </pre>
+
+## Подключение к couch db
+
+```
+http://localhost:4005/_utils/#login
+```
