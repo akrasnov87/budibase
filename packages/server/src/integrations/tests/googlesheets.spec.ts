@@ -5,6 +5,7 @@ import TestConfiguration from "../../tests/utilities/TestConfiguration"
 import {
   Datasource,
   FieldType,
+  Row,
   SourceName,
   Table,
   TableSourceType,
@@ -243,6 +244,20 @@ describe("Google Sheets Integration", () => {
       expect(rows.map(row => row.name)).toEqual(
         expect.arrayContaining(Array.from({ length: 248 }, (_, i) => `${i}`))
       )
+    })
+
+    it("can export rows", async () => {
+      const resp = await config.api.row.exportRows(table._id!, {})
+      const parsed = JSON.parse(resp)
+      expect(parsed.length).toEqual(2)
+      expect(parsed[0]).toMatchObject({
+        name: "Test Contact 1",
+        description: "original description 1",
+      })
+      expect(parsed[1]).toMatchObject({
+        name: "Test Contact 2",
+        description: "original description 2",
+      })
     })
   })
 
@@ -489,6 +504,288 @@ describe("Google Sheets Integration", () => {
 
       const emptyRows = await config.api.row.fetch(table._id!)
       expect(emptyRows.length).toEqual(0)
+    })
+  })
+
+  describe("fetch schema", () => {
+    it("should fail to import a completely blank sheet", async () => {
+      mock.createSheet({ title: "Sheet1" })
+      await config.api.datasource.fetchSchema(
+        {
+          datasourceId: datasource._id!,
+          tablesFilter: ["Sheet1"],
+        },
+        {
+          status: 200,
+          body: {
+            errors: {
+              Sheet1:
+                'Failed to find a header row in sheet "Sheet1", is the first row blank?',
+            },
+          },
+        }
+      )
+    })
+
+    it("should fail to import multiple sheets with blank headers", async () => {
+      mock.createSheet({ title: "Sheet1" })
+      mock.createSheet({ title: "Sheet2" })
+
+      await config.api.datasource.fetchSchema(
+        {
+          datasourceId: datasource!._id!,
+          tablesFilter: ["Sheet1", "Sheet2"],
+        },
+        {
+          status: 200,
+          body: {
+            errors: {
+              Sheet1:
+                'Failed to find a header row in sheet "Sheet1", is the first row blank?',
+              Sheet2:
+                'Failed to find a header row in sheet "Sheet2", is the first row blank?',
+            },
+          },
+        }
+      )
+    })
+
+    it("should only fail the sheet with missing headers", async () => {
+      mock.createSheet({ title: "Sheet1" })
+      mock.createSheet({ title: "Sheet2" })
+      mock.createSheet({ title: "Sheet3" })
+
+      mock.set("Sheet1!A1", "name")
+      mock.set("Sheet1!B1", "dob")
+      mock.set("Sheet2!A1", "name")
+      mock.set("Sheet2!B1", "dob")
+
+      await config.api.datasource.fetchSchema(
+        {
+          datasourceId: datasource!._id!,
+          tablesFilter: ["Sheet1", "Sheet2", "Sheet3"],
+        },
+        {
+          status: 200,
+          body: {
+            errors: {
+              Sheet3:
+                'Failed to find a header row in sheet "Sheet3", is the first row blank?',
+            },
+          },
+        }
+      )
+    })
+
+    it("should only succeed if sheet with missing headers is not being imported", async () => {
+      mock.createSheet({ title: "Sheet1" })
+      mock.createSheet({ title: "Sheet2" })
+      mock.createSheet({ title: "Sheet3" })
+
+      mock.set("Sheet1!A1", "name")
+      mock.set("Sheet1!B1", "dob")
+      mock.set("Sheet2!A1", "name")
+      mock.set("Sheet2!B1", "dob")
+
+      await config.api.datasource.fetchSchema(
+        {
+          datasourceId: datasource!._id!,
+          tablesFilter: ["Sheet1", "Sheet2"],
+        },
+        {
+          status: 200,
+          body: { errors: {} },
+        }
+      )
+    })
+  })
+
+  describe("search", () => {
+    let table: Table
+
+    beforeEach(async () => {
+      table = await config.api.table.save({
+        name: "Test Table",
+        type: "table",
+        sourceId: datasource._id!,
+        sourceType: TableSourceType.EXTERNAL,
+        schema: {
+          name: {
+            name: "name",
+            type: FieldType.STRING,
+            constraints: {
+              type: "string",
+            },
+          },
+        },
+      })
+
+      await config.api.row.bulkImport(table._id!, {
+        rows: [
+          {
+            name: "Foo",
+          },
+          {
+            name: "Bar",
+          },
+          {
+            name: "Baz",
+          },
+        ],
+      })
+    })
+
+    it("should be able to find rows with equals filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          equal: {
+            name: "Foo",
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(1)
+      expect(response.rows[0].name).toEqual("Foo")
+    })
+
+    it("should be able to find rows with not equals filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          notEqual: {
+            name: "Foo",
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(2)
+      expect(response.rows[0].name).toEqual("Bar")
+      expect(response.rows[1].name).toEqual("Baz")
+    })
+
+    it("should be able to find rows with empty filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          empty: {
+            name: null,
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(0)
+    })
+
+    it("should be able to find rows with not empty filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          notEmpty: {
+            name: null,
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(3)
+    })
+
+    it("should be able to find rows with one of filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          oneOf: {
+            name: ["Foo", "Bar"],
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(2)
+      expect(response.rows[0].name).toEqual("Foo")
+      expect(response.rows[1].name).toEqual("Bar")
+    })
+
+    it("should be able to find rows with fuzzy filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          fuzzy: {
+            name: "oo",
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(1)
+      expect(response.rows[0].name).toEqual("Foo")
+    })
+
+    it("should be able to find rows with range filter", async () => {
+      const response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: {
+          range: {
+            name: {
+              low: "A",
+              high: "C",
+            },
+          },
+        },
+      })
+
+      expect(response.rows).toHaveLength(2)
+      expect(response.rows[0].name).toEqual("Bar")
+      expect(response.rows[1].name).toEqual("Baz")
+    })
+
+    it("should paginate correctly", async () => {
+      await config.api.row.bulkImport(table._id!, {
+        rows: Array.from({ length: 50 }, () => ({
+          name: `Unique value!`,
+        })),
+      })
+      await config.api.row.bulkImport(table._id!, {
+        rows: Array.from({ length: 50 }, () => ({
+          name: `Non-unique value!`,
+        })),
+      })
+
+      let response = await config.api.row.search(table._id!, {
+        tableId: table._id!,
+        query: { equal: { name: "Unique value!" } },
+        paginate: true,
+        limit: 10,
+      })
+      let rows: Row[] = response.rows
+
+      while (response.hasNextPage) {
+        response = await config.api.row.search(table._id!, {
+          tableId: table._id!,
+          query: { equal: { name: "Unique value!" } },
+          paginate: true,
+          limit: 10,
+          bookmark: response.bookmark,
+        })
+
+        expect(response.rows.length).toBeLessThanOrEqual(10)
+        rows = rows.concat(response.rows)
+      }
+
+      // Make sure we only get rows matching the query.
+      expect(rows.length).toEqual(50)
+      expect(rows.map(row => row.name)).toEqual(
+        expect.arrayContaining(
+          Array.from({ length: 50 }, () => "Unique value!")
+        )
+      )
+
+      // Make sure all of the rows have a unique ID.
+      const ids = Object.keys(
+        rows.reduce((acc, row) => {
+          acc[row._id!] = true
+          return acc
+        }, {})
+      )
+      expect(ids.length).toEqual(50)
     })
   })
 })

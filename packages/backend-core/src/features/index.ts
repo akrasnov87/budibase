@@ -3,14 +3,21 @@ import * as context from "../context"
 import { PostHog, PostHogOptions } from "posthog-node"
 import { FeatureFlag, IdentityType, UserCtx } from "@budibase/types"
 import tracer from "dd-trace"
+import { Duration } from "../utils"
 
 let posthog: PostHog | undefined
 export function init(opts?: PostHogOptions) {
-  if (env.POSTHOG_TOKEN && env.POSTHOG_API_HOST && !env.SELF_HOSTED) {
+  if (
+    env.POSTHOG_TOKEN &&
+    env.POSTHOG_API_HOST &&
+    !env.SELF_HOSTED &&
+    env.POSTHOG_FEATURE_FLAGS_ENABLED
+  ) {
     console.log("initializing posthog client...")
     posthog = new PostHog(env.POSTHOG_TOKEN, {
       host: env.POSTHOG_API_HOST,
       personalApiKey: env.POSTHOG_PERSONAL_TOKEN,
+      featureFlagsPollingInterval: Duration.fromMinutes(3).toMs(),
       ...opts,
     })
   } else {
@@ -270,5 +277,5 @@ export const flags = new FlagSet({
   AUTOMATION_BRANCHING: Flag.boolean(env.isDev()),
   SQS: Flag.boolean(env.isDev()),
   [FeatureFlag.AI_CUSTOM_CONFIGS]: Flag.boolean(env.isDev()),
-  [FeatureFlag.ENRICHED_RELATIONSHIPS]: Flag.boolean(false),
+  [FeatureFlag.ENRICHED_RELATIONSHIPS]: Flag.boolean(env.isDev()),
 })

@@ -4,16 +4,15 @@
   import ColumnsSettingContent from "./ColumnsSettingContent.svelte"
   import { FieldPermissions } from "../../../constants"
 
-  export let allowViewReadonlyColumns = false
-
-  const { columns, datasource } = getContext("grid")
+  const { tableColumns, datasource } = getContext("grid")
 
   let open = false
   let anchor
 
-  $: anyRestricted = $columns.filter(col => !col.visible || col.readonly).length
+  $: anyRestricted = $tableColumns.filter(
+    col => !col.visible || col.readonly
+  ).length
   $: text = anyRestricted ? `Columns (${anyRestricted} restricted)` : "Columns"
-
   $: permissions =
     $datasource.type === "viewV2"
       ? [
@@ -22,9 +21,6 @@
           FieldPermissions.HIDDEN,
         ]
       : [FieldPermissions.WRITABLE, FieldPermissions.HIDDEN]
-  $: disabledPermissions = allowViewReadonlyColumns
-    ? []
-    : [FieldPermissions.READONLY]
 </script>
 
 <div bind:this={anchor}>
@@ -34,16 +30,12 @@
     size="M"
     on:click={() => (open = !open)}
     selected={open || anyRestricted}
-    disabled={!$columns.length}
+    disabled={!$tableColumns.length}
   >
     {text}
   </ActionButton>
 </div>
 
 <Popover bind:open {anchor} align="left">
-  <ColumnsSettingContent
-    columns={$columns}
-    {permissions}
-    {disabledPermissions}
-  />
+  <ColumnsSettingContent columns={$tableColumns} {permissions} />
 </Popover>

@@ -138,7 +138,7 @@ async function processDeleteRowsRequest(ctx: UserCtx<DeleteRowRequest>) {
   const { tableId } = utils.getSourceId(ctx)
 
   const processedRows = request.rows.map(row => {
-    let processedRow: Row = typeof row == "string" ? { _id: row } : row
+    let processedRow: Row = typeof row == "string" ? { _id: row, tableId } : row
     return !processedRow._rev
       ? addRev(fixRow(processedRow, ctx.params), tableId)
       : fixRow(processedRow, ctx.params)
@@ -207,7 +207,7 @@ export async function destroy(ctx: UserCtx<DeleteRowRequest>) {
 }
 
 export async function search(ctx: Ctx<SearchRowRequest, SearchRowResponse>) {
-  const { tableId } = utils.getSourceId(ctx)
+  const { tableId, viewId } = utils.getSourceId(ctx)
 
   await context.ensureSnippetContext(true)
 
@@ -222,6 +222,7 @@ export async function search(ctx: Ctx<SearchRowRequest, SearchRowResponse>) {
     ...ctx.request.body,
     query: enrichedQuery,
     tableId,
+    viewId,
   }
 
   ctx.status = 200
@@ -229,14 +230,15 @@ export async function search(ctx: Ctx<SearchRowRequest, SearchRowResponse>) {
 }
 
 export async function validate(ctx: Ctx<Row, ValidateResponse>) {
-  const { tableId } = utils.getSourceId(ctx)
+  const source = await utils.getSource(ctx)
+  const table = await utils.getTableFromSource(source)
   // external tables are hard to validate currently
-  if (isExternalTableID(tableId)) {
+  if (isExternalTableID(table._id!)) {
     ctx.body = { valid: true, errors: {} }
   } else {
     ctx.body = await sdk.rows.utils.validate({
       row: ctx.request.body,
-      tableId,
+      source,
     })
   }
 }
