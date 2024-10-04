@@ -2,7 +2,9 @@
 yarn clean
 yarn
 yarn build
-node ./crack.js
+if [ -f ./crack.js ]; then
+    node ./crack.js
+fi
 version=$(./scripts/getCurrentVersion.sh)
 package_version=$(./scripts/getPackageVersion.sh)
 rm -r .node_modules
