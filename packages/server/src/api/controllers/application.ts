@@ -479,6 +479,7 @@ export async function update(
     customTheme: app.customTheme,
     navigation: app.navigation,
     name: app.name,
+    friendlyName: app.friendlyName,
     url: app.url,
     icon: app.icon,
     automations: {

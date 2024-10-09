@@ -9,6 +9,7 @@ export interface App extends Document {
   version: string
   componentLibraries: string[]
   name: string
+  friendlyName?: string,
   url: string | undefined
   template: string | undefined
   instance: AppInstance

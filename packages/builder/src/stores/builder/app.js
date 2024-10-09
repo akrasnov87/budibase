@@ -4,6 +4,7 @@ import BudiStore from "../BudiStore"
 export const INITIAL_APP_META_STATE = {
   appId: "",
   name: "",
+  friendlyName: "",
   url: "",
   libraries: [],
   clientFeatures: {
@@ -49,6 +50,7 @@ export class AppMetaStore extends BudiStore {
     this.update(state => ({
       ...state,
       name: app.name,
+      friendlyName: app.friendlyName,
       appId: app.appId,
       url: app.url,
       hasLock,

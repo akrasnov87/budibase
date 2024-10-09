@@ -26,12 +26,14 @@
   $: appDeployed = app?.status === AppStatus.DEPLOYED
 
   $: appName = $appStore.name
+  $: appFriendlyName = $appStore.friendlyName
   $: appURL = $appStore.url
   $: appIconName = $appStore.icon?.name
   $: appIconColor = $appStore.icon?.color
 
   $: appMeta = {
     name: appName,
+    friendlyName: appFriendlyName,
     url: appURL,
     iconName: appIconName,
     iconColor: appIconColor,
@@ -110,6 +112,7 @@
     try {
       await appsStore.save($appStore.appId, {
         name: $values.name?.trim(),
+        friendlyName: $values.friendlyName?.trim(),
         url: $values.url?.trim(),
         icon: {
           name: $values.iconName,
@@ -140,6 +143,15 @@
         error={$validation.touched.name && $validation.errors.name}
         on:blur={() => ($validation.touched.name = true)}
         on:change={nameToUrl($values.name)}
+        disabled={appDeployed}
+      />
+    </div>
+    <div class="field">
+      <Label size="L">Friendly name</Label>
+      <Input
+        bind:value={$values.friendlyName}
+        error={$validation.touched.friendlyName && $validation.errors.friendlyName}
+        on:blur={() => ($validation.touched.friendlyName = true)}
         disabled={appDeployed}
       />
     </div>

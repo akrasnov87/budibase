@@ -42,7 +42,7 @@
 >
   <NavItem
     on:contextmenu={e => openContextMenu(e, app)}
-    text={app.name}
+    text={app.friendlyName || app.name}
     icon={app.icon?.name || "Apps"}
     iconColor={app.icon?.color}
     selected={$params.appId === app.appId}

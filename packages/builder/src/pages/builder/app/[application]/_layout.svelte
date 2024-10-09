@@ -155,7 +155,7 @@
       <div class="topcenternav">
         <div class="app-name">
           <UpdateAppTopNav {application}>
-            <Heading noPadding size="XS">{$appStore.name}</Heading>
+            <Heading noPadding size="XS">{$appStore.friendlyName || $appStore.name}</Heading>
           </UpdateAppTopNav>
         </div>
       </div>
