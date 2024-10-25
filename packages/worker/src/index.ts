@@ -51,6 +51,7 @@ bootstrap()
 const app: Application = new Application()
 
 app.keys = ["secret", "key"]
+app.proxy = true
 
 // set up top level koa middleware
 app.use(handleScimBody)
@@ -59,6 +60,7 @@ app.use(koaBody({ multipart: true }))
 app.use(koaSession(app))
 app.use(middleware.correlation)
 app.use(middleware.pino)
+app.use(middleware.ip)
 app.use(userAgent)
 
 // authentication

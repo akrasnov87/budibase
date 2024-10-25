@@ -28,6 +28,7 @@ export interface App extends Document {
   usedPlugins?: Plugin[]
   upgradableVersion?: string
   snippets?: Snippet[]
+  creationVersion?: string
 }
 
 export interface AppInstance {
