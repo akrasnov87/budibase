@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.136.453",
+  "version": "0.167.625",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -127,6 +127,7 @@
   },
   "dependencies": {
     "svelte-i18n": "4.0.0",
-    "i18n": "0.15.1"
+    "i18n": "0.15.1",
+    "ical-generator": "4.1.0"
   }
 }

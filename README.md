@@ -228,11 +228,9 @@ node ./hosting/scripts/setup.js
 yarn
 yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size=4096 lerna run build --stream`)
 
-Выполняем скоманду `docker compose -f ./docker-compose.dev.yaml --env-file=../.env up` из каталога `hosting`.
+Далее выполняем yarn dev
 
-Далее выполняем yarn dev:all
-
-Открываем страницу <http://localhost:4001/>
+Открываем страницу <http://localhost:10000/>
 
 Если будет выходить ошибка, что папка не найдена, то нужно перейти в packages/server и открыть файл .env
 
@@ -300,6 +298,9 @@ git rm packages/account-portal
 Взял от туда:
 
 <pre>
+# Use the main port in the builder for your self hosting URL, e.g. localhost:10000
+MAIN_PORT=10000
+
 # This section contains all secrets pertaining to the system
 API_ENCRYPTION_KEY=DVc9rHS9B2CnAQVtH4OJuMRzC9Wxr7tS
 JWT_SECRET=jDoVHyTGC72pM7adI2eshjMLHO5X5B8y
@@ -309,6 +310,9 @@ REDIS_PASSWORD=Th2LJU7lO3KmAi9LbUTh34vy3y37nhoi
 INTERNAL_API_KEY=85l1kIWHVtg2493YDLcXoapKTrTHomNT
 COUCH_DB_USER=admin
 COUCH_DB_PASSWORD=IdbIWtAHLXcYiDIxesjocnPobWFgmhEs
+
+# This section contains variables that do not need to be altered under normal circumstances
+BUDIBASE_ENVIRONMENT=PRODUCTION
 OFFLINE_MODE=true
 </pre>
 

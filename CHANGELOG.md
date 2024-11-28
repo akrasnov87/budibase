@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.2.13] - 28.11.2024
+
+- исправлена ошибка `Refused to execute inline script because it violates the following Content Security Policy directive: "script-src 'self' 'unsafe-eval'`;
+- обновление с главной ветки 2.33.2 -> 3.2.13
+
 ## [2.33.2]
 
 Created:

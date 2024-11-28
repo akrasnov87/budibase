@@ -39,7 +39,7 @@
       "type": "node",
       "request": "launch",
       "runtimeExecutable": "yarn",
-      "runtimeArgs": ["dev:all"],
+      "runtimeArgs": ["dev"],
       "cwd": "${workspaceFolder}"
     }
   ],
