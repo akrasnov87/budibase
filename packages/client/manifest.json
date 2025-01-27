@@ -5157,7 +5157,8 @@
       {
         "type": "text",
         "label": "File name",
-        "key": "key"
+        "key": "key",
+        "nested": true
       },
       {
         "type": "event",

@@ -1,7 +1,12 @@
 // LICENSE KEY
 
+import { QuotaUsage } from "../../../documents"
+
 export interface ActivateLicenseKeyRequest {
   licenseKey: string
+}
+export interface ActivateLicenseKeyResponse {
+  message: string
 }
 
 export interface GetLicenseKeyResponse {
@@ -13,9 +18,18 @@ export interface GetLicenseKeyResponse {
 export interface ActivateOfflineLicenseTokenRequest {
   offlineLicenseToken: string
 }
+export interface ActivateOfflineLicenseTokenResponse {
+  message: string
+}
 
 export interface GetOfflineLicenseTokenResponse {
   offlineLicenseToken: string
+}
+
+// REFRESH
+
+export interface RefreshOfflineLicenseResponse {
+  message: string
 }
 
 // IDENTIFIER
@@ -30,3 +44,4 @@ export interface GetOfflineActivateResponse {
   readme: string
   license: string
 }
+export interface GetQuotaUsageResponse extends QuotaUsage {}

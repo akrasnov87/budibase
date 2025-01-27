@@ -3,14 +3,35 @@ export interface LoginRequest {
   password: string
   permissionInfo?: boolean
 }
+export interface LoginResponse {
+  message: string
+  userId?: string
+}
+
+export interface LogoutResponse {
+  message: string
+}
+
+export interface SetInitInfoRequest extends Record<string, any> {}
+export interface SetInitInfoResponse {
+  message: string
+}
+
+export interface GetInitInfoResponse extends Record<string, any> {}
 
 export interface PasswordResetRequest {
   email: string
+}
+export interface PasswordResetResponse {
+  message: string
 }
 
 export interface PasswordResetUpdateRequest {
   resetCode: string
   password: string
+}
+export interface PasswordResetUpdateResponse {
+  message: string
 }
 
 export interface UpdateSelfRequest {
