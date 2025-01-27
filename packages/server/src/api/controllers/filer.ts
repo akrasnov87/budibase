@@ -1,9 +1,8 @@
-import { FileType } from "@budibase/types"
 import env from "../../environment"
 
 import * as fs from 'fs';
 import {join, basename} from 'path';
-import { streamFile } from "src/utilities/fileSystem"
+import { streamFile } from "../../utilities/fileSystem"
 
 const root = env.EXPLORER_DIR;
 
@@ -14,7 +13,7 @@ export async function upload(ctx: any) {
     const fullPath = join(root, folder);
 
     if(fullPath.indexOf(root) == 0) {
-        const files: FileType[] =
+        const files: any[] =
             ctx.request.files.file.length > 1
             ? Array.from(ctx.request.files.file)
             : [ctx.request.files.file]

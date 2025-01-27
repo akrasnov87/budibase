@@ -25,6 +25,8 @@ export class AdminStore extends BudiStore<AdminState> {
       disableAccountPortal: false,
       offlineMode: false,
       maintenance: [],
+      friendMode: false,
+      supportEmail: 'support@budibase.com'
     })
   }
 
@@ -54,6 +56,8 @@ export class AdminStore extends BudiStore<AdminState> {
       store.offlineMode = environment.offlineMode
       store.maintenance = environment.maintenance
       store.passwordMinLength = environment.passwordMinLength
+      store.friendMode = environment.friendMode
+      store.supportEmail = environment.supportEmail
       return store
     })
   }

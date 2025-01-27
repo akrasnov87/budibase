@@ -48,3 +48,8 @@ export const isBuilderInputFocused = (e: KeyboardEvent) => {
   }
   return false
 }
+
+export const isEn = () => {
+  console.log(`Language ${document.documentElement.lang}`)
+  return document.documentElement.lang == "en"
+}

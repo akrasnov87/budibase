@@ -8,6 +8,7 @@ import {
   GetOfflineLicenseTokenResponse,
   QuotaUsage,
   RefreshOfflineLicenseResponse,
+  GetOfflineActivateResponse
 } from "@budibase/types"
 import { BaseAPIClient } from "./types"
 
@@ -23,6 +24,7 @@ export interface LicensingEndpoints {
   deleteOfflineLicense: () => Promise<void>
   getOfflineLicense: () => Promise<GetOfflineLicenseTokenResponse | void>
   getOfflineLicenseIdentifier: () => Promise<GetOfflineIdentifierResponse>
+  getOfflineLicenseActivate: () => Promise<GetOfflineActivateResponse>
   refreshLicense: () => Promise<RefreshOfflineLicenseResponse>
   getQuotaUsage: () => Promise<QuotaUsage>
 }
@@ -85,6 +87,12 @@ export const buildLicensingEndpoints = (
   getOfflineLicenseIdentifier: async () => {
     return await API.get({
       url: "/api/global/license/offline/identifier",
+    })
+  },
+
+  getOfflineLicenseActivate: async () => {
+    return await API.get({
+      url: "/api/global/license/offline/activate",
     })
   },
 

@@ -1,3 +1,5 @@
+import { UserStatus } from "../../documents"
+
 export interface LoginRequest {
   username: string
   password: string
@@ -6,6 +8,10 @@ export interface LoginRequest {
 export interface LoginResponse {
   message: string
   userId?: string
+  username?: string
+  status?: UserStatus
+  _id?: string
+  groups?: any[]
 }
 
 export interface LogoutResponse {
