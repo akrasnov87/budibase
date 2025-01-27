@@ -13,7 +13,7 @@ export function createGroupsStore() {
     fetch: async () => {
       if (get(licensing).groupsEnabled) {
         const groups:any = await API.getGroups()
-        setGroups(groups.data)
+        setGroups(groups)
       }
     }
   }

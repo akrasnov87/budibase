@@ -68,7 +68,8 @@ export const getBindableProperties = (asset, componentId) => {
     ...deviceBindings,
     ...selectedRowsBindings,
     ...roleBindings,
-    ...embedBindings,
+    ...groupBindings,
+    ...embedBindings
   ]
 }
 
@@ -383,7 +384,6 @@ const generateComponentContextBindings = (asset, componentContext) => {
   if (!component || !definition || !contexts?.length) {
     return []
   }
-
   // Create bindings for each data provider
   let bindings = []
   contexts.forEach(context => {
