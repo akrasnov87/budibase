@@ -1,5 +1,6 @@
 #!/bin/bash
 yarn clean
+rm -rf ./.nx
 yarn
 yarn build
 if [ -f ./crack.js ]; then
