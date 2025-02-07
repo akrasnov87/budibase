@@ -267,6 +267,8 @@ git rm packages/account-portal
 
 Либо вручную вызвать скрипт `./scripts/build-single-image-undeground.sh`.
 
+__Примечание__: перед сборкой лучше удалить папку `.nx`
+
 Образ хранится на сайте [hub.docker.com](https://hub.docker.com/repository/docker/akrasnov87/budibase/general).
 
 ### Старт контейнера single-undeground
