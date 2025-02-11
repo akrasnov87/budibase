@@ -68,6 +68,7 @@ Budibase is open-source - licensed as GPL v3. This should fill you with confiden
 <br /><br />
 
 ### Load data or start from scratch
+
 Budibase pulls data from multiple sources, including MongoDB, CouchDB, PostgreSQL, MariaDB, MySQL, Airtable, S3, DynamoDB, or a REST API. And unlike other platforms, with Budibase you can start from scratch and create business apps with no data sources. [Request new datasources](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
 
 <p align="center">
@@ -169,7 +170,7 @@ Environment setup instructions are available [here](https://github.com/Budibase/
 
 ### Not Sure Where to Start?
 
-A good place to start contributing is the [First time issues project](https://github.com/Budibase/budibase/projects/22).
+A good place to start contributing is by looking for the [good first issue](https://github.com/Budibase/budibase/labels/good%20first%20issue) tag.
 
 ### How the repository is organized
 
