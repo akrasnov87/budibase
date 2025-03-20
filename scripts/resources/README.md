@@ -1,0 +1,1 @@
+minio - это файл с ресурса `https://dl.min.io/server/minio/release/linux-arm64/minio`
