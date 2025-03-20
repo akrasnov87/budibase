@@ -1,7 +1,6 @@
 <script>
   import { Layout } from "@budibase/bbui"
-  //import Bulgaria from "../../assets/bulgaria.png"
-  //import Covanta from "../../assets/covanta.png"
+  
   import TheMoscowKremlin from "../../assets/russia/The_Moscow_Kremlind.jpg"
   import RedSquareandStBasilsCathedralMoscow from "../../assets/russia/Red_Square_and_St_Basils_Cathedral_Moscow.jpg"
   import ChristtheSaviorCathedral from "../../assets/russia/Christ_the_Savior_Cathedral.jpg"

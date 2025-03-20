@@ -121,3 +121,4 @@ license.txt
 .env.*
 *.tar.gz
 docker-compose.yaml
+scripts/resources/minio_single

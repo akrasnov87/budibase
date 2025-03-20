@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [3.5.3] - 12.03.2025
+
+Created:
+
+* обновление с главной ветки 3.4.5 -> 3.5.3
+
+Fixed
+
+* исправлен скрипт по загрузке и установке `minio` (добавлена локальная загрука)
+
 ## [3.2.13] - 28.11.2024
 
 - исправлена ошибка `Refused to execute inline script because it violates the following Content Security Policy directive: "script-src 'self' 'unsafe-eval'`;

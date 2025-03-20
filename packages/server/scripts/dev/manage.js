@@ -47,6 +47,7 @@ async function init() {
     VERSION: "0.0.0+local",
     PASSWORD_MIN_LENGTH: "1",
     DEFAULT_LOCALE: "ru",
+    OPENAI_API_KEY: "sk-abcdefghijklmnopqrstuvwxyz1234567890abcd",
   }
 
   config = { ...config, ...existingConfig }

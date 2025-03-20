@@ -11,20 +11,18 @@ import {
 import { configs, context, events } from "@budibase/backend-core"
 import sdk from "../../../sdk"
 import {
+  AutomationResults,
   ConfigType,
   FieldType,
+  FilterCondition,
   isDidNotTriggerResponse,
   SettingsConfig,
   Table,
 } from "@budibase/types"
 import { mocks } from "@budibase/backend-core/tests"
-import { removeDeprecated } from "../../../automations/utils"
 import { createAutomationBuilder } from "../../../automations/tests/utilities/AutomationTestBuilder"
-import { automations } from "@budibase/shared-core"
 import { basicTable } from "../../../tests/utilities/structures"
 import TestConfiguration from "../../../tests/utilities/TestConfiguration"
-
-const FilterConditions = automations.steps.filter.FilterConditions
 
 const MAX_RETRIES = 4
 const {
@@ -66,15 +64,11 @@ describe("/automations", () => {
     it("returns all of the definitions in one", async () => {
       const { action, trigger } = await config.api.automation.getDefinitions()
 
-      let definitionsLength = Object.keys(
-        removeDeprecated(BUILTIN_ACTION_DEFINITIONS)
-      ).length
-
       expect(Object.keys(action).length).toBeGreaterThanOrEqual(
-        definitionsLength
+        Object.keys(BUILTIN_ACTION_DEFINITIONS).length
       )
       expect(Object.keys(trigger).length).toEqual(
-        Object.keys(removeDeprecated(TRIGGER_DEFINITIONS)).length
+        Object.keys(TRIGGER_DEFINITIONS).length
       )
     })
   })
@@ -292,8 +286,7 @@ describe("/automations", () => {
         await setup.delay(500)
         let elements = await getAllTableRows(config)
         // don't test it unless there are values to test
-        if (elements.length > 1) {
-          expect(elements.length).toBeGreaterThanOrEqual(MAX_RETRIES)
+        if (elements.length >= 1) {
           expect(elements[0].name).toEqual("Test")
           expect(elements[0].description).toEqual("TEST")
           return
@@ -487,15 +480,40 @@ describe("/automations", () => {
       expect(events.automation.created).not.toHaveBeenCalled()
       expect(events.automation.triggerUpdated).not.toHaveBeenCalled()
     })
+
+    it("can update an input field", async () => {
+      const { automation } = await createAutomationBuilder(config)
+        .onRowDeleted({ tableId: "tableId" })
+        .serverLog({ text: "test" })
+        .save()
+
+      automation.definition.trigger.inputs.tableId = "newTableId"
+      const { automation: updatedAutomation } =
+        await config.api.automation.update(automation)
+
+      expect(updatedAutomation.definition.trigger.inputs.tableId).toEqual(
+        "newTableId"
+      )
+    })
+
+    it("cannot update a readonly field", async () => {
+      const { automation } = await createAutomationBuilder(config)
+        .onRowAction({ tableId: "tableId" })
+        .serverLog({ text: "test" })
+        .save()
+
+      automation.definition.trigger.inputs.tableId = "newTableId"
+      await config.api.automation.update(automation, {
+        status: 400,
+        body: {
+          message: "Field tableId is readonly and it cannot be modified",
+        },
+      })
+    })
   })
 
   describe("fetch", () => {
     it("return all the automations for an instance", async () => {
-      const fetchResponse = await config.api.automation.fetch()
-      for (const auto of fetchResponse.automations) {
-        await config.api.automation.delete(auto)
-      }
-
       const { automation: automation1 } = await config.api.automation.post(
         newAutomation()
       )
@@ -594,7 +612,7 @@ describe("/automations", () => {
               steps: [
                 {
                   inputs: {
-                    condition: FilterConditions.EQUAL,
+                    condition: FilterCondition.EQUAL,
                     field: "{{ trigger.row.City }}",
                     value: "{{ trigger.oldRow.City }}",
                   },
@@ -604,7 +622,7 @@ describe("/automations", () => {
           })
         )
 
-        const res = await config.api.automation.test(automation._id!, {
+        const response = await config.api.automation.test(automation._id!, {
           fields: {},
           oldRow: {
             City: oldCity,
@@ -614,12 +632,14 @@ describe("/automations", () => {
           },
         })
 
-        if (isDidNotTriggerResponse(res)) {
+        if (isDidNotTriggerResponse(response)) {
           throw new Error("Automation did not trigger")
         }
 
+        const results: AutomationResults = response as AutomationResults
+
         const expectedResult = oldCity === newCity
-        expect(res.steps[1].outputs.result).toEqual(expectedResult)
+        expect(results.steps[1].outputs.result).toEqual(expectedResult)
       }
     )
   })
@@ -706,7 +726,8 @@ describe("/automations", () => {
         if (isDidNotTriggerResponse(res)) {
           expect(expectToRun).toEqual(false)
         } else {
-          expect(res.steps[1].outputs.success).toEqual(expectToRun)
+          const results: AutomationResults = res as AutomationResults
+          expect(results.steps[1].outputs.success).toEqual(expectToRun)
         }
       }
     )
