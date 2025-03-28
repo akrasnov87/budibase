@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.279.919",
+  "version": "0.287.573",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -111,7 +111,6 @@
     "@budibase/shared-core": "*",
     "@budibase/string-templates": "*",
     "@budibase/types": "*",
-    "@budibase/pro": "npm:@budibase/pro@latest",
     "tough-cookie": "4.1.3",
     "node-fetch": "2.6.7",
     "semver": "7.5.3",

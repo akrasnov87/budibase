@@ -4,9 +4,12 @@ import {
   App,
   AppFeatures,
   AppIcon,
+  AppScript,
   AutomationSettings,
   Plugin,
+  UpdateAppRequest,
 } from "@budibase/types"
+import { get } from "svelte/store"
 
 interface ClientFeatures {
   spectrumThemes: boolean
@@ -46,6 +49,7 @@ interface AppMetaState {
   revertableVersion?: string
   upgradableVersion?: string
   icon?: AppIcon
+  scripts: AppScript[]
 }
 
 export const INITIAL_APP_META_STATE: AppMetaState = {
@@ -80,6 +84,7 @@ export const INITIAL_APP_META_STATE: AppMetaState = {
   usedPlugins: [],
   automations: {},
   routes: {},
+  scripts: [],
 }
 
 export class AppMetaStore extends BudiStore<AppMetaState> {
@@ -91,21 +96,13 @@ export class AppMetaStore extends BudiStore<AppMetaState> {
     this.store.set({ ...INITIAL_APP_META_STATE })
   }
 
-  syncAppPackage(pkg: {
-    application: App
-    clientLibPath: string
-    hasLock: boolean
-  }) {
-    const { application: app, clientLibPath, hasLock } = pkg
-
+  syncApp(app: App) {
     this.update(state => ({
       ...state,
       name: app.name,
       friendlyName: app.friendlyName,
       appId: app.appId,
       url: app.url || "",
-      hasLock,
-      clientLibPath,
       libraries: app.componentLibraries,
       version: app.version,
       appInstance: app.instance,
@@ -120,7 +117,22 @@ export class AppMetaStore extends BudiStore<AppMetaState> {
       initialised: true,
       automations: app.automations || {},
       hasAppPackage: true,
+      scripts: app.scripts || [],
     }))
+  }
+
+  syncAppPackage(pkg: {
+    application: App
+    clientLibPath: string
+    hasLock: boolean
+  }) {
+    const { application, clientLibPath, hasLock } = pkg
+    this.update(state => ({
+      ...state,
+      hasLock,
+      clientLibPath,
+    }))
+    this.syncApp(application)
   }
 
   syncClientFeatures(features: Partial<ClientFeatures>) {
@@ -146,6 +158,11 @@ export class AppMetaStore extends BudiStore<AppMetaState> {
       ...state,
       routes: resp.routes,
     }))
+  }
+
+  async updateApp(updates: UpdateAppRequest) {
+    const app = await API.saveAppMetadata(get(this.store).appId, updates)
+    this.syncApp(app)
   }
 
   // Returned from socket
