@@ -48,6 +48,7 @@ async function init() {
     PASSWORD_MIN_LENGTH: "1",
     DEFAULT_LOCALE: "ru",
     OPENAI_API_KEY: "sk-abcdefghijklmnopqrstuvwxyz1234567890abcd",
+    BUDICLOUD_URL: "https://budibaseqa.app",
   }
 
   config = { ...config, ...existingConfig }

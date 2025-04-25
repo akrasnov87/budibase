@@ -7,6 +7,7 @@ import {
   AppScript,
   AutomationSettings,
   Plugin,
+  PWAManifest,
   UpdateAppRequest,
 } from "@budibase/types"
 import { get } from "svelte/store"
@@ -49,6 +50,7 @@ interface AppMetaState {
   revertableVersion?: string
   upgradableVersion?: string
   icon?: AppIcon
+  pwa?: PWAManifest
   scripts: AppScript[]
 }
 
@@ -84,6 +86,16 @@ export const INITIAL_APP_META_STATE: AppMetaState = {
   usedPlugins: [],
   automations: {},
   routes: {},
+  pwa: {
+    name: "",
+    short_name: "",
+    description: "",
+    icons: [],
+    background_color: "",
+    theme_color: "",
+    start_url: "",
+    screenshots: [],
+  },
   scripts: [],
 }
 
@@ -117,6 +129,7 @@ export class AppMetaStore extends BudiStore<AppMetaState> {
       initialised: true,
       automations: app.automations || {},
       hasAppPackage: true,
+      pwa: app.pwa,
       scripts: app.scripts || [],
     }))
   }
@@ -173,6 +186,17 @@ export class AppMetaStore extends BudiStore<AppMetaState> {
       name,
       url,
       icon,
+      pwa: {
+        ...state.pwa,
+        name: state.pwa?.name || "",
+        short_name: state.pwa?.short_name || "",
+        description: state.pwa?.description || "",
+        icons: state.pwa?.icons || [],
+        background_color: state.pwa?.background_color || "",
+        theme_color: state.pwa?.theme_color || "",
+        start_url: state.pwa?.start_url || "",
+        screenshots: state.pwa?.screenshots || [],
+      },
     }))
   }
 }

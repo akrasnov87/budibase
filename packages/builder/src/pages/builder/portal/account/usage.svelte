@@ -33,6 +33,7 @@
   const oneDayInSeconds = 86400
 
   const EXCLUDE_QUOTAS = {
+    ["Day Passes"]: () => true,
     Queries: () => true,
     Users: license => {
       return license.plan.model !== PlanModel.PER_USER
