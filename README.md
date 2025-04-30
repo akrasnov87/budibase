@@ -1,3 +1,6 @@
+
+[![build](https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2Fakrasnov87%2Fbudibase%2Fraw%2Fmaster%2Flerna.json&query=%24.version&label=docker%20pull%20akrasnov87/budibase%3A)](https://hub.docker.com/repository/docker/akrasnov87/budibase/tags)
+
 <p align="center">
   <a href="https://www.budibase.com">
     <img alt="Budibase" src="https://res.cloudinary.com/daog6scxm/image/upload/v1696515725/Branding/Assets/Symbol/RGB/Full%20Colour/Budibase_Symbol_RGB_FullColour_cbqvha_1_z5cwq2.svg" width="60" />
