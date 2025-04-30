@@ -26,7 +26,6 @@ import {
   db as dbCore,
   docIds,
   env as envCore,
-  ErrorCode,
   events,
   objectStore,
   roles,
@@ -70,6 +69,7 @@ import {
   AddAppSampleDataResponse,
   UnpublishAppResponse,
   SetRevertableAppVersionResponse,
+  ErrorCode,
 } from "@budibase/types"
 import { BASE_LAYOUT_PROP_IDS } from "../../constants/layouts"
 import sdk from "../../sdk"
@@ -609,7 +609,6 @@ export async function update(
     customTheme: app.customTheme,
     navigation: app.navigation,
     name: app.name,
-    friendlyName: app.friendlyName,
     url: app.url,
     icon: app.icon,
     automations: {

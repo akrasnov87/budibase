@@ -1,7 +1,7 @@
 <script>
   import FontAwesomeIcon from "./FontAwesomeIcon.svelte"
   import { Popover, Heading, Body } from "@budibase/bbui"
-  import { licensing, admin } from "@/stores/portal"
+  import { licensing } from "@/stores/portal"
   import { isPremiumOrAbove } from "@/helpers/planTitle"
   import { ChangelogURL } from "@/constants"
 
@@ -61,11 +61,11 @@
         <Body size="S">Budibase University</Body>
       </a>
       <div class="divider" />
-        <a
+      <a
         href={premiumOrAboveLicense
-          ? "mailto:" + $admin.supportEmail
+          ? "mailto:support@budibase.com"
           : "/builder/portal/account/usage"}
-        >
+      >
         <div class="premiumLinkContent" class:disabled={!premiumOrAboveLicense}>
           <div class="icon">
             <FontAwesomeIcon name="fa-solid fa-envelope" />

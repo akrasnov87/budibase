@@ -1,5 +1,5 @@
 <script>
-  import { Heading, Body, Button, Icon, Detail } from "@budibase/bbui"
+  import { Heading, Body, Button, Icon } from "@budibase/bbui"
   import { processStringSync } from "@budibase/string-templates"
   import { auth } from "@/stores/portal"
   import { goto } from "@roxi/routify"
@@ -81,7 +81,6 @@
       <Heading size="S">
         {app.name}
       </Heading>
-      <Detail size="M">{app.friendlyName || ''}</Detail>
     </div>
   </div>
 
