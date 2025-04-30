@@ -1,0 +1,15 @@
+{
+  "name": "budibase-locales",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Aleksandr Krasnov",
+  "license": "ISC",
+  "dependencies": {
+    "budibase-translate": "github:akrasnov87/budibase-translate#v1.0.3"
+  },
+  "devDependencies": {},
+  "description": "sdasd"
+}
