@@ -252,6 +252,8 @@ yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size
 <pre>
 git remote add upstream https://github.com/Budibase/budibase.git
 git pull upstream master
+# или можно указать номер версии
+git pull upstream 3.9.5
 </pre>
 
 Возможно понадобиться выполнить:
