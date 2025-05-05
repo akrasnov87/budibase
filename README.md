@@ -11,10 +11,10 @@
 </h1>
 
 <h3 align="center">
-  The low code platform you'll enjoy using
+  Низкокодовая платформа, которую вы полюбите использовать
 </h3>
 <p align="center">
-  Budibase is an open-source low-code platform that saves engineers 100s of hours building forms, portals, and approval apps, securely.
+  Budibase - это открытая низкокодовая платформа, которая представляет собой самый простой способ создания внутренних инструментов, повышающих производительность.
 </p>
 
 <h3 align="center">
@@ -23,195 +23,191 @@
 <br>
 
 <p align="center">
-  <img alt="Budibase design ui" src="https://res.cloudinary.com/daog6scxm/image/upload/v1680181644/ui/homepage-design-ui_sizp7b.png">
+  <img alt="Budibase design ui" src="https://res.cloudinary.com/daog6scxm/image/upload/v1633524049/ui/design-ui-wide-mobile_gdaveq.jpg">
 </p>
 
 <p align="center">
   <a href="https://github.com/Budibase/budibase/releases">
-    <img alt="GitHub all releases" src="https://img.shields.io/github/downloads/Budibase/budibase/total">
+    <img alt="GitHub все релизы" src="https://img.shields.io/github/downloads/Budibase/budibase/total">
   </a>
   <a href="https://github.com/Budibase/budibase/releases">
-    <img alt="GitHub release (latest by date)" src="https://img.shields.io/github/v/release/Budibase/budibase">
+    <img alt="GitHub релизы (в хронологическом порядке)" src="https://img.shields.io/github/v/release/Budibase/budibase">
   </a>
   <a href="https://twitter.com/intent/follow?screen_name=budibase">
-    <img src="https://img.shields.io/twitter/follow/budibase?style=social" alt="Follow @budibase" />
+    <img src="https://img.shields.io/twitter/follow/budibase?style=social" alt="Подписаться на @budibase" />
   </a>
-  <img src="https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg" alt="Code of conduct" />
+  <img src="https://img.shields.io/badge/Contributor%20Covenant-v2.0%20adopted-ff69b4.svg" alt="Кодекс поведения" />
   <a href="https://codecov.io/gh/Budibase/budibase">
     <img src="https://codecov.io/gh/Budibase/budibase/graph/badge.svg?token=E8W2ZFXQOH"/>
   </a>
 </p>
 
 <h3 align="center">
-  <a href="https://account.budibase.app/register">Get started - we host (Budibase Cloud)</a>
+  <a href="https://docs.budibase.com/getting-started">Начать</a>
   <span> · </span>
-  <a href="https://docs.budibase.com/docs/hosting-methods">Get started - you host (Docker, K8s, DO)</a>
+  <a href="https://docs.budibase.com">Документация</a>
   <span> · </span>
-  <a href="https://docs.budibase.com/docs">Docs</a>
+  <a href="https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas">Запросы на улучшения</a>
   <span> · </span>
-  <a href="https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas">Feature request</a>
+  <a href="https://github.com/Budibase/budibase/issues">Сообщить об ошибке</a>
   <span> · </span>
-  <a href="https://github.com/Budibase/budibase/issues">Report a bug</a>
-  <span> · </span>
-  Support: <a href="https://github.com/Budibase/budibase/discussions">Discussions</a>
+  Поддержка: <a href="https://github.com/Budibase/budibase/discussions">Обсуждения</a>
 </h3>
 
 <br /><br />
+## ✨ Функциональные возможности
 
-## ✨ Features
-
-### Build and ship real software
-
-Unlike other platforms, with Budibase you build and ship single page applications. Budibase applications have performance baked in and can be designed responsively, providing users with a great experience.
+### Строим и развертываем настоящее программное обеспечение
+В отличие от других платформ, с помощью Budibase вы создаете и развертываете одностраничные приложения. Приложения Budibase имеют высокую производительность и могут быть адаптированы для разных устройств, обеспечивая вашим пользователям удивительный опыт.
 <br /><br />
 
-### Open source and extensible
-
-Budibase is open-source - licensed as GPL v3. This should fill you with confidence that Budibase will always be around. You can also code against Budibase or fork it and make changes as you please, providing a developer-friendly experience.
+### Открытый и расширяемый исходный код
+Budibase - это свободное программное обеспечение под лицензией GPL v3. Это должно вас уверить в том, что Budibase всегда будет здесь. Вы также можете писать код в Budibase или форкнуть его и вносить изменения по своему усмотрению, что сделает его дружелюбным для разработчиков.
 <br /><br />
 
-### Load data or start from scratch
-
-Budibase pulls data from multiple sources, including MongoDB, CouchDB, PostgreSQL, MariaDB, MySQL, Airtable, S3, DynamoDB, or a REST API. And unlike other platforms, with Budibase you can start from scratch and create business apps with no data sources. [Request new datasources](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
+### Импорт данных или начало с нуля
+Budibase может получать данные из различных источников, включая MongoDB, CouchDB, PostgreSQL, MySQL, Airtable, S3, DynamoDB или REST API. И в отличие от других платформ, с помощью Budibase вы можете начать с нуля и создавать бизнес-приложения без каких-либо источников данных. [Запросить новый источник данных](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
 
 <p align="center">
-  <img alt="Budibase data" src="https://res.cloudinary.com/daog6scxm/image/upload/v1680281798/ui/data_klbuna.png">
+  <img alt="Budibase data" src="https://res.cloudinary.com/daog6scxm/image/upload/v1636970242/Out%20of%20beta%20launch/data_n1tlhf.png">
 </p>
 <br /><br />
 
-### Design and build apps with powerful pre-made components
+### Проектирование и создание приложений с использованием предварительно определенных компонентов.
 
-Budibase comes out of the box with beautifully designed, powerful components which you can use like building blocks to build your UI. We also expose many of your favourite CSS styling options so you can go that extra creative mile. [Request new component](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
+Budibase поставляется с красиво оформленными и мощными компонентами, которые вы можете использовать как строительные блоки для создания вашего пользовательского интерфейса. Мы также предоставляем множество ваших любимых опций стилей CSS, чтобы вы могли проявить больше креативности. [Запросить новый компонент](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
 
 <p align="center">
-  <img alt="Budibase design" src="https://res.cloudinary.com/daog6scxm/image/upload/v1675437167/ui/form_2x_mbli8y.png">
+  <img alt="Budibase design" src="https://res.cloudinary.com/daog6scxm/image/upload/v1636970243/Out%20of%20beta%20launch/design-like-a-pro_qhlfeu.gif">
 </p>
 <br /><br />
 
-### Automate processes, integrate with other tools and connect to webhooks
-
-Save time by automating manual processes and workflows. From connecting to webhooks to automating emails, simply tell Budibase what to do and let it work for you. You can easily [create new automations for Budibase here](https://github.com/Budibase/automations) or [Request new automation](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
-<br /><br />
-
-### Integrate with your favorite tools
-
-Budibase integrates with a number of popular tools allowing you to build apps that perfectly fit your stack.
+### Автоматизация процессов, интеграция с другими инструментами и подключение к вебхукам
+Экономьте время, автоматизируя ручные процессы и рабочие потоки. Будь то подключение к вебхукам или автоматизация отправки электронных писем, просто скажите Budibase, что он должен делать, и позвольте ему работать за вас. Вы можете легко [создать новую автоматизацию для Budibase здесь](https://github.com/Budibase/automations) или [Запросить новую автоматизацию](https://github.com/Budibase/budibase/discussions?discussions_q=category%3AIdeas).
 
 <p align="center">
-  <img alt="Budibase integrations" src="https://res.cloudinary.com/daog6scxm/image/upload/v1680195228/ui/automate_fg9z07.png">
+  <img alt="Budibase automations" src="https://res.cloudinary.com/daog6scxm/image/upload/v1636970486/Out%20of%20beta%20launch/automation_riro7u.png">
 </p>
 <br /><br />
 
-### Deploy with confidence and security
+### Интеграция с вашими любимыми инструментами
+Budibase интегрируется с рядом популярных инструментов, что позволяет вам создавать приложения, которые идеально вписываются в вашу технологическую стопку.
 
-Budibase is made to scale. With Budibase, you can self-host on your own infrastructure and globally manage users, onboarding, SMTP, apps, groups, theming and more. You can also provide users/groups with an app portal and disseminate user management to the group manager.
-
-- Checkout the promo video: <https://youtu.be/xoljVpty_Kw>
-
-<br />
-
----
-
-<br />
-
-## Budibase Public API
-
-As with anything that we build in Budibase, our new public API is simple to use, flexible, and introduces new extensibility. To summarize, the Budibase API enables:
-
-- Budibase as a backend
-- Interoperability
-
-#### Docs
-
-You can learn more about the Budibase API at the following places:
-
-- [General documentation](https://docs.budibase.com/docs/public-api): Learn how to get your API key, how to use spec, and how to use Postman
-- [Interactive API documentation](https://docs.budibase.com/reference/appcreate) : Learn how to interact with the API
-
+<p align="center">
+  <img alt="Budibase integrations" src="https://res.cloudinary.com/daog6scxm/image/upload/v1636970242/Out%20of%20beta%20launch/integrations_kc7dqt.png">
+</p>
 <br /><br />
 
-## 🏁 Get started
+### Рай для админов
+Budibase разработан для масштабирования. С Budibase вы можете самостоятельно размещать его на своей собственной инфраструктуре и глобально управлять пользователями, доменами, SMTP, приложениями, группами, внешним видом и многим другим. Вы также можете предоставить пользователям/группам портал приложений и поручить управление пользователями руководителю группы.
 
-Deploy Budibase using Docker, Kubernetes, and Digital Ocean on your existing infrastructure. Or use Budibase Cloud if you don't need to self-host and would like to get started quickly.
-
-### [Get started with self-hosting Budibase](https://docs.budibase.com/docs/hosting-methods)
-
-- [Docker - single ARM compatible image](https://docs.budibase.com/docs/docker)
-- [Docker Compose](https://docs.budibase.com/docs/docker-compose)
-- [Kubernetes](https://docs.budibase.com/docs/kubernetes-k8s)
-- [Digital Ocean](https://docs.budibase.com/docs/digitalocean)
-- [Portainer](https://docs.budibase.com/docs/portainer)
-
-### [Get started with Budibase Cloud](https://budibase.com)
-
-<br /><br />
-
-## 🎓 Learning Budibase
-
-The Budibase documentation [lives here](https://docs.budibase.com/docs).
-<br />
-
-<br /><br />
-
-## 💬 Community
-
-If you have a question or would like to talk with other Budibase users and join our community, please hop over to [Github discussions](https://github.com/Budibase/budibase/discussions)
+- Смотрите промо-видео: https://youtu.be/xoljVpty_Kw
 
 <br /><br /><br />
 
-## ❗ Code of conduct
+## 🏁 Начало работы
 
-Budibase is dedicated to providing everyone a welcoming, diverse, and harassment-free experience. We expect everyone in the Budibase community to abide by our [**Code of Conduct**](https://github.com/Budibase/budibase/blob/HEAD/docs/CODE_OF_CONDUCT.md). Please read it.
+<img src="https://res.cloudinary.com/daog6scxm/image/upload/v1634808888/logo/deploy_npl9za.png" />
+
+Разверните Budibase на своей собственной инфраструктуре с использованием Docker, Kubernetes и Digital Ocean.
+Или используйте Budibase Cloud, если вам не нужно самостоятельно размещаться, и вы хотите быстро начать.
+
+### [Начать работу с Budibase](https://budibase.com)
+
+
+<br /><br />
+
+## 🎓 Изучение Budibase
+
+Документация Budibase [здесь](https://docs.budibase.com).
 <br />
 
-<br /><br />
-
-## 🙌 Contributing to Budibase
-
-From opening a bug report to creating a pull request: every contribution is appreciated and welcomed. If you're planning to implement a new feature or change the API, please create an issue first. This way, we can ensure your work is not in vain.
-Environment setup instructions are available [here](https://github.com/Budibase/budibase/tree/HEAD/docs/CONTRIBUTING.md).
-
-### Not Sure Where to Start?
-
-A good place to start contributing is by looking for the [good first issue](https://github.com/Budibase/budibase/labels/good%20first%20issue) tag.
-
-### How the repository is organized
-
-Budibase is a monorepo managed by lerna. Lerna manages the building and publishing of the budibase packages. At a high level, here are the packages that make up Budibase.
-
-- [packages/builder](https://github.com/Budibase/budibase/tree/HEAD/packages/builder) - contains code for the budibase builder client-side svelte application.
-
-- [packages/client](https://github.com/Budibase/budibase/tree/HEAD/packages/client) - A module that runs in the browser responsible for reading JSON definition and creating living, breathing web apps from it.
-
-- [packages/server](https://github.com/Budibase/budibase/tree/HEAD/packages/server) - The budibase server. This Koa app is responsible for serving the JS for the builder and budibase apps, as well as providing the API for interaction with the database and file system.
-
-For more information, see [CONTRIBUTING.md](https://github.com/Budibase/budibase/blob/HEAD/docs/CONTRIBUTING.md)
 
 <br /><br />
 
-## 📝 License
+## 💬 Сообщество
 
-Budibase is open-source, licensed as [GPL v3](https://www.gnu.org/licenses/gpl-3.0.en.html). The client and component libraries are licensed as [MPL](https://directory.fsf.org/wiki/License:MPL-2.0) - so the apps you build can be licensed however you like.
+Если у вас есть вопросы или вы хотите обсудить что-то с другими пользователями Budibase и присоединиться к нашему сообществу, пожалуйста, перейдите по следующей ссылке: [Обсуждения на GitHub](https://github.com/Budibase/budibase/discussions)
+
+<br /><br /><br />
+
+
+## ❗ Кодекс поведения
+
+Budibase обязуется обеспечить каждому дружелюбный, разнообразный и безопасный опыт. Мы ожидаем, что все члены сообщества Budibase будут следовать принципам нашего [**Кодекса поведения**](https://github.com/Budibase/budibase/blob/HEAD/.github/CODE_OF_CONDUCT.md). Спасибо за внимание.
+<br />
+
 
 <br /><br />
 
-## ⭐ Stargazers over time
 
-[![Stargazers over time](https://starchart.cc/Budibase/budibase.svg)](https://starchart.cc/Budibase/budibase)
+## 🙌 Вклад в Budibase
 
-If you are having issues between updates of the builder, please use the guide [here](https://github.com/Budibase/budibase/blob/HEAD/docs/CONTRIBUTING.md#troubleshooting) to clear down your environment.
+Будь то открытие ошибки или создание запроса на включение изменений, любой вклад приветствуется и приветствуется. Если вы планируете реализовать новую функциональность или изменить API, сначала создайте Issue. Так мы сможем убедиться, что ваша работа не напрасна.
+
+### Не знаете, с чего начать?
+Хорошее место для начала вклада - это здесь: [Текущие проекты](https://github.com/Budibase/budibase/projects/22).
+
+### Как организован репозиторий?
+Budibase - это монорепозиторий, управляемый с помощью lerna. Lerna управляет сборкой и публикацией пакетов Budibase. Вот, в общих чертах, пакеты, из которых состоит Budibase.
+
+- [packages/builder](https://github.com/Budibase/budibase/tree/HEAD/packages/builder) - содержит код клиентского приложения Svelte для Budibase builder.
+
+- [packages/client](https://github.com/Budibase/budibase/tree/HEAD/packages/client) - Модуль, который запускается в браузере и отвечает за чтение JSON-определений и создание веб-приложений из них.
+
+- [packages/server](https://github.com/Budibase/budibase/tree/HEAD/packages/server) - Сервер Budibase. Это приложение Koa отвечает за предоставление JS для строителей и приложений Budibase, а также предоставляет API для взаимодействия с базой данных и файловой системой.
+
+Для получения дополнительной информации см. [CONTRIBUTING.md](https://github.com/Budibase/budibase/blob/HEAD/.github/CONTRIBUTING.md)
 
 <br /><br />
 
-## Contributors ✨
 
-Thanks goes to these wonderful people ([emoji key](https://allcontributors.org/docs/en/emoji-key)):
+## 📝 Лицензия
 
-<a href="https://github.com/Budibase/budibase/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=Budibase/budibase" />
-</a>
+Budibase является проектом с открытым исходным кодом, лицензированным по [GPL v3](https://www.gnu.org/licenses/gpl-3.0.en.html). Клиентские библиотеки и компоненты лицензируются по [MPL](https://directory.fsf.org/wiki/License:MPL-2.0), так что приложения, которые вы создаете, могут использоваться под любой лицензией, как вам угодно.
 
-Made with [contrib.rocks](https://contrib.rocks).
+<br /><br />
+
+## ⭐ Старгейзеры во времени
+
+[![Stargazers во времени](https://starchart.cc/Budibase/budibase.svg)](https://starchart.cc/Budibase/budibase)
+
+Если у вас возникли проблемы между обновлениями билдера, пожалуйста, используйте следующее руководство [здесь](https://github.com/Budibase/budibase/blob/HEAD/.github/CONTRIBUTING.md#troubleshooting), чтобы очистить ваше окружение.
+
+<br /><br />
+
+## Участники ✨
+
+Благодарим этих замечательных людей ([ключи эмодзи](https://allcontributors.org/docs/ru/emoji-key)):
+
+<!-- ALL-CONTRIBUTORS-LIST:START - Do not remove or modify this section -->
+<!-- prettier-ignore-start -->
+<!-- markdownlint-disable -->
+<table>
+  <tr>
+    <td align="center"><a href="http://martinmck.com"><img src="https://avatars1.githubusercontent.com/u/11256663?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Martin McKeaveney</b></sub></a><br /><a href="https://github.com/Budibase/budibase/commits?author=shogunpurple" title="Код">💻</a> <a href="https://github.com/Budibase/budibase/commits?author=shogunpurple" title="Документация">📖</a> <a href="https://github.com/Budibase/budibase/commits?author=shogunpurple" title="Тесты">⚠️</a> <a href="#infra-shogunpurple" title="Инфраструктура (хостинг, средства сборки и т. д.)">🚇</a></td>
+    <td align="center"><a href="http://www.michaeldrury.co.uk/"><img src="https://avatars2.githubusercontent.com/u/4407001?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Michael Drury</b></sub></a><br /><a href="https://github.com/Budibase/budibase/commits?author=mike12345567" title="Документация">📖</a> <a href="https://github.com/Budibase/budibase/commits?author=mike12345567" title="Код">💻</a> <a href="https://github.com/Budibase/budibase/commits?author=mike12345567" title="Тесты">⚠️</a> <a href="#infra-mike12345567" title="Инфраструктура (хостинг, средства сборки и т. д.)">🚇</a></td>
+    <td align="center"><a href="https://github.com/aptkingston"><img src="https://avatars3.githubusercontent.com/u/9075550?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Andrew Kingston</b></sub></a><br /><a href="https://github.com/Budibase/budibase/commits?author=aptkingston" title="Документация">📖</a> <a href="https://github.com/Budibase/budibase/commits?author=aptkingston" title="Код">💻</a> <a href="https://github.com/Budibase/budibase/commits?author=aptkingston" title="Тесты">⚠️</a> <a href="#design-aptkingston" title="Дизайн">🎨</a></td>
+    <td align="center"><a href="https://budibase.com/"><img src="https://avatars3.githubusercontent.com/u/3524181?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Michael Shanks</b></sub></a><br /><a href="https://github.com/Budibase/budibase/commits?author=mjashanks" title="Документация">📖</a> <a href="https://github.com/Budibase/budibase/commits?author=mjashanks" title="Код">💻</a> <a href="https://github.com/Budibase/budibase/commits?author=mjashanks" title="Тесты">⚠️</a></td>
+    <td align="center"><a href="https://github.com/kevmodrome"><img src="https://avatars3.githubusercontent.com/u/534488?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Kevin Åberg Kultalahti</b></sub></a><br /><a href="https://github.com/Budibase/budibase/commits?author=kevmodrome" title="Документация">📖</a> <a href="https://github.com/Budibase/budibase/commits?author=kevmodrome" title="Код">💻</a> <a href="https://github.com/Budibase/budibase/commits?author=kevmodrome" title="Тесты">⚠️</a></td>
+    <td align="center"><a href="https://www.budibase.com/"><img src="https://avatars2.githubusercontent.com/u/49767913?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Joe</b></sub></a><br /><a href="#userTesting-joe14" title="User Testing">📓</a></td>
+    <td align="center"><a href="https://github.com/ntkleynhans"><img src="https://avatars.githubusercontent.com/u/4908235?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Nico Kleynhans</b></sub></a><br /><a href="#design-ntkleynhans" title="Дизайн">🎨</a></td>
+  </tr>
+  <tr>
+    <td align="center"><a href="https://github.com/kkeithle"><img src="https://avatars.githubusercontent.com/u/18712925?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Keith Lee</b></sub></a><br /><a href="#design-kkeithle" title="Дизайн">🎨</a></td>
+    <td align="center"><a href="https://github.com/Ben-Shabs"><img src="https://avatars.githubusercontent.com/u/26257661?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Ben-Shabs</b></sub></a><br /><a href="#userTesting-Ben-Shabs" title="User Testing">📓</a></td>
+    <td align="center"><a href="https://www.reeceking.dev"><img src="https://avatars.githubusercontent.com/u/4020324?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Reece King</b></sub></a><br /><a href="#design-reeceking" title="Дизайн">🎨</a></td>
+    <td align="center"><a href="https://github.com/gunjan5"><img src="https://avatars.githubusercontent.com/u/6934146?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Gunjan Chhabra</b></sub></a><br /><a href="#userTesting-gunjan5" title="User Testing">📓</a></td>
+    <td align="center"><a href="https://github.com/stavros-liaskos"><img src="https://avatars.githubusercontent.com/u/29320217?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Stavros Liaskos</b></sub></a><br /><a href="#design-stavros-liaskos" title="Дизайн">🎨</a></td>
+    <td align="center"><a href="https://github.com/theshu8"><img src="https://avatars.githubusercontent.com/u/28013049?v=4?s=100" width="100px;" alt=""/><br /><sub><b>theshu8</b></sub></a><br /><a href="#userTesting-theshu8" title="User Testing">📓</a></td>
+    <td align="center"><a href="https://github.com/Kleebster"><img src="https://avatars.githubusercontent.com/u/63757547?v=4?s=100" width="100px;" alt=""/><br /><sub><b>Kleebster</b></sub></a><br /><a href="#userTesting-Kleebster" title="User Testing">📓</a></td>
+  </tr>
+</table>
+
+<!-- markdownlint-enable -->
+<!-- prettier-ignore-end -->
+<!-- ALL-CONTRIBUTORS-LIST:END -->
+</p>
 
 ## Запуск
 
@@ -223,6 +219,7 @@ echo "deb [signed-by=/usr/share/keyrings/yarn-archive-keyring.gpg] https://dl.ya
 sudo apt update && sudo apt install yarn
 </pre>
 
+<pre>
 git clone <https://github.com/akrasnov87/budibase>
 cd budibase
 yarn install
@@ -231,6 +228,7 @@ sudo npm install -g jest lerna
 node ./hosting/scripts/setup.js
 yarn
 yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size=4096 lerna run build --stream`)
+</pre>
 
 Далее выполняем yarn dev
 
@@ -273,7 +271,9 @@ git rm packages/account-portal
 
 Либо вручную вызвать скрипт `./scripts/build-single-image-undeground.sh`.
 
-__Примечание__: перед сборкой лучше удалить папку `.nx`
+__Примечание__: 
+* перед сборкой лучше удалить папку `.nx`;
+* в каталоге `scripts/resources` должен быть файл [`minio`](/scripts/resources/README.md).
 
 Образ хранится на сайте [hub.docker.com](https://hub.docker.com/repository/docker/akrasnov87/budibase/general).
 
@@ -341,6 +341,30 @@ MAIN_PORT=10000
 </pre>
 
 В итоге backups создаётся по команде `budi backups --export --env .env.backups`
+
+Восстановление выполняется при помощи
+
+`budi backups --import backup-2024-07-17T13:29:47.368Z.tar.gz --env ./.env.backups`
+
+## Ошибки budi hosting --start
+
+<pre>
+budi hosting --start
+Starting services, this may take a moment - first time this may take a few minutes to download images.
+Error - Failed to start - logs written to file: docker-error.log
+</pre>
+
+Нужно установить `sudo apt  install docker-compose`
+
+## budi
+
+[Budibase CLI](https://docs.budibase.com/docs/budibase-cli-setup)
+
+<pre>
+budi hosting --start
+</pre>
+
+## Подключение к couch db
 
 Восстановление выполняется при помощи
 
