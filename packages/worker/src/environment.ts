@@ -32,6 +32,7 @@ const environment = {
   PASSWORD_MIN_LENGTH: process.env.PASSWORD_MIN_LENGTH,
   FRIEND_MODE: process.env.FRIEND_MODE,
   SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || 'support@budibase.com',
+  INTERNAL_API_KEY: process.env.INTERNAL_API_KEY,
   // urls
   MINIO_URL: process.env.MINIO_URL,
   COUCH_DB_URL: process.env.COUCH_DB_URL,

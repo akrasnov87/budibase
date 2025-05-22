@@ -9,6 +9,7 @@
     Link,
     TooltipWrapper,
   } from "@budibase/bbui"
+  import { Feature } from "@budibase/types"
   import { onMount } from "svelte"
   import { _ } from "svelte-i18n"
   import { admin, auth, licensing } from "@/stores/portal"
@@ -34,6 +35,7 @@
 
   const EXCLUDE_QUOTAS = {
     ["Day Passes"]: () => true,
+    [Feature.AI_CUSTOM_CONFIGS]: () => true,
     Queries: () => true,
     Users: license => {
       return license.plan.model !== PlanModel.PER_USER

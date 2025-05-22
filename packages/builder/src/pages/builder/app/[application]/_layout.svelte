@@ -8,7 +8,7 @@
     userStore,
     deploymentStore,
   } from "@/stores/builder"
-  import { auth, appsStore } from "@/stores/portal"
+  import { appsStore, featureFlags } from "@/stores/portal"
   import {
     Icon,
     Tabs,
@@ -22,12 +22,8 @@
   import { isActive, url, goto, layout, redirect } from "@roxi/routify"
   import { capitalise } from "@/helpers"
   import { onMount, onDestroy } from "svelte"
-  import VerificationPromptBanner from "@/components/common/VerificationPromptBanner.svelte"
-  import TourWrap from "@/components/portal/onboarding/TourWrap.svelte"
-  import TourPopover from "@/components/portal/onboarding/TourPopover.svelte"
   import BuilderSidePanel from "./_components/BuilderSidePanel.svelte"
   import { UserAvatars } from "@budibase/frontend-core"
-  import { TOUR_KEYS } from "@/components/portal/onboarding/tours.js"
   import PreviewOverlay from "./_components/PreviewOverlay.svelte"
   import EnterpriseBasicTrialModal from "@/components/portal/onboarding/EnterpriseBasicTrialModal.svelte"
   import UpdateAppTopNav from "@/components/common/UpdateAppTopNav.svelte"
@@ -38,7 +34,6 @@
   let hasSynced = false
   let loaded = false
 
-  $: loaded && initTour()
   $: selected = capitalise(
     $layout.children.find(layout => $isActive(layout.path))?.title ?? "data"
   )
@@ -76,20 +71,6 @@
     $goto($builderStore.previousTopNavPath[path] || path)
   }
 
-  const initTour = async () => {
-    // Check if onboarding is enabled.
-    if (!$auth.user?.onboardedAt) {
-      builderStore.startBuilderOnboarding()
-    } else {
-      // Feature tour date
-      const release_date = new Date("2023-03-01T00:00:00.000Z")
-      const onboarded = new Date($auth.user?.onboardedAt)
-      if (onboarded < release_date) {
-        builderStore.setTour(TOUR_KEYS.FEATURE_ONBOARDING)
-      }
-    }
-  }
-
   onMount(async () => {
     if (!hasSynced && application) {
       try {
@@ -108,14 +89,11 @@
   })
 </script>
 
-<TourPopover />
-
 {#if $builderStore.builderSidePanel}
   <BuilderSidePanel />
 {/if}
 
 <div class="root" class:blur={$previewStore.showPreview}>
-  <VerificationPromptBanner />
   <div class="top-nav">
     {#if $appStore.initialised}
       <div class="topleftnav">
@@ -124,7 +102,9 @@
         </a>
         <Tabs {selected} size="M">
           {#each $layout.children as { path, title }}
-            <TourWrap stepKeys={[`builder-${title}-section`]}>
+            {#if title === "agent" && !$featureFlags.AI_AGENTS}
+              <!-- skip -->
+            {:else}
               <Tab
                 link
                 href={$url(path)}
@@ -134,7 +114,7 @@
                 title={capitalise(title)}
                 id={`builder-${title}-tab`}
               />
-            </TourWrap>
+            {/if}
           {/each}
         </Tabs>
       </div>

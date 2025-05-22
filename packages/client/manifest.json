@@ -639,6 +639,7 @@
       "hAlign": "center",
       "vAlign": "center"
     },
+    "styles": ["margin", "background", "font"],
     "settings": [
       {
         "type": "text",
@@ -4568,6 +4569,108 @@
       ]
     }
   },
+  "codegenerator": {
+    "name": "Barcode/QR Generator",
+    "icon": "Vignette",
+    "new": true,
+    "settings": [
+      {
+        "type": "radio",
+        "label": "Barcode/QR",
+        "key": "codeType",
+        "options": ["QR Code", "Barcode"],
+        "defaultValue": "QR Code"
+      },
+      {
+        "type": "select",
+        "label": "Size",
+        "key": "size",
+        "defaultValue": 200,
+        "required": true,
+        "options": [
+          {
+            "label": "X Small",
+            "value": 75
+          },
+          {
+            "label": "Small",
+            "value": 150
+          },
+          {
+            "label": "Medium",
+            "value": 200
+          },
+          {
+            "label": "Large",
+            "value": 250
+          },
+          {
+            "label": "X Large",
+            "value": 300
+          },
+          {
+            "label": "XX Large",
+            "value": 350
+          },
+          {
+            "label": "XXX Large",
+            "value": 400
+          }
+        ]
+      },
+      {
+        "type": "text",
+        "key": "value",
+        "label": "Value",
+        "defaultValue": "https://docs.budibase.com/"
+      },
+      {
+        "type": "boolean",
+        "key": "showValue",
+        "label": "Display value",
+        "defaultValue": true
+      },
+
+      {
+        "section": true,
+        "name": "Customisation",
+        "settings": [
+          {
+            "type": "boolean",
+            "key": "showLogo",
+            "label": "Show Logo",
+            "defaultValue": true
+          },
+          {
+            "type": "text",
+            "key": "customLogo",
+            "label": "Logo",
+            "dependsOn": {
+              "setting": "showLogo",
+              "value": true
+            }
+          }
+        ]
+      },
+      {
+        "section": true,
+        "name": "Appearance",
+        "settings": [
+          {
+            "type": "color",
+            "label": "Primary color",
+            "key": "primColor",
+            "defaultValue": "#000",
+            "dependsOn": {
+              "setting": "codeType",
+              "value": "QR Code",
+              "invert": false
+            }
+          }
+        ]
+      }
+    ]
+  },
   "signaturesinglefield": {
     "name": "Signature",
     "icon": "AnnotatePen",
@@ -5222,7 +5325,7 @@
     "icon": "Data",
     "illegalChildren": ["section"],
     "hasChildren": true,
-    "actions": ["RefreshDatasource"],
+    "actions": ["RefreshDatasource", "AddDataProviderQueryExtension"],
     "size": {
       "width": 500,
       "height": 200
@@ -5544,7 +5647,81 @@
       }
     ]
   },
+
+  "filter": {
+    "name": "Filter",
+    "icon": "Filter",
+    "size": {
+      "width": 100,
+      "height": 35
+    },
+    "new": true,
+    "settings": [
+      {
+        "type": "dataSource/filterable",
+        "label": "Target component",
+        "required": true,
+        "key": "targetComponent",
+        "wide": true
+      },
+      {
+        "type": "select",
+        "label": "Size",
+        "showInBar": true,
+        "key": "size",
+        "options": [
+          {
+            "label": "Small",
+            "value": "S"
+          },
+          {
+            "label": "Medium",
+            "value": "M"
+          },
+          {
+            "label": "Large",
+            "value": "L"
+          }
+        ],
+        "defaultValue": "M",
+        "wide": true
+      },
+      {
+        "type": "boolean",
+        "label": "Persist filters",
+        "key": "persistFilters",
+        "defaultValue": false
+      },
+      {
+        "type": "boolean",
+        "label": "Clear filters",
+        "key": "showClear",
+        "defaultValue": false
+      },
+      {
+        "label": "",
+        "type": "filterConfiguration",
+        "key": "filterConfig",
+        "nested": true,
+        "dependsOn": "targetComponent",
+        "resetOn": "targetComponent"
+      }
+    ]
+  },
+  "filterconfig": {
+    "name": "",
+    "icon": "",
+    "editable": true,
+    "settings": [
+      {
+        "type": "plainText",
+        "label": "Label",
+        "key": "label"
+      }
+    ]
+  },
   "dynamicfilter": {
+    "deprecated": true,
     "name": "Dynamic Filter",
     "icon": "Filter",
     "size": {
@@ -7695,7 +7872,8 @@
           "setting": "table.type",
           "value": "custom",
           "invert": true
-        }
+        },
+        "resetOn": "table"
       },
       {
         "type": "field/sortable",
@@ -7847,7 +8025,7 @@
         ]
       }
     ],
-    "actions": ["RefreshDatasource"]
+    "actions": ["RefreshDatasource", "AddDataProviderFilterExtension"]
   },
   "bbreferencefield": {
     "devComment": "As bb reference is only used for user subtype for now, we are using user for icon and labels",

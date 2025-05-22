@@ -14,7 +14,7 @@ import {
   evaluationContext,
 } from "./automations"
 import { userStore, userSelectedResourceMap, isOnlyUser } from "./users"
-import { deploymentStore } from "./deployments"
+import { deploymentStore } from "./deployment"
 import { contextMenuStore } from "./contextMenu"
 import { snippets } from "./snippets"
 import {
@@ -37,7 +37,6 @@ import { queries } from "./queries"
 import { flags } from "./flags"
 import { rowActions } from "./rowActions"
 import componentTreeNodesStore from "./componentTreeNodes"
-import { appPublished } from "./published"
 import { oauth2 } from "./oauth2"
 
 import { FetchAppPackageResponse } from "@budibase/types"
@@ -77,7 +76,6 @@ export {
   hoverStore,
   snippets,
   rowActions,
-  appPublished,
   evaluationContext,
   screenComponentsList,
   screenComponentErrors,

@@ -1,5 +1,5 @@
 ARG BASEIMG=budibase/couchdb:v3.3.3-sqs-v2.1.1
-FROM node:20-slim AS build
+FROM node:22-slim AS build
 
 # install node-gyp dependencies
 #RUN apt-get update && apt-get install -y --no-install-recommends g++ make python3 jq
@@ -37,7 +37,7 @@ ENV TARGETBUILD=$TARGETBUILD
 
 # install base dependencies
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends software-properties-common nginx uuid-runtime redis-server libaio1
+  apt-get install -y --no-install-recommends software-properties-common nginx uuid-runtime redis-server libaio1 
 
 # Install postgres client for pg_dump utils
 RUN apt install -y software-properties-common apt-transport-https ca-certificates gnupg \
