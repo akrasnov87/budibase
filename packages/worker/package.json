@@ -39,7 +39,7 @@
   "license": "GPL-3.0",
   "dependencies": {
     "@budibase/backend-core": "*",
-    "@budibase/pro": "*",
+    "@budibase/pro": "3.9.5",
     "@budibase/shared-core": "*",
     "@budibase/string-templates": "*",
     "@budibase/types": "*",

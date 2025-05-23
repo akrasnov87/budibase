@@ -60,7 +60,7 @@
     "@budibase/client": "*",
     "@budibase/frontend-core": "*",
     "@budibase/nano": "10.1.5",
-    "@budibase/pro": "*",
+    "@budibase/pro": "3.9.5",
     "@budibase/shared-core": "*",
     "@budibase/string-templates": "*",
     "@budibase/types": "*",

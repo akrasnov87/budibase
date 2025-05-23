@@ -28,13 +28,6 @@
       "webRoot": "${workspaceFolder}"
     },
     {
-      "type": "chrome",
-      "request": "launch",
-      "name": "Launch Chrome against my localhost",
-      "url": "http://localhost:4001",
-      "webRoot": "${workspaceFolder}"
-    },
-    {
       "name": "Budibase yarn",
       "type": "node",
       "request": "launch",
@@ -47,10 +40,6 @@
     {
       "name": "Start Budibase",
       "configurations": ["Budibase Server", "Budibase Worker"]
-    },
-    {
-      "name": "Start My Budibase",
-      "configurations": ["Budibase yarn", "Launch Chrome against my localhost"]
     }
   ]
 }
