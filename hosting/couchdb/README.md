@@ -1,0 +1,1 @@
+`docker build -t budibase/couchdb:v3.3.3-sqs-v2.1.1 .`
