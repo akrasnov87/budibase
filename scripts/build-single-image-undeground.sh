@@ -1,5 +1,6 @@
 #!/bin/bash
 rm -r ./node_modules
+rm -r ./.node_modules
 rm -rf ./.nx
 yarn install
 yarn
@@ -11,7 +12,6 @@ version=$(./scripts/getCurrentVersion.sh)
 package_version=$(./scripts/getPackageVersion.sh)
 
 echo "processing node_modules..."
-rm -r .node_modules
 cp -L -r node_modules .node_modules
 
 echo "processing build..."

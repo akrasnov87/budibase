@@ -31,6 +31,7 @@
   import { UserAvatar } from "@budibase/frontend-core"
   import { helpers, sdk } from "@budibase/shared-core"
   import { API } from "@/api"
+  import { _ } from "svelte-i18n"
 
   let loaded = false
   let userInfoModal
@@ -136,7 +137,7 @@
           </div>
           <Layout noPadding gap="XS">
             <Heading size="M">
-              Hey {helpers.getUserLabel($auth.user)}
+              <Heading>{$_("builder.src.pages.builder.apps.index")}</Heading> {helpers.getUserLabel($auth.user)}
             </Heading>
             <Body>
               Welcome to the {$organisation.company} portal. Below you'll find the
@@ -167,7 +168,7 @@
                   >
                     <div class="preview" use:gradient={{ seed: app.name }} />
                     <div class="app-info">
-                      <Heading size="XS">{app.name}</Heading>
+                      <Heading size="XS">{app.friendlyName || app.name}</Heading>
                       <Body size="S">
                         {#if app.updatedAt}
                           {processStringSync(

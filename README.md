@@ -393,3 +393,16 @@ budi hosting --start
 ```
 http://localhost:4005/_utils/#login
 ```
+
+## Использование node
+
+<pre>
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
+
+nvm ls-remote
+
+nvm install --lts
+
+nvm install [version]
+nvm install v18.17.1
+</pre>

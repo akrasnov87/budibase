@@ -1,3 +1,4 @@
 {
+  "builder.src.pages.builder.apps.index": "Привет",
   "worker.src.api.controllers.global.license": "Поздравляю!!! Это Ваша \"Enterprise\" лицензия до %s года."
 }

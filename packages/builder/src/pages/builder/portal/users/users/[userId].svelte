@@ -195,6 +195,10 @@
     userFieldsToUpdate.lastName = evt.target.value
   }
 
+  async function updateUserDescription(evt) {
+    userFieldsToUpdate.description = evt.target.value
+  }
+
   async function updateUserRole({ detail }) {
     let flags = {}
     if (detail === Constants.BudibaseRoles.Developer) {
@@ -314,6 +318,14 @@
             disabled={readonly}
             value={user?.lastName}
             on:input={updateUserLastName}
+          />
+        </div>
+        <div class="field">
+          <Label size="L">Description</Label>
+          <Input
+            disabled={readonly}
+            value={user?.description}
+            on:input={updateUserDescription}
           />
         </div>
         <!-- don't let a user remove the privileges that let them be here -->
