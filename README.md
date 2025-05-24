@@ -406,3 +406,10 @@ nvm install --lts
 nvm install [version]
 nvm install v18.17.1
 </pre>
+
+## Тегирование
+
+<pre>
+git tag [версия]
+git push origin [версия]
+</pre>
