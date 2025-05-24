@@ -21,7 +21,7 @@ if (env.isDev() || env.isTest()) {
 router
   .get(
     "/api/dev/version",
-    authorized(permissions.BUILDER),
+    //authorized(permissions.BUILDER),
     controller.getBudibaseVersion
   )
   .delete(

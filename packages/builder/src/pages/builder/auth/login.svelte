@@ -11,6 +11,7 @@
     FancyForm,
     FancyInput,
   } from "@budibase/bbui"
+  import { API } from "@/api"
   import { goto } from "@roxi/routify"
   import { auth, organisation, oidc, admin } from "@/stores/portal"
   import GoogleButton from "./_components/GoogleButton.svelte"
@@ -20,6 +21,7 @@
   import { TestimonialPage } from "@budibase/frontend-core/src/components"
   import { onMount } from "svelte"
 
+  let version
   let loaded = false
   let form
   let errors = {}
@@ -27,6 +29,15 @@
 
   $: company = $organisation.company || "Budibase"
   $: cloud = $admin.cloud
+
+  async function getVersion() {
+    try {
+      version = await API.getBudibaseVersion()
+    } catch (error) {
+      notifications.error("Error getting Budibase version")
+      version = null
+    }
+  }
 
   async function login() {
     form.validate()
@@ -52,6 +63,7 @@
   }
 
   onMount(async () => {
+    await getVersion()
     try {
       await organisation.init()
     } catch (error) {
@@ -144,6 +156,10 @@
           </div>
         </Layout>
       {/if}
+
+      <Body size="xs" textAlign="center">
+        Current version: {version || "-"}
+      </Body>
 
       {#if cloud}
         <Body size="xs" textAlign="center">

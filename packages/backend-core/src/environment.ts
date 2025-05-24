@@ -90,7 +90,7 @@ function getPackageJsonFields(): {
   if (isDev() && !isTest()) {
     try {
       const lerna = getParentFile("lerna.json")
-      localVersion = `${lerna.version}+local`
+      localVersion = `${lerna.version}+nigth`
     } catch {
       //
     }
