@@ -86,6 +86,14 @@ export const USERS_TABLE_SCHEMA: Table = {
         presence: false,
       },
     },
+    description: {
+      name: "description",
+      type: FieldType.STRING,
+      constraints: {
+        type: FieldType.STRING,
+        presence: false,
+      },
+    },
     roleId: {
       name: "roleId",
       type: FieldType.OPTIONS,
