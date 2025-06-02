@@ -33,6 +33,7 @@
       "request": "launch",
       "runtimeExecutable": "yarn",
       "runtimeArgs": ["dev"],
+      "runtimeVersion": "22.0.0",
       "cwd": "${workspaceFolder}"
     }
   ],
