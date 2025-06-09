@@ -38,6 +38,7 @@ import { flags } from "./flags"
 import { rowActions } from "./rowActions"
 import componentTreeNodesStore from "./componentTreeNodes"
 import { oauth2 } from "./oauth2"
+import { workspaceAppStore } from "./workspaceApps"
 
 import { FetchAppPackageResponse } from "@budibase/types"
 
@@ -81,6 +82,7 @@ export {
   screenComponentErrors,
   screenComponentErrorList,
   oauth2,
+  workspaceAppStore,
 }
 
 export const reset = () => {
@@ -103,6 +105,7 @@ const refreshBuilderData = async () => {
     groups.fetch(),
     roles.fetch(),
     flags.fetch(),
+    workspaceAppStore.fetch(),
   ])
 }
 

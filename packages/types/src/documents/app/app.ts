@@ -39,7 +39,7 @@ export interface AppInstance {
 }
 
 export interface AppNavigation {
-  navigation: string
+  navigation: "Top" | "Left"
   title?: string
   navWidth?: string
   sticky?: boolean
@@ -49,7 +49,7 @@ export interface AppNavigation {
   navBackground?: string
   navTextColor?: string
   links?: AppNavigationLink[]
-  textAlign?: string
+  textAlign?: "Left" | "Center" | "Right"
 }
 
 export interface AppNavigationLink {
@@ -57,7 +57,7 @@ export interface AppNavigationLink {
   url: string
   id?: string
   roleId?: string
-  type?: string
+  type: "link" | "sublinks"
   subLinks?: AppNavigationLink[]
 }
 

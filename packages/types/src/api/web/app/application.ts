@@ -35,15 +35,10 @@ export interface FetchAppDefinitionResponse {
   libraries: string[]
 }
 
-interface WorkspaceAppResponse extends WorkspaceApp {
-  screens: Screen[]
-}
-
 export interface FetchAppPackageResponse {
   application: App
   licenseType: PlanType
   screens: Screen[]
-  workspaceApps: WorkspaceAppResponse[]
   layouts: Layout[]
   clientLibPath: string
   hasLock: boolean
@@ -78,13 +73,6 @@ export interface ImportToUpdateAppRequest {
   encryptionPassword?: string
 }
 export interface ImportToUpdateAppResponse {
-  message: string
-}
-
-export interface SetRevertableAppVersionRequest {
-  revertableVersion: string
-}
-export interface SetRevertableAppVersionResponse {
   message: string
 }
 
