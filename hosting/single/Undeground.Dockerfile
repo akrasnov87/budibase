@@ -85,7 +85,7 @@ COPY --from=build /app/package.json /package.json
 COPY --from=build /app/packages/server /app
 COPY --from=build /app/packages/worker /worker
 
-EXPOSE 80
+EXPOSE 80 9001
 VOLUME /data
 
 ARG BUDIBASE_VERSION

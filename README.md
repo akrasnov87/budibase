@@ -394,6 +394,26 @@ budi hosting --start
 http://localhost:4005/_utils/#login
 ```
 
+## Minio
+
+Для подключения к `minio` использовать `http://localhost:9001`. Контейнер запускать следующей командой:
+
+<pre>
+docker run --rm --name=budibase -p 10000:80 -p 9001:9001 --env-file=.env.single akrasnov87/budibase:3.12.8
+</pre>
+
+Где в `.env`:
+
+<pre>
+MINIO_ACCESS_KEY=R71VBy97UZGrPr6mZoYFgUP09Fcg3UZY
+MINIO_SECRET_KEY=YrrUtUuFGg09MNrcQchtjpUER4ps8GaC
+</pre>
+
+В интерфейсе авторизации вводим учётные данные из env-файла:
+
+* логин: знчаение MINIO_ACCESS_KEY
+* пароль: знечение MINIO_SECRET_KEY
+
 ## Использование node
 
 <pre>
