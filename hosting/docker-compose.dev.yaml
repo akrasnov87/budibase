@@ -8,7 +8,7 @@ services:
     restart: on-failure
     image: minio/minio
     volumes:
-      - ./meta/minio_data:/data
+      - minio_data:/data
     ports:
       - "${MINIO_PORT}:9000"
       - "9001:9001"
@@ -50,7 +50,7 @@ services:
       - "${COUCH_DB_PORT}:5984"
       - "${COUCH_DB_SQS_PORT}:4984"
     volumes:
-      - ./meta/couchdb_data:/data
+      - couchdb_data:/data
 
   redis-service:
     container_name: budi-redis-dev
@@ -60,7 +60,7 @@ services:
     ports:
       - "${REDIS_PORT}:6379"
     volumes:
-      - ./meta/redis_data:/data
+      - redis_data:/data
 
 volumes:
   couchdb_data:
