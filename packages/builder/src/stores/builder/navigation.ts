@@ -1,8 +1,10 @@
-import { get } from "svelte/store"
+import { derived, get, Writable } from "svelte/store"
 import { API } from "@/api"
-import { appStore } from "@/stores/builder"
-import { BudiStore } from "../BudiStore"
+import { appStore, workspaceAppStore } from "@/stores/builder"
+import { DerivedBudiStore } from "../BudiStore"
 import { AppNavigation, AppNavigationLink, UIObject } from "@budibase/types"
+import { featureFlags } from "../portal"
+import { notifications } from "@budibase/bbui"
 
 export interface AppNavigationStore extends AppNavigation {}
 
@@ -12,9 +14,31 @@ export const INITIAL_NAVIGATION_STATE: AppNavigationStore = {
   textAlign: "Left",
 }
 
-export class NavigationStore extends BudiStore<AppNavigationStore> {
+export interface DerivedAppNavigationStore extends AppNavigationStore {}
+
+export class NavigationStore extends DerivedBudiStore<
+  AppNavigationStore,
+  DerivedAppNavigationStore
+> {
   constructor() {
-    super(INITIAL_NAVIGATION_STATE)
+    const makeDerivedStore = (store: Writable<AppNavigationStore>) => {
+      return derived(
+        [store, workspaceAppStore, featureFlags],
+        ([$store, $workspaceAppStore, $featureFlags]) => {
+          if (!$featureFlags.WORKSPACE_APPS) {
+            return $store
+          }
+          const navigation = $workspaceAppStore.selectedWorkspaceApp?.navigation
+
+          return {
+            ...$store,
+            ...(navigation ?? INITIAL_NAVIGATION_STATE),
+          }
+        }
+      )
+    }
+
+    super(INITIAL_NAVIGATION_STATE, makeDerivedStore)
   }
 
   syncAppNavigation(nav?: AppNavigation) {
@@ -29,10 +53,23 @@ export class NavigationStore extends BudiStore<AppNavigationStore> {
   }
 
   async save(navigation: AppNavigation) {
-    const appId = get(appStore).appId
-    const app = await API.saveAppMetadata(appId, { navigation })
-    if (app.navigation) {
-      this.syncAppNavigation(app.navigation)
+    const $workspaceAppStore = get(workspaceAppStore)
+    if (!$workspaceAppStore.selectedWorkspaceApp) {
+      notifications.error("Non selected workspace app")
+      return
+    }
+    workspaceAppStore.edit({
+      ...$workspaceAppStore.selectedWorkspaceApp,
+      navigation,
+    })
+
+    if ($workspaceAppStore.selectedWorkspaceApp.isDefault) {
+      // TODO: remove when cleaning the flag FeatureFlag.WORKSPACE_APPS
+      const appId = get(appStore).appId
+      const app = await API.saveAppMetadata(appId, { navigation })
+      if (app.navigation) {
+        this.syncAppNavigation(app.navigation)
+      }
     }
   }
 

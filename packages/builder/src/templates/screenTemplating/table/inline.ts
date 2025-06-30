@@ -15,7 +15,7 @@ const inline = async ({
   tableOrView: SourceOption
   permissions: UIPermissions
   screens: ScreenDoc[]
-  workspaceAppId: string | undefined
+  workspaceAppId: string
 }) => {
   const heading = new Component("@budibase/standard-components/textv2")
     .instanceName("Table heading")
@@ -45,7 +45,14 @@ const inline = async ({
   }
 
   const screenTemplate = new Screen(workspaceAppId)
-    .route(getValidRoute(screens, tableOrView.name, permissions.write))
+    .route(
+      getValidRoute(
+        screens,
+        tableOrView.name,
+        permissions.write,
+        workspaceAppId
+      )
+    )
     .instanceName(`${tableOrView.name} - List`)
     .customProps({ layout: "grid" })
     .role(permissions.write)

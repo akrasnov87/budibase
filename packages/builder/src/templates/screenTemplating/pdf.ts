@@ -11,9 +11,9 @@ const pdf = ({
 }: {
   route: string
   screens: Screen[]
-  workspaceAppId: string | undefined
+  workspaceAppId: string
 }) => {
-  const validRoute = getValidRoute(screens, route, Roles.BASIC)
+  const validRoute = getValidRoute(screens, route, Roles.BASIC, workspaceAppId)
 
   const template = new PDFScreen(workspaceAppId)
     .role(Roles.BASIC)

@@ -20,6 +20,7 @@
   import Logo from "assets/bb-emblem.svg"
   import { TestimonialPage } from "@budibase/frontend-core/src/components"
   import { onMount } from "svelte"
+  import { pushNumSessionsInvalidated } from "../../../../../frontend-core/src"
 
   let version
   let loaded = false
@@ -46,11 +47,16 @@
       return
     }
     try {
-      await auth.login(formData?.username.trim(), formData?.password)
+      const loginResult = await auth.login(
+        formData?.username.trim(),
+        formData?.password
+      )
       if ($auth?.user?.forceResetPassword) {
         $goto("./reset")
       } else {
         notifications.success("Logged in successfully")
+        pushNumSessionsInvalidated(loginResult.invalidatedSessionCount || 0)
+
         $goto("../portal")
       }
     } catch (err) {
