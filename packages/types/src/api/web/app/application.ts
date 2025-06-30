@@ -52,6 +52,7 @@ export type FetchAppsResponse = (App & { defaultWorkspaceAppUrl: string })[]
 
 export interface PublishedAppData {
   name: string
+  friendlyName?: string
   appId: string
   url: string
   prodId: string

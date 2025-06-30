@@ -24,7 +24,7 @@ function isMessage(obj: any) {
 
 // LOGGER
 
-let pinoInstance: pino.Logger | undefined
+let pinoInstance: any //pino.Logger | undefined
 if (!env.DISABLE_PINO_LOGGER) {
   const level = env.LOG_LEVEL
   const pinoOptions: LoggerOptions = {
