@@ -122,3 +122,4 @@ license.txt
 *.tar.gz
 docker-compose.yaml
 scripts/resources/minio
+.claude

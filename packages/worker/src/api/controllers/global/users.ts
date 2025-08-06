@@ -7,6 +7,7 @@ import {
   AddSSoUserResponse,
   BulkUserRequest,
   BulkUserResponse,
+  ChangeTenantOwnerEmailRequest,
   CheckInviteResponse,
   CountUserResponse,
   CreateAdminUserRequest,
@@ -106,6 +107,31 @@ export const save = async (ctx: UserCtx<UnsavedUser, SaveUserResponse>) => {
   }
 }
 
+export const changeTenantOwnerEmail = async (
+  ctx: Ctx<ChangeTenantOwnerEmailRequest, void>
+) => {
+  const { newAccountEmail, originalEmail, tenantIds } = ctx.request.body
+  try {
+    for (const tenantId of tenantIds) {
+      await tenancy.doInTenant(tenantId, async () => {
+        const tenantUser = await userSdk.db.getUserByEmail(originalEmail)
+        if (!tenantUser) {
+          return
+        }
+        tenantUser.email = newAccountEmail
+        await userSdk.db.save(tenantUser, {
+          currentUserId: tenantUser._id,
+          isAccountHolder: true,
+          allowChangingEmail: true,
+        })
+      })
+    }
+    ctx.status = 200
+  } catch (err: any) {
+    ctx.throw(err.status || 400, err)
+  }
+}
+
 export const addSsoSupport = async (
   ctx: Ctx<AddSSoUserRequest, AddSSoUserResponse>
 ) => {
@@ -187,15 +213,6 @@ export const adminUser = async (
 ) => {
   const { email, password, tenantId, ssoId, givenName, familyName } =
     ctx.request.body
-
-  if (await platform.tenants.exists(tenantId)) {
-    ctx.throw(403, "Organisation already exists.")
-  }
-
-  if (env.MULTI_TENANCY) {
-    // store the new tenant record in the platform db
-    await platform.tenants.addTenant(tenantId)
-  }
 
   await tenancy.doInTenant(tenantId, async () => {
     // account portal sends a pre-hashed password - honour param to prevent double hashing

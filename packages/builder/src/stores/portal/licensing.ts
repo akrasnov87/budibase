@@ -40,6 +40,7 @@ interface LicensingState {
   customAppScriptsEnabled: boolean
   syncAutomationsEnabled: boolean
   triggerAutomationRunEnabled: boolean
+  recaptchaEnabled: boolean
   pdfEnabled: boolean
   // the currently used quotas from the db
   quotaUsage?: QuotaUsage
@@ -88,6 +89,7 @@ class LicensingStore extends BudiStore<LicensingState> {
       customAppScriptsEnabled: false,
       syncAutomationsEnabled: false,
       triggerAutomationRunEnabled: false,
+      recaptchaEnabled: false,
       pdfEnabled: false,
       // the currently used quotas from the db
       quotaUsage: undefined,
@@ -185,6 +187,7 @@ class LicensingStore extends BudiStore<LicensingState> {
   }
 
   setLicense() {
+    debugger;
     const license = get(auth).user?.license
     const planType = license?.plan.type
     const features = license?.features || []
@@ -216,6 +219,7 @@ class LicensingStore extends BudiStore<LicensingState> {
     const customAppScriptsEnabled = features.includes(
       Constants.Features.CUSTOM_APP_SCRIPTS
     )
+    const recaptchaEnabled = features.includes(Constants.Features.RECAPTCHA)
     const pdfEnabled = features.includes(Constants.Features.PDF)
     this.update(state => {
       return {
@@ -239,6 +243,7 @@ class LicensingStore extends BudiStore<LicensingState> {
         perAppBuildersEnabled,
         customAppScriptsEnabled,
         pdfEnabled,
+        recaptchaEnabled,
       }
     })
   }

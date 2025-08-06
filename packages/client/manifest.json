@@ -3275,6 +3275,14 @@
       },
       {
         "type": "boolean",
+        "label": "Run on input",
+        "key": "runOnInput",
+        "dependsOn": "onChange",
+        "info": "Trigger actions by 'input' events as well as 'change' events",
+        "defaultValue": false
+      },
+      {
+        "type": "boolean",
         "label": "Disabled",
         "key": "disabled",
         "defaultValue": false
@@ -3419,6 +3427,14 @@
       },
       {
         "type": "boolean",
+        "label": "Run on input",
+        "key": "runOnInput",
+        "dependsOn": "onChange",
+        "info": "Trigger actions by 'input' events as well as 'change' events",
+        "defaultValue": false
+      },
+      {
+        "type": "boolean",
         "label": "Disabled",
         "key": "disabled",
         "defaultValue": false
@@ -3529,6 +3545,14 @@
       },
       {
         "type": "boolean",
+        "label": "Run on input",
+        "key": "runOnInput",
+        "dependsOn": "onChange",
+        "info": "Trigger actions by 'input' events as well as 'change' events",
+        "defaultValue": false
+      },
+      {
+        "type": "boolean",
         "label": "Disabled",
         "key": "disabled",
         "defaultValue": false
@@ -3615,6 +3639,14 @@
             "key": "value"
           }
         ]
+      },
+      {
+        "type": "boolean",
+        "label": "Run on input",
+        "key": "runOnInput",
+        "dependsOn": "onChange",
+        "info": "Trigger actions by 'input' events as well as 'change' events",
+        "defaultValue": false
       },
       {
         "type": "boolean",
@@ -8207,7 +8239,11 @@
         ]
       }
     ],
-    "actions": ["RefreshDatasource", "AddDataProviderFilterExtension"]
+    "actions": [
+      "AddDataProviderFilterExtension",
+      "ClearRowSelection",
+      "RefreshDatasource"
+    ]
   },
   "bbreferencefield": {
     "devComment": "As bb reference is only used for user subtype for now, we are using user for icon and labels",

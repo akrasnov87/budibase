@@ -45,3 +45,8 @@ export interface GetOfflineActivateResponse {
   license: string
 }
 export interface GetQuotaUsageResponse extends QuotaUsage {}
+
+export interface GetInstallInfo {
+  installId: string
+  version: string
+}

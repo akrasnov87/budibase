@@ -254,7 +254,7 @@ yarn build (или `DISABLE_V8_COMPILE_CACHE=1 NODE_OPTIONS=--max-old-space-size
 git remote add upstream https://github.com/Budibase/budibase.git
 git pull upstream master
 # или можно указать номер версии
-git pull upstream 3.9.5
+git pull upstream 3.13.29
 </pre>
 
 Возможно понадобиться выполнить:
@@ -413,6 +413,8 @@ MINIO_SECRET_KEY=YrrUtUuFGg09MNrcQchtjpUER4ps8GaC
 
 * логин: знчаение MINIO_ACCESS_KEY
 * пароль: знечение MINIO_SECRET_KEY
+
+Accessing MinIO - https://docs.budibase.com/docs/accessing-minio
 
 ## Использование node
 

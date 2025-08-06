@@ -3,6 +3,7 @@ import {
   ActivateLicenseKeyResponse,
   ActivateOfflineLicenseTokenRequest,
   ActivateOfflineLicenseTokenResponse,
+  GetInstallInfo,
   GetLicenseKeyResponse,
   GetOfflineIdentifierResponse,
   GetOfflineLicenseTokenResponse,
@@ -27,6 +28,7 @@ export interface LicensingEndpoints {
   getOfflineLicenseActivate: () => Promise<GetOfflineActivateResponse>
   refreshLicense: () => Promise<RefreshOfflineLicenseResponse>
   getQuotaUsage: () => Promise<QuotaUsage>
+  getInstallInfo: () => Promise<GetInstallInfo | void>
 }
 
 export const buildLicensingEndpoints = (
@@ -48,6 +50,19 @@ export const buildLicensingEndpoints = (
     try {
       return await API.get({
         url: "/api/global/license/key",
+      })
+    } catch (e: any) {
+      if (e.status !== 404) {
+        throw e
+      }
+    }
+  },
+
+  // INSTALL ID
+  getInstallInfo: async () => {
+    try {
+      return await API.get({
+        url: "/api/global/install",
       })
     } catch (e: any) {
       if (e.status !== 404) {
