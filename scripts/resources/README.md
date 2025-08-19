@@ -1,1 +1,3 @@
-minio - это файл с ресурса `https://dl.min.io/server/minio/release/linux-arm64/minio`
+minio - это файл с ресурса `https://github.com/Budibase/budibase/blob/master/scripts/resources/minio`
+
+Скачиваем как `Raw`
