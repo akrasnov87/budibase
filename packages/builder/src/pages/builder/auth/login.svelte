@@ -154,13 +154,15 @@
             {$organisation.loginButton || `Log in to ${company}`}
           </Button>
         </Layout>
-        <Layout gap="XS" noPadding justifyItems="center">
-          <div class="user-actions">
-            <ActionButton size="L" quiet on:click={() => $goto("./forgot")}>
-              Forgot password?
-            </ActionButton>
-          </div>
-        </Layout>
+        {#if $organisation.forgotPasswordEnabled}
+          <Layout gap="XS" noPadding justifyItems="center">
+            <div class="user-actions">
+              <ActionButton size="L" quiet on:click={() => $goto("./forgot")}>
+                Forgot password?
+              </ActionButton>
+            </div>
+          </Layout>
+        {/if}
       {/if}
 
       <Body size="xs" textAlign="center">

@@ -81,19 +81,27 @@
             return null
           }}
           {error}
-          disabled={submitted}
+          disabled={submitted | !$organisation.forgotPasswordEnabled}
         />
       </FancyForm>
     </Layout>
     <div>
-      <Button
-        size="L"
-        disabled={!email || error || submitted}
-        cta
-        on:click={forgot}
-      >
-        Reset password
-      </Button>
+      {#if $organisation.forgotPasswordEnabled}
+        <Button
+          size="L"
+          disabled={!email || error || submitted}
+          cta
+          on:click={forgot}
+        >
+          Reset password
+        </Button>
+      {:else}
+        <Layout gap="XS" noPadding>
+          <Body size="M">
+            Password reset is disabled by {$organisation.company} settings
+          </Body>
+        </Layout>
+      {/if}
     </div>
   </Layout>
 </TestimonialPage>

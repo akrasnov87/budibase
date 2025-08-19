@@ -189,7 +189,6 @@ class LicensingStore extends BudiStore<LicensingState> {
   }
 
   setLicense() {
-    debugger;
     const license = get(auth).user?.license
     const planType = license?.plan.type
     const features = license?.features || []

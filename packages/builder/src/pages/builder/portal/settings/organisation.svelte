@@ -27,6 +27,7 @@
     company: $organisation.company,
     platformUrl: $organisation.platformUrl,
     analyticsEnabled: $organisation.analyticsEnabled,
+    forgotPasswordEnabled: $organisation.forgotPasswordEnabled,
   })
 
   let loading = false
@@ -40,6 +41,7 @@
         company: $values.company ?? "",
         platformUrl: $values.platformUrl ?? "",
         analyticsEnabled: $values.analyticsEnabled,
+        forgotPasswordEnabled: $values.forgotPasswordEnabled,
       }
 
       // Update settings
@@ -79,6 +81,12 @@
         <div class="field">
           <Label size="L">Analytics</Label>
           <Toggle text="" bind:value={$values.analyticsEnabled} />
+        </div>
+      {/if}
+      {#if !$admin.cloud}
+        <div class="field">
+          <Label size="L">Forgot password</Label>
+          <Toggle text="" bind:value={$values.forgotPasswordEnabled} />
         </div>
       {/if}
     </div>

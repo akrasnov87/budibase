@@ -30,6 +30,7 @@ const DEFAULT_STATE: OrganisationState = {
   oidcCallbackUrl: "",
   googleCallbackUrl: "",
   loaded: false,
+  forgotPasswordEnabled: false
 }
 
 class OrganisationStore extends BudiStore<OrganisationState> {
