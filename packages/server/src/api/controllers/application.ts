@@ -184,24 +184,38 @@ async function addSampleDataDocs() {
   }
 }
 
-async function addSampleDataScreen() {
+async function createDefaultWorkspaceApp(): Promise<string> {
   const appMetadata = await sdk.applications.metadata.get()
   const workspaceApp = await sdk.workspaceApps.create({
     name: appMetadata.name,
     url: "/",
     navigation: {
       ...defaultAppNavigator(appMetadata.name),
-      links: [
-        {
-          text: "Inventory",
-          url: "/inventory",
-          type: "link",
-          roleId: roles.BUILTIN_ROLE_IDS.BASIC,
-        },
-      ],
+      links: [],
     },
     isDefault: true,
   })
+
+  return workspaceApp._id!
+}
+
+async function addSampleDataScreen() {
+  const workspaceApps = await sdk.workspaceApps.fetch(context.getAppDB())
+  const workspaceApp = workspaceApps.find(wa => wa.isDefault)
+
+  if (!workspaceApp) {
+    throw new Error("Default workspace app not found")
+  }
+
+  workspaceApp.navigation.links = workspaceApp.navigation.links || []
+  workspaceApp.navigation.links.push({
+    text: "Inventory",
+    url: "/inventory",
+    type: "link",
+    roleId: roles.BUILTIN_ROLE_IDS.BASIC,
+  })
+
+  await sdk.workspaceApps.update(workspaceApp)
 
   const screen = createSampleDataTableScreen(workspaceApp._id!)
   await sdk.screens.create(screen)
@@ -367,6 +381,13 @@ async function performAppCreate(
   const { body } = ctx.request
   const { name, url, encryptionPassword, templateKey } = body
 
+  let isOnboarding = false
+  if (typeof body.isOnboarding === "string") {
+    isOnboarding = body.isOnboarding === "true"
+  } else if (typeof body.isOnboarding === "boolean") {
+    isOnboarding = body.isOnboarding
+  }
+
   let useTemplate = false
   if (typeof body.useTemplate === "string") {
     useTemplate = body.useTemplate === "true"
@@ -400,7 +421,7 @@ async function performAppCreate(
     const instance = await createInstance(appId, instanceConfig)
     const db = context.getAppDB()
     const isImport = !!instanceConfig.file
-    const addSampleData = !isImport && !useTemplate
+    const addSampleData = isOnboarding && !isImport && !useTemplate
 
     if (instanceConfig.useTemplate && !instanceConfig.file) {
       await updateUserColumns(appId, db, ctx.user._id!)
@@ -485,6 +506,7 @@ async function performAppCreate(
     // Add sample datasource and example screen for non-templates/non-imports
     if (addSampleData) {
       try {
+        await createDefaultWorkspaceApp()
         await addSampleDataDocs()
         await addSampleDataScreen()
 
@@ -507,6 +529,10 @@ async function performAppCreate(
           skipHistory: true,
         })
       }
+    }
+
+    if (!addSampleData && !(await sdk.workspaceApps.fetch()).length) {
+      await createDefaultWorkspaceApp()
     }
 
     await cache.app.invalidateAppMetadata(appId, newApplication)

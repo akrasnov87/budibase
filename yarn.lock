@@ -2269,9 +2269,9 @@
     through2 "^2.0.0"
 
 "@budibase/pro@*":
-  version "3.14.0"
-  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.14.0.tgz#36fa003c0efd816b25950b5618a3b3cd7cf7c65b"
-  integrity sha512-rs8Blpcwdbc1PSWQvRtsPvA7ogMwYD6sc1NAgdPlKda7OrmrMkEOgR8Spr6hXJVpSgvbYC/V7cYcvG0NfOYFMA==
+  version "3.16.1"
+  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.16.1.tgz#745de30e443128aa683e8e334b6692b54cb2f90f"
+  integrity sha512-XOahaTboZxTQ2Iq6rQko6hDA3rq8tRIBsgPEkJfs4u29Vc2BW8a/hLbA86zPCV6+NzYWBlDnxFxfyl74cvdXxg==
   dependencies:
     "@anthropic-ai/sdk" "^0.27.3"
     "@budibase/backend-core" "*"
@@ -2286,7 +2286,7 @@
     lru-cache "^7.14.1"
     memorystream "^0.3.1"
     node-fetch "2.6.7"
-    openai "4.98.0"
+    openai "5.12.1"
     scim-patch "^0.8.1"
     scim2-parse-filter "^0.2.8"
     zod "^3.23.8"
@@ -11050,10 +11050,10 @@ eslint@^8.56.0:
     strip-ansi "^6.0.1"
     text-table "^0.2.0"
 
-esm@^3.2.25, "esm@npm:esm-wallaby@3.2.32":
-  version "3.2.32"
-  resolved "https://registry.yarnpkg.com/esm-wallaby/-/esm-wallaby-3.2.32.tgz#0cacc428e788938173260e4a91c75add42e106df"
-  integrity sha512-/E27KRXrtsHoHg2YOoTVrTsRz15puU1M/ul1qPK129gwbRLmHulLSSfGCRAdu4WSzjaHcImnUyBTX3KCPmlfhw==
+esm@^3.2.25, "esm@npm:esm-wallaby@3.2.35":
+  version "3.2.35"
+  resolved "https://registry.yarnpkg.com/esm-wallaby/-/esm-wallaby-3.2.35.tgz#166d024b112038216d46547632ce401a99ad7c91"
+  integrity sha512-6MQi8f7N2FSyWFFnL5yHUzzbfraMHuxhRnuH40bGtA7LmuxPdw+e2+nv9RV7QVm/exkLlPMbvf/ORXPYCadd5A==
 
 esniff@^2.0.1:
   version "2.0.1"
@@ -17117,6 +17117,11 @@ openai@4.98.0:
     form-data-encoder "1.7.2"
     formdata-node "^4.3.2"
     node-fetch "^2.6.7"
+
+openai@5.12.1:
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/openai/-/openai-5.12.1.tgz#c86b266ce77714eb7b6f5831981acd93edddb662"
+  integrity sha512-26s536j4Fi7P3iUma1S9H33WRrw0Qu8pJ2nYJHffrlKHPU0JK4d0r3NcMgqEcAeTdNLGYNyoFsqN4g4YE9vutg==
 
 openapi-response-validator@^9.2.0:
   version "9.3.1"
