@@ -20,7 +20,7 @@
   let seedProductionTables = false
   let menuOpen = false
 
-  $: workspaceAppsEnabled = $featureFlags.WORKSPACE_APPS
+  $: workspaceAppsEnabled = $featureFlags.WORKSPACES
   $: workspaceOrApp = workspaceAppsEnabled ? "workspace" : "app"
 
   const publish = async () => {
@@ -80,7 +80,7 @@
     <div>
       <div class="menu-item-header">Seed and publish</div>
       <div class="menu-item-text">
-        Seed prod tables with dev data and publish {workspaceOrApp}
+        Seed internal prod tables with dev data and publish {workspaceOrApp}
       </div>
     </div>
   </MenuItem>

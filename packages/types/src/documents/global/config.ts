@@ -47,6 +47,7 @@ export interface SettingsInnerConfig {
   analyticsEnabled?: boolean
   isSSOEnforced?: boolean
   forgotPasswordEnabled?: boolean
+  createdVersion?: string
 }
 
 export interface SettingsConfig extends Config<SettingsInnerConfig> {}

@@ -123,3 +123,4 @@ license.txt
 docker-compose.yaml
 scripts/resources/minio
 .claude
+HIDDEN.md
