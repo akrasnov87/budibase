@@ -89,7 +89,7 @@
     })
   }
 
-  // On app/apps update, reset the state.
+  // On workspace/apps update, reset the state.
   $: initForm(appMeta)
   $: validate($values)
 
