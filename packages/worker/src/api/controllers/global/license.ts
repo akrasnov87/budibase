@@ -1,8 +1,6 @@
-const jwa = require("jwa")
 const i18n = require("i18n")
 
-const { createSecretKey } = require("crypto")
-var secretOrPublicKey = createSecretKey(Buffer.from("testsecret"))
+const { createSign, constants } = require("crypto")
 
 import { licensing, quotas } from "@budibase/pro"
 import {
@@ -97,16 +95,31 @@ export async function getOfflineLicenseActivate(
       plan: { type: "enterprise" }, // план free, pro, team, premium, premium_plus, premium_plus_trial, business, enterprise_basic, enterprise_basic_trial, enterprise
       identifier: JSON.parse(identifier),
     }
-    var securedInput = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(
+    var securedInput = `eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9'.${Buffer.from(
       JSON.stringify(data)
-    )
-      .toString("base64")
-      .replace(/=/g, "")}`
+    ).toString("base64").replace(/=/g, "")}`;
 
-    var factory = jwa("HS256")
-    var sign = factory.sign(securedInput, secretOrPublicKey)
+    var signerObject = createSign("RSA-SHA256");
+    signerObject.update(securedInput);
+    let privateKey = `-----BEGIN PRIVATE KEY-----
+MIICeAIBADANBgkqhkiG9w0BAQEFAASCAmIwggJeAgEAAoGBAPMdtA3cVQsGx3A8
+yIEzkbe1NIekKBlW3uunLXs9cppIlLjpldn0TY8P61WHiTFXEXsVoE2g3aYuBIna
+clNwZBkFyujS1IooUKp/F3dt4qkX7F9JM8ZDmJ/aFhX1xQzOyzGp6lQXGtPLqOfp
+PcfFsqpWroU/6I+GRT4+O/X59XdlAgMBAAECgYBB3Ss5khasHRMNEjqT3j+9EGeB
+0/RVIRbVqv4EZFpW+BDqo8XIPYqBlqOAEW8WoesHeI1sWoeSDOeH3VmZx1omciCe
+9ChTHJd8Wyc+IyqU/cpculKi8K+OQdNwaDRWclL6ppAyUHtHTYVypOelLwDJ8KAQ
+9s+nfPUaxNkkxbFrhQJBAPsrDpnUh41F9ZlyzZ3txvVP5YRPHtlFN7UKZTstagBZ
+1ZAl36Tw7PFVnk9i5X/94Ktd1K5P/owmPqwIsLF/4dsCQQD3yv3IJIONHo/GUVID
+KR6Dr4s4Un13pC4PxLRwhz9H02ffawTSoQ8kFFWFHfjFKnjgY7avFlWXywAP33nX
+Om+/AkEAs1gPWPBUyh+GO0eqYnaCdm/SZyNH18SA/pipqBPJeO6se/1PMCuIRNrp
+662mSjoxzqt1TfJ4xAIbBiQ+Zr/1uQJBAPD8uU4BvPLs6xULl4A9aFDX08Ul7KID
+yUxKmNXrou5+usG9OgaC3s/O+tEosf1G7iIEt/GV/g5PPjMxuzRHv88CQQDLxNhH
+NV060a5YyEHCuKtULhvq1D36h2EmNXC+gODhtIje4wJod3QVLe9nhZuy2gSQhWuQ
+v5GkYVfqEYCunmO2
+-----END PRIVATE KEY-----`;
+    var signature = signerObject.sign({ key:privateKey, padding:constants.RSA_PKCS1_PSS_PADDING}, "base64");
 
-    var license = `${securedInput}.${sign}`
+    var license = `${securedInput}.${signature}`
 
     await licensing.offline.activateOfflineLicenseToken(license)
 
