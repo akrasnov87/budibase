@@ -113,7 +113,8 @@ budibase-datasource
 *.iml
 .nx
 
-crack.js
+crack*.js
+.*.key
 hosting/meta
 license.txt
 /temp
