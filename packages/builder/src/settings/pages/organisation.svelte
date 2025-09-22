@@ -16,7 +16,7 @@
     company: $organisation.company,
     platformUrl: $organisation.platformUrl,
     analyticsEnabled: $organisation.analyticsEnabled,
-    forgotPasswordEnabled: $values.forgotPasswordEnabled,
+    forgotPasswordEnabled: $organisation.forgotPasswordEnabled,
   })
 
   let loading = false
