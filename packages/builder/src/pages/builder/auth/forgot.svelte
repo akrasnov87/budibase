@@ -13,7 +13,6 @@
   import Logo from "assets/bb-emblem.svg"
   import { onMount } from "svelte"
   import { goto } from "@roxi/routify"
-  import { TestimonialPage } from "@budibase/frontend-core/src/components"
 
   let email = ""
   let form
@@ -46,67 +45,81 @@
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <!-- svelte-ignore a11y-click-events-have-key-events -->
-<TestimonialPage enabled={$organisation.testimonialsEnabled}>
-  <Layout gap="S" noPadding>
-    <img alt="logo" src={$organisation.logoUrl || Logo} />
-    <span class="heading-wrap">
-      <Heading size="M">
-        <div class="heading-content">
-          <span class="back-chev" on:click={() => $goto("../")}>
-            <Icon name="caret-left" size="XL" />
-          </span>
-          Forgot your password?
-        </div>
-      </Heading>
-    </span>
-    <Layout gap="XS" noPadding>
-      <Body size="M">
-        No problem! Just enter your account's email address and we'll send you a
-        link to reset it.
-      </Body>
-    </Layout>
-
+<div class="page-container">
+  <div class="content">
     <Layout gap="S" noPadding>
-      <FancyForm bind:this={form}>
-        <FancyInput
-          label="Email"
-          value={email}
-          on:change={e => {
-            email = e.detail
-          }}
-          validate={() => {
-            if (!email) {
-              return "Please enter your email"
-            }
-            return null
-          }}
-          {error}
-          disabled={submitted | !$organisation.forgotPasswordEnabled}
-        />
-      </FancyForm>
+      <img alt="logo" src={$organisation.logoUrl || Logo} />
+      <span class="heading-wrap">
+        <Heading size="M">
+          <div class="heading-content">
+            <span class="back-chev" on:click={() => $goto("../")}>
+              <Icon name="caret-left" size="XL" />
+            </span>
+            Forgot your password?
+          </div>
+        </Heading>
+      </span>
+      <Layout gap="XS" noPadding>
+        <Body size="M">
+          No problem! Just enter your account's email address and we'll send you
+          a link to reset it.
+        </Body>
+      </Layout>
+
+      <Layout gap="S" noPadding>
+        <FancyForm bind:this={form}>
+          <FancyInput
+            label="Email"
+            value={email}
+            on:change={e => {
+              email = e.detail
+            }}
+            validate={() => {
+              if (!email) {
+                return "Please enter your email"
+              }
+              return null
+            }}
+            {error}
+            disabled={submitted}
+          />
+        </FancyForm>
+      </Layout>
+      <div>
+        {#if $organisation.forgotPasswordEnabled}
+          <Button
+            size="L"
+            disabled={!email || error || submitted}
+            cta
+            on:click={forgot}
+          >
+            Reset password
+          </Button>
+        {:else}
+          <Layout gap="XS" noPadding>
+            <Body size="M">
+              Password reset is disabled by {$organisation.company} settings
+            </Body>
+          </Layout>
+        {/if}
+      </div>
     </Layout>
-    <div>
-      {#if $organisation.forgotPasswordEnabled}
-        <Button
-          size="L"
-          disabled={!email || error || submitted}
-          cta
-          on:click={forgot}
-        >
-          Reset password
-        </Button>
-      {:else}
-        <Layout gap="XS" noPadding>
-          <Body size="M">
-            Password reset is disabled by {$organisation.company} settings
-          </Body>
-        </Layout>
-      {/if}
-    </div>
-  </Layout>
-</TestimonialPage>
+  </div>
+</div>
 
 <style>
+  .page-container {
+    height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 40px;
+    overflow-y: auto;
+  }
+  .content {
+    width: 100%;
+    max-width: 400px;
+    min-height: 480px;
+  }
   img {
     width: 46px;
   }
