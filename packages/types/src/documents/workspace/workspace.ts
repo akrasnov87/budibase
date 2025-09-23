@@ -9,7 +9,6 @@ export interface Workspace extends Document {
   version: string
   componentLibraries: string[]
   name: string
-  friendlyName?: string,
   url: string | undefined
   template: string | undefined
   instance: WorkspaceInstance

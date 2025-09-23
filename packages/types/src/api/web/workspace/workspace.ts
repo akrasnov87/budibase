@@ -57,7 +57,6 @@ export type FetchWorkspacesResponse = (Workspace & {
 
 export interface PublishedWorkspaceData {
   name: string
-  friendlyName?: string
   appId: string
   url: string
   prodId: string

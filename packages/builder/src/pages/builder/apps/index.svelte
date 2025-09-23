@@ -144,7 +144,7 @@
                   >
                     <div class="preview" use:gradient={{ seed: app.name }} />
                     <div class="app-info">
-                      <Heading size="XS">{app.friendlyName || app.name}</Heading>
+                      <Heading size="XS">{app.name}</Heading>
                       <Body size="S">
                         {#if app.updatedAt}
                           {processStringSync(

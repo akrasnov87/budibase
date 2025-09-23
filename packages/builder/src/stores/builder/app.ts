@@ -58,7 +58,6 @@ export interface AppMetaState {
 export const INITIAL_APP_META_STATE: AppMetaState = {
   appId: "",
   name: "",
-  friendlyName: "",
   url: "",
   libraries: [],
   clientFeatures: {
@@ -113,7 +112,6 @@ export class AppMetaStore extends BudiStore<AppMetaState> {
     this.update(state => ({
       ...state,
       name: app.name,
-      friendlyName: app.friendlyName,
       appId: app.appId,
       url: app.url || "",
       libraries: app.componentLibraries,
