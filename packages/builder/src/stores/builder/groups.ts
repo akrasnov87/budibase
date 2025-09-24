@@ -1,4 +1,4 @@
-import { derived, get, type Writable } from "svelte/store"
+import { get } from "svelte/store"
 import { API } from "@/api"
 import { licensing } from "@/stores/portal"
 import { BudiStore } from "../BudiStore"
@@ -20,28 +20,5 @@ export class UserGroupStore extends BudiStore<UserGroup[]> {
     }
   }
 }
-
-// export function createGroupsStore() {
-//   const { subscribe, update, set } = writable([])
-
-//   function setGroups(groups:any) {
-//     set(groups)
-//   }
-
-//   const actions = {
-//     fetch: async () => {
-//       if (get(licensing).groupsEnabled) {
-//         const groups:any = await API.getGroups()
-//         debugger;
-//         setGroups(groups)
-//       }
-//     }
-//   }
-
-//   return {
-//     subscribe,
-//     ...actions,
-//   }
-// }
 
 export const groups = new UserGroupStore()
