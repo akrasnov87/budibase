@@ -152,14 +152,33 @@ export class ElasticSearchIntegration implements IntegrationBase {
     }
   }
 
-  async read(query: { index: string; json: object }) {
+  async read(query: { index: string; json: any }) {
     const { index, json } = query
     try {
+      // TODO: добавлена доработка, которая включает в себя возможность вывода дополнительных полей в результате
+      let include2source: any = (json['_include2source'] || []).slice();
+      delete json['_include2source'];
+
       const result = await this.client.search({
         index: index,
         body: json,
       })
-      return result.body.hits.hits.map(({ _source }: any) => _source)
+      
+      // будет выполнять , если передано свойство _include2source
+      if(include2source.length > 0) {
+        return result.body.hits.hits.map((item:any) => {
+          let _source = item['_source'];
+
+          for(let i = 0; i < include2source.length; i++) {
+            let field = include2source[i];
+            _source[field] = item[field];
+          }
+
+          return _source;
+        })
+      } else {
+        return result.body.hits.hits.map(({ _source }: any) => _source)
+      }
     } catch (err) {
       console.error("Error querying elasticsearch", err)
       throw err
