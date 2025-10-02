@@ -1,8 +1,10 @@
 import {
   auth as authCore,
+  db as dbCore,
   constants,
   context,
   events,
+  tenancy,
   utils as utilsCore,
   configs,
 } from "@budibase/backend-core"
@@ -93,13 +95,24 @@ export const login = async (
         await events.auth.login("local", user.email) // bt-ignore
       })
       ctx.status = 200
-      if(permissionInfo == true) {
+      if(permissionInfo == 'true') {
+        const id = dbCore.generateDevInfoID(user._id!)
+        const db = tenancy.getGlobalDB()
+        let devInfo:any
+        try {
+          devInfo = await db.tryGet(id)
+        } catch (err) {
+          devInfo = {
+            apiKey: undefined
+          }
+        }
         ctx.body = {
           message: "Login successful",
           username: user.email,
           status: user.status,
           _id: user._id,
-          groups: groups.map((item, idx) => ({_id: item._id, name: item.name }))
+          groups: groups.map((item, idx) => ({_id: item._id, name: item.name })),
+          apiKey: devInfo.apiKey
         }
       } else {
         ctx.body = {
