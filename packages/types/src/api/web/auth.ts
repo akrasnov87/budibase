@@ -3,7 +3,7 @@ import { UserStatus } from "../../documents"
 export interface LoginRequest {
   username: string
   password: string
-  permissionInfo?: boolean
+  permissionInfo?: string
 }
 export interface LoginResponse {
   message: string
@@ -11,7 +11,8 @@ export interface LoginResponse {
   username?: string
   status?: UserStatus
   _id?: string
-  groups?: any[]
+  groups?: any[],
+  apiKey?: string
 }
 
 export interface LogoutResponse {
