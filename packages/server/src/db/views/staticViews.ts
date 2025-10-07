@@ -88,6 +88,8 @@ export async function createRoutingView() {
 
 async function searchIndex(indexName: string, fnString: string) {
   const db = context.getWorkspaceDB()
+  // TODO: исправлен баг
+  fnString = fnString.replace("__name(idx, \"idx\");", "")
   const designDoc = await db.get<any>("_design/database")
   designDoc.indexes = {
     [indexName]: {
