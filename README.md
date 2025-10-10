@@ -277,6 +277,14 @@ __Примечание__:
 
 Образ хранится на сайте [hub.docker.com](https://hub.docker.com/repository/docker/akrasnov87/budibase/general).
 
+### Проблема с husky
+* Очистить зависимости - `rm -rf node_modules .husky`
+* Установить без скриптов - `yarn install --ignore-scripts`
+* Установить Husky явно - `yarn add -D husky -W`
+* Инициализировать - `npx husky init`
+* Активировать - `yarn prepare`
+* Переустановить - `yarn install`
+
 ### Старт контейнера single-undeground
 
 `docker run --rm --name=budibase -p 10000:80 -v [your path to data]:/data -e OFFLINE_MODE=true akrasnov87/budibase:latest`

@@ -1,7 +1,7 @@
 #!/bin/bash
-rm -r ./node_modules
-rm -r ./.node_modules
-rm -rf ./.nx
+
+yarn run clear
+
 yarn install
 yarn
 yarn build
