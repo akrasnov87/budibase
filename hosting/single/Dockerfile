@@ -1,8 +1,8 @@
-ARG BASEIMG=budibase/couchdb:v3.3.3-sqs-v2.1.1
+ARG BASEIMG=akrasnov87/couchdb:v3.3.3-sqs-v2.1.1a
 FROM node:22-slim AS build
 
 # install node-gyp dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends g++ make python3 jq
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates g++ make python3 jq git && update-ca-certificates
 
 # copy and install dependencies
 WORKDIR /app
@@ -23,9 +23,12 @@ RUN ./scripts/removeWorkspaceDependencies.sh packages/worker/package.json
 RUN jq 'del(.scripts.postinstall)' package.json > temp.json && mv temp.json package.json
 RUN ./scripts/removeWorkspaceDependencies.sh package.json
 ARG TARGETPLATFORM
-RUN --mount=type=cache,target=/root/.yarn/${TARGETPLATFORM} YARN_CACHE_FOLDER=/root/.yarn/${TARGETPLATFORM} yarn install --production --frozen-lockfile
+
+RUN yarn install
+RUN --mount=type=cache,target=/tmp/.yarn-cache/${TARGETPLATFORM} YARN_CACHE_FOLDER=/tmp/.yarn-cache/${TARGETPLATFORM} yarn install --production --frozen-lockfile
 
 # copy the actual code
+COPY packages/budibase-locales/locales locales
 COPY packages/server/dist packages/server/dist
 COPY packages/server/pm2.config.js packages/server/pm2.config.js
 COPY packages/server/client packages/server/client
@@ -44,7 +47,7 @@ ENV TARGETBUILD=$TARGETBUILD
 
 # install base dependencies
 RUN apt-get update && \
-  apt-get install -y --no-install-recommends software-properties-common nginx uuid-runtime redis-server libaio1
+  apt-get install -y --no-install-recommends software-properties-common nginx uuid-runtime redis-server libaio1 
 
 # Install postgres client for pg_dump utils
 RUN apt install -y software-properties-common apt-transport-https ca-certificates gnupg \
@@ -99,12 +102,13 @@ COPY hosting/letsencrypt /app/letsencrypt
 RUN chmod +x /app/letsencrypt/certificate-request.sh /app/letsencrypt/certificate-renew.sh
 
 COPY --from=build /app/node_modules /node_modules
+COPY --from=build /app/locales /app/locales
 COPY --from=build /app/package.json /package.json
 COPY --from=build /app/packages/server /app
 COPY --from=build /app/packages/worker /worker
 
 
-EXPOSE 80
+EXPOSE 80 9001
 EXPOSE 443
 # Expose port 2222 for SSH on Azure App Service build
 EXPOSE 2222

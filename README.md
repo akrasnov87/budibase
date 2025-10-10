@@ -222,6 +222,7 @@ sudo apt update && sudo apt install yarn
 <pre>
 git clone <https://github.com/akrasnov87/budibase>
 cd budibase
+yarn config set cache-folder /tmp/.yarn-cache
 yarn install
 sudo npm install -g jest lerna
 
@@ -267,9 +268,9 @@ git rm packages/account-portal
 
 В корне проекта выполнить:
 
-`yarn build:docker:single:undeground`
+`build:docker:single:my`
 
-Либо вручную вызвать скрипт `./scripts/build-single-image-undeground.sh`.
+Либо вручную вызвать скрипт `./scripts/build-single-image.sh my`.
 
 __Примечание__: 
 * перед сборкой лучше удалить папку `.nx`;

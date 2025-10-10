@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.482.677",
+  "version": "0.483.827",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -87,7 +87,7 @@
     "build:digitalocean": "cd hosting/digitalocean && ./build.sh && cd -",
     "build:docker:single:multiarch": "docker buildx build --platform linux/arm64,linux/amd64 -f hosting/single/Dockerfile -t budibase:latest .",
     "build:docker:single": "./scripts/build-single-image.sh",
-    "build:docker:single:undeground": "./scripts/build-single-image-undeground.sh",
+    "build:docker:single:my": "./scripts/build-single-image.sh my",
     "build:docker:dependencies": "docker build -f hosting/dependencies/Dockerfile -t budibase/dependencies:latest ./hosting",
     "publish:docker:couch": "docker buildx build --platform linux/arm64,linux/amd64 -f hosting/couchdb/Dockerfile -t budibase/couchdb:latest -t budibase/couchdb:v3.3.3 -t budibase/couchdb:v3.3.3-sqs-v2.1.1 --push ./hosting/couchdb",
     "publish:docker:dependencies": "docker buildx build --platform linux/arm64,linux/amd64 -f hosting/dependencies/Dockerfile -t budibase/dependencies:latest -t budibase/dependencies:v3.2.1 --push ./hosting",
@@ -139,7 +139,6 @@
   },
   "dependencies": {
     "i18n": "0.15.1",
-    "ical-generator": "4.1.0",
     "svelte-i18n": "4.0.0"
   }
 }
