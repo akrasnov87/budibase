@@ -10,12 +10,10 @@ import Analytics from "../../analytics"
 import { BudiStore } from "../BudiStore"
 import { auth } from "./auth"
 
-export interface AdminState
-  extends Omit<GetEnvironmentResponse, "serveDevClientFromStorage"> {
+export interface AdminState extends GetEnvironmentResponse {
   loaded: boolean
   checklist?: ConfigChecklistResponse
   status?: SystemStatusResponse
-  usingLocalComponentLibs: boolean
 }
 
 export class AdminStore extends BudiStore<AdminState> {
@@ -29,8 +27,7 @@ export class AdminStore extends BudiStore<AdminState> {
       offlineMode: false,
       maintenance: [],
       friendMode: false,
-      supportEmail: 'support@budibase.com',
-      usingLocalComponentLibs: false,
+      supportEmail: 'support@budibase.com'
     })
   }
 
@@ -64,8 +61,6 @@ export class AdminStore extends BudiStore<AdminState> {
       store.passwordMinLength = environment.passwordMinLength
       store.friendMode = environment.friendMode
       store.supportEmail = environment.supportEmail
-      store.usingLocalComponentLibs =
-        environment.isDev && !environment.serveDevClientFromStorage
       return store
     })
   }

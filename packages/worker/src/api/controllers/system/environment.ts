@@ -50,11 +50,7 @@ export const fetch = async (ctx: Ctx<void, GetEnvironmentResponse>) => {
     maintenance: [],
     passwordMinLength: env.PASSWORD_MIN_LENGTH,
     friendMode: !!env.FRIEND_MODE,
-    supportEmail: env.SUPPORT_EMAIL,
-    serveDevClientFromStorage:
-      env.DEV_USE_CLIENT_FROM_STORAGE !== undefined
-        ? !!env.DEV_USE_CLIENT_FROM_STORAGE
-        : false,
+    supportEmail: env.SUPPORT_EMAIL
   }
 
   if (env.SELF_HOSTED) {
