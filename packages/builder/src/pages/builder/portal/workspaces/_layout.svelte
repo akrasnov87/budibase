@@ -19,7 +19,7 @@
     try {
       const promises = [licensing.init()]
 
-      if (!$admin.offlineMode) {
+      if (!$admin.offlineMode || $admin.onlineMode) {
         promises.push(templates.load())
       }
 
@@ -28,7 +28,7 @@
       // Always load latest
       await Promise.all(promises)
 
-      if (!$admin.offlineMode && $templates?.length === 0) {
+      if ((!$admin.offlineMode || $admin.onlineMode) && $templates?.length === 0) {
         notifications.error("There was a problem loading quick start templates")
       }
 

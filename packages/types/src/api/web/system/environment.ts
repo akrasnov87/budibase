@@ -3,6 +3,7 @@ export interface GetEnvironmentResponse {
   offlineMode: boolean
   supportEmail: string
   friendMode: boolean
+  onlineMode: boolean
   cloud: boolean
   accountPortalUrl?: string
   disableAccountPortal: boolean

@@ -348,7 +348,7 @@
               </Button>
 
               {#if $appsStore.apps?.length > 0}
-                {#if !$admin.offlineMode}
+                {#if !$admin.offlineMode || !$admin.onlineMode}
                   <Button
                     size="M"
                     secondary

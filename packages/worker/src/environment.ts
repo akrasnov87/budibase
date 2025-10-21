@@ -35,6 +35,7 @@ const environment = {
   COOKIE_DOMAIN: process.env.COOKIE_DOMAIN,
   PASSWORD_MIN_LENGTH: process.env.PASSWORD_MIN_LENGTH,
   FRIEND_MODE: process.env.FRIEND_MODE,
+  ONLINE_MODE: process.env.ONLINE_MODE,
   SUPPORT_EMAIL: process.env.SUPPORT_EMAIL || 'support@budibase.com',
   INTERNAL_API_KEY: process.env.INTERNAL_API_KEY,
   // urls

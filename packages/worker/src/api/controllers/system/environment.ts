@@ -50,6 +50,7 @@ export const fetch = async (ctx: Ctx<void, GetEnvironmentResponse>) => {
     maintenance: [],
     passwordMinLength: env.PASSWORD_MIN_LENGTH,
     friendMode: !!env.FRIEND_MODE,
+    onlineMode: !!env.ONLINE_MODE,
     supportEmail: env.SUPPORT_EMAIL
   }
 
