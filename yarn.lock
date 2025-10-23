@@ -2812,9 +2812,9 @@
     through2 "^2.0.0"
 
 "@budibase/pro@*":
-  version "3.21.2"
-  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.21.2.tgz#500e8bbcf09afb285159e7feb41a63f0d16349c4"
-  integrity sha512-vwcPgtqn5UhoD1FIpkJA5Ks6f1Oq/rRTCY0LRBcvC7JLXLekbKUwp3FPtpDvqu/UBzE3ONAKn8SI/6uqH/G+/w==
+  version "3.21.3"
+  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.21.3.tgz#7fcfea1a79fc06ce1ed27ca7fa969b6d373510ee"
+  integrity sha512-uv3WB94aDtpvMf1CDzqwl8GmamvrsyQys8VpxqdojED+C0IfhwMmIMdiad/tRwNj9U3fk7qbCxxkh3am9wMTGg==
   dependencies:
     "@anthropic-ai/sdk" "^0.27.3"
     "@budibase/backend-core" "*"
@@ -2832,6 +2832,7 @@
     openai "5.12.1"
     scim-patch "^0.8.1"
     scim2-parse-filter "^0.2.8"
+    undici "^6.0.0"
     zod "^3.23.8"
 
 "@budibase/vm-browserify@^1.1.4":
@@ -23223,6 +23224,11 @@ undici@^5.28.4:
   integrity sha512-raqeBD6NQK4SkWhQzeYKd1KmIG6dllBOTt55Rmkt4HtI9mwdWtJljnrXjAFUBLTSN67HWrOIZ3EPF4kjUw80Bg==
   dependencies:
     "@fastify/busboy" "^2.0.0"
+
+undici@^6.0.0:
+  version "6.22.0"
+  resolved "https://registry.yarnpkg.com/undici/-/undici-6.22.0.tgz#281adbc157af41da8e75393c9d75a1b788811bc3"
+  integrity sha512-hU/10obOIu62MGYjdskASR3CUAiYaFTtC9Pa6vHyf//mAipSvSQg6od2CnJswq7fvzNS3zJhxoRkgNVaHurWKw==
 
 undici@^7.12.0:
   version "7.15.0"
