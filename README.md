@@ -268,7 +268,7 @@ git rm packages/account-portal
 
 В корне проекта выполнить:
 
-`build:docker:single:my`
+`yarn build:docker:single:my`
 
 Либо вручную вызвать скрипт `./scripts/build-single-image.sh my`.
 

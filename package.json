@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.496.476",
+  "version": "0.509.614",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -39,6 +39,7 @@
     "svelte-check": "^4.1.5",
     "svelte-eslint-parser": "0.43.0",
     "svelte-preprocess": "^6.0.3",
+    "testcontainers": "^11.7.2",
     "typescript": "5.9.2",
     "typescript-eslint": "8.17.0",
     "update-dotenv": "1.1.1",

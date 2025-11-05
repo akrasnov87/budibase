@@ -3875,7 +3875,7 @@
       },
       {
         "type": "boolean",
-        "label": "Autocomplete",
+        "label": "Search",
         "key": "autocomplete",
         "defaultValue": false,
         "dependsOn": {
@@ -4060,7 +4060,7 @@
       },
       {
         "type": "boolean",
-        "label": "Autocomplete",
+        "label": "Search",
         "key": "autocomplete",
         "defaultValue": false,
         "dependsOn": {
@@ -7950,7 +7950,7 @@
       {
         "type": "boolean",
         "key": "ignoreClicksOutside",
-        "label": "Ignore clicks outside",
+        "label": "Prevent manual closing",
         "defaultValue": false
       },
       {
