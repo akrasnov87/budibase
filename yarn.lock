@@ -2812,9 +2812,9 @@
     through2 "^2.0.0"
 
 "@budibase/pro@*":
-  version "3.23.5"
-  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.23.5.tgz#d97c575877259c1d35f48e74e29ac3d0ece19769"
-  integrity sha512-KmRgMf7/CqRcnC6yL2axKQmgrI0LcnEpHTvl2jBzcSNvdvi0BYwX4biU9nnY9OtYM16xESRbfvmqwpjujxvk7A==
+  version "3.23.6"
+  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.23.6.tgz#b1a65c3383b0ad075711e07fe82902a0b0f7cdcd"
+  integrity sha512-S+elz5pmTMzb6YMRy59or5DP5lq5tlgC8JjuXkDdV/wPpu0X163824mTHKov5vk+MMZLKmVA37pp4ApElLRsIA==
   dependencies:
     "@anthropic-ai/sdk" "^0.27.3"
     "@budibase/backend-core" "*"
