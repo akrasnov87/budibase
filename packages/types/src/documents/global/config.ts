@@ -52,6 +52,7 @@ export interface SettingsInnerConfig {
   forgotPasswordEnabled?: boolean
   createdVersion?: string
   lockedBy?: LockReason
+  active?: boolean
   liteLLM?: { keyId: string; secretKey: string }
 }
 
