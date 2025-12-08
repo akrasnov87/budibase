@@ -1200,6 +1200,7 @@ export const getAllStateVariables = screen => {
       const settings = componentStore.getComponentSettings(component._component)
       const nestedTypes = [
         "buttonConfiguration",
+        "componentConfiguration",
         "fieldConfiguration",
         "stepConfiguration",
       ]
@@ -1507,6 +1508,12 @@ export const updateReferencesInObject = ({
   label,
   originalIndex,
 }) => {
+  if (
+    action === UpdateReferenceAction.MOVE &&
+    (typeof originalIndex !== "number" || originalIndex < 0)
+  ) {
+    return
+  }
   const stepIndexRegex = new RegExp(`{{\\s*${label}\\.(\\d+)\\.`, "g")
   const updateActionStep = (str, index, replaceWith) =>
     str.replace(`{{ ${label}.${index}.`, `{{ ${label}.${replaceWith}.`)
@@ -1538,7 +1545,7 @@ export const updateReferencesInObject = ({
             obj[key] = updateActionStep(obj[key], referencedStep, modifiedIndex)
           } else if (
             modifiedIndex <= referencedStep &&
-            modifiedIndex < originalIndex
+            referencedStep < originalIndex
           ) {
             obj[key] = updateActionStep(
               obj[key],
@@ -1546,8 +1553,8 @@ export const updateReferencesInObject = ({
               referencedStep + 1
             )
           } else if (
-            modifiedIndex >= referencedStep &&
-            modifiedIndex > originalIndex
+            originalIndex < referencedStep &&
+            referencedStep <= modifiedIndex
           ) {
             obj[key] = updateActionStep(
               obj[key],

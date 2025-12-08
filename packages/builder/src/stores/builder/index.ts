@@ -47,7 +47,7 @@ import { dataEnvironmentStore, dataAPI } from "./dataEnvironment"
 import { FetchAppPackageResponse } from "@budibase/types"
 import { selectedAppUrls } from "./appUrls"
 import { agentsStore } from "../portal"
-
+import { restTemplates } from "./restTemplates"
 export {
   componentTreeNodesStore,
   layoutStore,
@@ -95,6 +95,7 @@ export {
   recaptchaStore,
   dataEnvironmentStore,
   dataAPI,
+  restTemplates,
 }
 
 export const reset = () => {
@@ -143,7 +144,7 @@ export const initialise = async (pkg: FetchAppPackageResponse) => {
   snippets.syncMetadata(application)
   screenStore.syncAppScreens(pkg)
   layoutStore.syncAppLayouts(pkg)
-  workspaceFavouriteStore.sync()
+  await workspaceFavouriteStore.sync()
   agentsStore.init()
   resetBuilderHistory()
   await refreshBuilderData()

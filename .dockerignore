@@ -7,6 +7,7 @@ packages/server/scripts/
 !packages/server/scripts/integrations/oracle
 !nx.json
 !/hosting/single/
+!/hosting/litellm_config.yaml
 !/hosting/letsencrypt /
 
 !.node_modules

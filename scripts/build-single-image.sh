@@ -1,8 +1,15 @@
 #!/bin/bash
 if [[ -z $1 ]]; then
+    cd "$(dirname "$0")/.."
     yarn build:apps
     version=$(./scripts/getCurrentVersion.sh)
-    docker build -f hosting/single/Dockerfile -t budibase:latest --build-arg BUDIBASE_VERSION=$version --build-arg TARGETBUILD=single .
+
+    docker build \
+    -f hosting/single/Dockerfile \
+    -t budibase:latest \
+    --build-arg BUDIBASE_VERSION=$version \
+    --build-arg TARGETBUILD=single \
+    .
 else
     yarn run clear
 
