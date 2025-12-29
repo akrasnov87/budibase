@@ -16,6 +16,8 @@ import {
   FetchDeploymentResponse,
   FormulaType,
   PublishStatusResponse,
+  PublishTableRequest,
+  PublishTableResponse,
   PublishWorkspaceRequest,
   PublishWorkspaceResponse,
   Table,
@@ -27,7 +29,12 @@ import {
   disableAllCrons,
   enableCronOrEmailTrigger,
 } from "../../../automations/utils"
-import { DocumentType, getAutomationParams } from "../../../db/utils"
+import {
+  DocumentType,
+  getAutomationParams,
+  InternalTables,
+  SEPARATOR,
+} from "../../../db/utils"
 import env from "../../../environment"
 import sdk from "../../../sdk"
 import { builderSocket } from "../../../websockets"
@@ -125,10 +132,13 @@ async function initDeployedApp(prodAppId: string) {
   })
 }
 
-async function applyPendingColumnRenames(workspaceId: string) {
-  await context.doInWorkspaceContext(workspaceId, async () => {
+async function applyPendingColumnRenames(
+  workspaceId: string
+): Promise<Table[]> {
+  return await context.doInWorkspaceContext(workspaceId, async () => {
     const db = context.getWorkspaceDB()
     const tables = await sdk.tables.getAllInternalTables()
+    const updatedTables: Table[] = []
 
     for (let table of tables) {
       if (table._deleted) {
@@ -163,10 +173,17 @@ async function applyPendingColumnRenames(workspaceId: string) {
       }
 
       const updatedTable: Table = { ...table, pendingColumnRenames: [] }
-      await db.put(updatedTable)
+      const putResult = await db.put(updatedTable)
+      const persistedTable: Table = { ...updatedTable, _rev: putResult.rev }
+      updatedTables.push(persistedTable)
     }
+
+    return updatedTables
   })
 }
+
+const getRevisionNumber = (rev?: string) =>
+  parseInt(rev?.split("-")?.[0] || "0", 10)
 
 async function clearPendingColumnRenames(workspaceId: string) {
   await context.doInWorkspaceContext(workspaceId, async () => {
@@ -251,26 +268,45 @@ export async function publishStatus(ctx: UserCtx<void, PublishStatusResponse>) {
   }
 }
 
-export const publishWorkspace = async function (
-  ctx: UserCtx<PublishWorkspaceRequest, PublishWorkspaceResponse>
-) {
-  if (ctx.request.body?.automationIds || ctx.request.body?.workspaceAppIds) {
-    throw new errors.NotImplementedError(
-      "Publishing resources by ID not currently supported"
-    )
+type PublishContext = UserCtx<
+  PublishWorkspaceRequest | PublishTableRequest,
+  PublishWorkspaceResponse | PublishTableResponse
+>
+
+export const publishWorkspaceInternal = async (
+  ctx: PublishContext,
+  seedProductionTables?: boolean,
+  tablesToSeed?: string[]
+) => {
+  const seedTables =
+    seedProductionTables !== undefined
+      ? seedProductionTables
+      : ctx.request.body?.seedProductionTables
+  const tablesToPublish = tablesToSeed?.length
+    ? new Set<string>(tablesToSeed)
+    : undefined
+  tablesToPublish?.add(InternalTables.USER_METADATA)
+  const getTableIdFromDocId = (_id: string) => {
+    const parts = _id.split(SEPARATOR)
+    const tableIndex = parts.indexOf(DocumentType.TABLE)
+    if (tableIndex === -1 || !parts[tableIndex + 1]) {
+      return
+    }
+    return `${DocumentType.TABLE}${SEPARATOR}${parts[tableIndex + 1]}`
   }
-  const seedProductionTables = ctx.request.body?.seedProductionTables
   let deployment = new Deployment()
   deployment.setStatus(DeploymentStatus.PENDING)
   deployment = await storeDeploymentHistory(deployment)
   let tablesToSync: "all" | string[] | undefined
-  if (env.isTest()) {
+  if (seedTables && tablesToSeed?.length) {
+    tablesToSync = tablesToSeed
+  } else if (env.isTest()) {
     // TODO: a lot of tests depend on old behaviour of data being published
     // we could do with going through the tests and updating them all to write
     // data to production instead of development - but doesn't improve test
     // quality - so keep publishing data in dev for now
     tablesToSync = "all"
-  } else if (seedProductionTables) {
+  } else if (seedTables) {
     try {
       tablesToSync = await sdk.tables.listEmptyProductionTables()
     } catch (e) {
@@ -309,6 +345,22 @@ export const publishWorkspace = async function (
         }
 
         const isPublished = await sdk.workspaces.isWorkspacePublished(prodId)
+        const restrictToTables =
+          !!tablesToPublish?.size && tablesToSync !== "all" && !isPublished
+        const tableFilter =
+          restrictToTables && tablesToPublish
+            ? (doc: any) => {
+                const _id = doc?._id as string
+                if (!_id) {
+                  return false
+                }
+                const tableId = getTableIdFromDocId(_id)
+                if (!tableId) {
+                  return true
+                }
+                return tablesToPublish.has(tableId)
+              }
+            : undefined
 
         if (await backups.isEnabled()) {
           await backups.triggerAppBackup(prodId, BackupTrigger.PUBLISH, {
@@ -322,7 +374,9 @@ export const publishWorkspace = async function (
         replication = new dbCore.Replication(config)
         const devDb = context.getDevWorkspaceDB()
 
-        const devTablesIds = await sdk.tables.getAllInternalTableIds()
+        const devTablesIds = tablesToPublish
+          ? Array.from(tablesToPublish)
+          : await sdk.tables.getAllInternalTableIds()
         await replication.resolveInconsistencies(devTablesIds)
 
         await devDb.compact()
@@ -331,11 +385,55 @@ export const publishWorkspace = async function (
             isCreation: !isPublished,
             tablesToSync,
             // don't use checkpoints, this can stop previously ignored data being replicated
-            checkpoint: !seedProductionTables,
+            checkpoint: !seedTables,
+            filter: tableFilter,
           })
         )
 
-        await applyPendingColumnRenames(prodId)
+        const updatedProdTables = await applyPendingColumnRenames(prodId)
+
+        // Keep development revs aligned with production after renaming, so the
+        // next publish doesn't see production ahead and delete / tombstone the doc.
+        if (updatedProdTables.length > 0) {
+          await context.doInWorkspaceContext(devId, async () => {
+            const devDb = context.getWorkspaceDB()
+            for (const prodTable of updatedProdTables) {
+              try {
+                const devTable = await devDb.tryGet<Table>(prodTable._id!)
+                if (!devTable) {
+                  console.warn(
+                    `Failed to get development table for table ${prodTable._id} when applying column renames`
+                  )
+                  continue
+                }
+
+                const prodRevNum = getRevisionNumber(prodTable._rev)
+                let devRevNum = getRevisionNumber(devTable._rev)
+
+                let docForPut: Table = {
+                  ...prodTable,
+                  _rev: devTable._rev,
+                }
+
+                // Bump dev revisions until dev is at least prod (avoids prod-ahead).
+                while (devRevNum < prodRevNum) {
+                  const res = await devDb.put(docForPut)
+                  docForPut = { ...docForPut, _rev: res.rev }
+                  devRevNum = getRevisionNumber(res.rev)
+                }
+
+                // Ensure final content is written with the latest dev rev (handles equal case).
+                await devDb.put(docForPut)
+              } catch (err) {
+                console.warn(
+                  `Failed to update development table with production table 
+                  revision when applying column renames for table ${prodTable._id}: ${err}`
+                )
+              }
+            }
+          })
+        }
+
         await clearPendingColumnRenames(devId)
 
         const db = context.getProdWorkspaceDB()
@@ -364,9 +462,13 @@ export const publishWorkspace = async function (
           sdk.workspaceApps.fetch(),
           sdk.tables.getAllInternalTables(),
         ])
+        const tablesMarkedForPublish =
+          restrictToTables && tablesToPublish
+            ? tables.filter(table => tablesToPublish.has(table._id!))
+            : tables
         const automationIds = automations.map(auto => auto._id!)
         const workspaceAppIds = workspaceApps.map(app => app._id!)
-        const tableIds = tables.map(table => table._id!)
+        const tableIds = tablesMarkedForPublish.map(table => table._id!)
         const fullMap = [
           ...(automationIds ?? []),
           ...(workspaceAppIds ?? []),
@@ -421,6 +523,18 @@ export const publishWorkspace = async function (
 
   await events.app.published(migrationResult.app)
 
-  ctx.body = deployment
   builderSocket?.emitAppPublish(ctx)
+  return deployment
+}
+
+export const publishWorkspace = async function (
+  ctx: UserCtx<PublishWorkspaceRequest, PublishWorkspaceResponse>
+) {
+  if (ctx.request.body?.automationIds || ctx.request.body?.workspaceAppIds) {
+    throw new errors.NotImplementedError(
+      "Publishing resources by ID not currently supported"
+    )
+  }
+
+  ctx.body = await publishWorkspaceInternal(ctx)
 }

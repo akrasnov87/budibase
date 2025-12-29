@@ -2853,9 +2853,9 @@
     through2 "^2.0.0"
 
 "@budibase/pro@*":
-  version "3.23.37"
-  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.23.37.tgz#befad472d07f296aefdf054cccd093a4ecea7a06"
-  integrity sha512-RWHi7p10IaARQfE3C/udvCJNgtADpRA1uqQUr7UuM4IB0fSAJS1hdr4IRzYRztNovI217+GUxz/QxJCjbPd63A==
+  version "3.23.38"
+  resolved "https://registry.yarnpkg.com/@budibase/pro/-/pro-3.23.38.tgz#ec53d32e5ecd2f2bf71abb57803abe6baa0bb6fa"
+  integrity sha512-99UNnHFOR97ZoMk97FWQGwk3cQdK9DE7sQZlhwgceu4fI8ZC1ytCQc3FFBWgvjerm+uH5f+eRPgc1ZJtign+Cw==
   dependencies:
     "@ai-sdk/openai" "^2.0.68"
     "@anthropic-ai/sdk" "^0.27.3"
@@ -17435,9 +17435,9 @@ make-fetch-happen@^11.0.0, make-fetch-happen@^11.0.1, make-fetch-happen@^11.1.1:
     ssri "^10.0.0"
 
 make-plural@^7.0.0:
-  version "7.4.0"
-  resolved "https://registry.yarnpkg.com/make-plural/-/make-plural-7.4.0.tgz#fa6990dd550dea4de6b20163f74e5ed83d8a8d6d"
-  integrity sha512-4/gC9KVNTV6pvYg2gFeQYTW3mWaoJt7WZE5vrp1KnQDgW92JtYZnzmZT81oj/dUTqAIu0ufI2x3dkgu3bB1tYg==
+  version "7.5.0"
+  resolved "https://registry.yarnpkg.com/make-plural/-/make-plural-7.5.0.tgz#ff99598640d82ec7a69bea15d34ecc50152fc0db"
+  integrity sha512-0booA+aVYyVFoR67JBHdfVk0U08HmrBH2FrtmBqBa+NldlqXv/G2Z9VQuQq6Wgp2jDWdybEWGfBkk1cq5264WA==
 
 makeerror@1.0.12:
   version "1.0.12"
@@ -23186,11 +23186,6 @@ type-is@^1.6.14, type-is@^1.6.16, type-is@^1.6.18, type-is@~1.6.18:
   dependencies:
     media-typer "0.3.0"
     mime-types "~2.1.24"
-
-type@^2.7.2:
-  version "2.7.3"
-  resolved "https://registry.yarnpkg.com/type/-/type-2.7.3.tgz#436981652129285cc3ba94f392886c2637ea0486"
-  integrity sha512-8j+1QmAbPvLZow5Qpi6NCaN8FB60p/6x8/vfNqOk/hC+HuvFZhL4+WfekuhQLiqFZXOgQdrs3B+XxEmCc6b3FQ==
 
 type@^2.7.2:
   version "2.7.3"

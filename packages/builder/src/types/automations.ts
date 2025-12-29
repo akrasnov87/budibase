@@ -22,6 +22,8 @@ import {
   Branch,
   LayoutDirection,
   LoopV2Step,
+  AutomationTestProgressEvent,
+  InProgressTestState,
 } from "@budibase/types"
 import { SvelteComponent } from "svelte"
 
@@ -29,6 +31,7 @@ export enum DataMode {
   INPUT = "data_in",
   OUTPUT = "data_out",
   ERRORS = "errors",
+  AGENT = "agent",
 }
 
 export enum ViewMode {
@@ -180,6 +183,8 @@ export interface SchemaConfigProps {
 export interface AutomationStoreState<T extends Automation = Automation> {
   automations: T[]
   testResults?: TestAutomationResponse
+  testProgress?: Record<string, AutomationTestProgressEvent>
+  inProgressTest?: InProgressTestState
   showTestModal: boolean
   blockDefinitions: BlockDefinitions
   selectedAutomationId: string | null
