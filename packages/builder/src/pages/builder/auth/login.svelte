@@ -12,7 +12,7 @@
     FancyInput,
   } from "@budibase/bbui"
   import { API } from "@/api"
-  import { goto } from "@roxi/routify"
+  import { goto as gotoStore } from "@roxi/routify"
   import { auth, organisation, oidc, admin } from "@/stores/portal"
   import GoogleButton from "./_components/GoogleButton.svelte"
   import OIDCButton from "./_components/OIDCButton.svelte"
@@ -23,6 +23,8 @@
   import { CookieUtils, Constants } from "@budibase/frontend-core"
 
   let version
+  $: goto = $gotoStore
+
   let loaded = false
   let form
   let errors = {}
@@ -52,7 +54,7 @@
         formData?.password
       )
       if ($auth?.user?.forceResetPassword) {
-        $goto("./reset")
+        goto("./reset")
       } else {
         notifications.success("Logged in successfully")
         pushNumSessionsInvalidated(loginResult.invalidatedSessionCount || 0)
@@ -62,12 +64,12 @@
         if (returnUrl) {
           CookieUtils.removeCookie(Constants.Cookies.ReturnUrl)
           if (returnUrl.startsWith("/builder")) {
-            $goto(returnUrl)
+            goto(returnUrl)
           } else {
             window.location.assign(returnUrl)
           }
         } else {
-          $goto("/builder")
+          goto("/builder")
         }
       }
     } catch (err) {
@@ -173,7 +175,7 @@
           {#if $organisation.forgotPasswordEnabled}
             <Layout gap="XS" noPadding justifyItems="center">
               <div class="user-actions">
-                <ActionButton size="L" quiet on:click={() => $goto("./forgot")}>
+                <ActionButton size="L" quiet on:click={() => goto("./forgot")}>
                   Forgot password?
                 </ActionButton>
               </div>
