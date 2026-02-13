@@ -1,6 +1,6 @@
 <script>
   window.BB = {}
-	window.BB.lang = "ru"
+  window.BB.lang = "ru"
 
   import { initSvelteLocales } from "../../budibase-locales/modules/svelte"
   initSvelteLocales()
