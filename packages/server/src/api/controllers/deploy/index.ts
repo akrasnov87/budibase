@@ -105,17 +105,22 @@ async function initDeployedApp(prodAppId: string) {
     )
   ).rows.map(row => row.doc!)
   await clearMetadata()
-  const { count } = await disableAllCrons(prodAppId)
+  let { count } = await disableAllCrons(prodAppId)
   const promises = []
 
   for (let automation of automations) {
     promises.push(
-      enableCronOrEmailTrigger(prodAppId, automation).catch(err => {
-        throw new Error(
-          `Failed to enable CRON or Email trigger for automation "${automation.name}": ${err.message}`,
-          { cause: err }
-        )
-      })
+      enableCronOrEmailTrigger(prodAppId, automation)
+        .then(({ enabled, automation, clearedRepeatableJobs }) => {
+          count += clearedRepeatableJobs
+          return { enabled, automation }
+        })
+        .catch(err => {
+          throw new Error(
+            `Failed to enable CRON or Email trigger for automation "${automation.name}": ${err.message}`,
+            { cause: err }
+          )
+        })
     )
   }
   const results = await Promise.all(promises)
@@ -123,7 +128,7 @@ async function initDeployedApp(prodAppId: string) {
     .map(result => result.enabled)
     .filter(result => result).length
   console.log(
-    `Cleared ${count} old CRON, enabled ${enabledCount} new CRON triggers for app deployment`
+    `Cleared ${count} old CRON/email, enabled ${enabledCount} new CRON/email triggers for app deployment`
   )
   // sync the automations back to the dev DB - since there is now CRON
   // information attached
@@ -314,7 +319,7 @@ export const publishWorkspaceInternal = async (
     }
   }
 
-  const appId = context.getWorkspaceId()!
+  const appId = context.getOrThrowWorkspaceId()
 
   let migrationResult: { app: Workspace; prodWorkspaceId: string }
   try {

@@ -3,6 +3,7 @@
   import Block from "../Block.svelte"
   import { CollapsedButtonGroup } from "@budibase/bbui"
   import { getContext } from "svelte"
+  import { resolveCollapsedButtons } from "@/utils/collapsedButtonGroup"
 
   export let buttons = []
   export let direction = "row"
@@ -15,17 +16,9 @@
   const { enrichButtonActions } = getContext("sdk")
   const context = getContext("context")
 
-  $: collapsedButtons = collapsed ? makeCollapsed(buttons) : null
-
-  const makeCollapsed = buttons => {
-    return buttons.map(button => ({
-      ...button,
-      onClick: async () => {
-        const fn = enrichButtonActions(button.onClick, $context)
-        await fn?.()
-      },
-    }))
-  }
+  $: collapsedButtons = collapsed
+    ? resolveCollapsedButtons(buttons, $context, enrichButtonActions)
+    : null
 </script>
 
 <Block>
@@ -50,18 +43,19 @@
         buttons={collapsedButtons}
       />
     {:else}
-      {#each buttons as { text, type, quiet, disabled, onClick, size, icon, gap }}
+      {#each buttons as button}
         <BlockComponent
           type="button"
           props={{
-            text: text || "Button",
-            onClick,
-            type,
-            quiet,
-            disabled,
-            icon,
-            gap,
-            size: size || "M",
+            text: button?.text || "Button",
+            onClick: button?.onClick,
+            type: button?.type,
+            quiet: button?.quiet,
+            disabled: button?.disabled,
+            icon: button?.icon,
+            gap: button?.gap,
+            size: button?.size || "M",
+            _conditions: button?._conditions || button?.conditions,
           }}
         />
       {/each}

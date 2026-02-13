@@ -9,13 +9,23 @@
     FancyInput,
   } from "@budibase/bbui"
   import { BUILDER_URLS } from "@budibase/shared-core"
-  import { goto, params } from "@roxi/routify"
+  import { goto as gotoStore, params } from "@roxi/routify"
   import { users, organisation, auth, admin } from "@/stores/portal"
   import Logo from "assets/bb-emblem.svg"
   import { onMount } from "svelte"
   import { handleError, passwordsMatch } from "../auth/_components/utils"
 
-  const inviteCode = $params["?code"]
+  $params
+
+  $: goto = $gotoStore
+
+  let inviteCode
+  let inviteTenantId
+  const getQueryParam = key => {
+    return new URLSearchParams(window.location.search).get(key) || undefined
+  }
+  $: inviteCode = $params["?code"] || getQueryParam("code")
+  $: inviteTenantId = $params["?tenantId"] || getQueryParam("tenantId")
   let form
   let formData = {}
   let onboarding = false
@@ -33,11 +43,13 @@
     onboarding = true
     try {
       const { password, firstName, lastName } = formData
+      const resolvedTenantId = inviteTenantId || $auth?.tenantId
       const user = await users.acceptInvite(
         inviteCode,
         password,
         firstName,
-        lastName
+        lastName,
+        resolvedTenantId
       )
       notifications.success("Invitation accepted successfully")
       auth.setOrg(user.tenantId)
@@ -50,14 +62,22 @@
 
   async function getInvite() {
     try {
-      const invite = await users.fetchInvite(inviteCode)
+      const resolvedTenantId = inviteTenantId || $auth?.tenantId
+      const invite = await users.fetchInvite(inviteCode, resolvedTenantId)
       if (invite?.email) {
         formData.email = invite?.email
       }
       if ($organisation.isSSOEnforced) {
         // auto accept invite and redirect to login
-        await users.acceptInvite(inviteCode)
-        $goto("../auth")
+        const resolvedTenantId = inviteTenantId || $auth?.tenantId
+        await users.acceptInvite(
+          inviteCode,
+          undefined,
+          undefined,
+          undefined,
+          resolvedTenantId
+        )
+        goto("../auth")
       }
     } catch (error) {
       notifications.error(error.message)
@@ -68,7 +88,7 @@
     try {
       await auth.login(formData.email.trim(), formData.password.trim())
       notifications.success("Logged in successfully")
-      $goto(BUILDER_URLS.WORKSPACES)
+      goto(BUILDER_URLS.WORKSPACES)
     } catch (err) {
       notifications.error(err.message ? err.message : "Something went wrong")
     }
@@ -76,6 +96,7 @@
 
   onMount(async () => {
     try {
+      await auth.checkQueryString()
       await organisation.init()
       await getInvite()
       loaded = true

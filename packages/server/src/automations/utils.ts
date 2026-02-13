@@ -5,6 +5,7 @@ import {
   Automation,
   AutomationJob,
   CronTriggerInputs,
+  EmailTriggerInputs,
   isCronTrigger,
   isEmailTrigger,
   MetadataType,
@@ -23,6 +24,50 @@ import { cloneDeep } from "lodash"
 let Runner: Thread
 if (automationsEnabled()) {
   Runner = new Thread(ThreadType.AUTOMATION)
+}
+
+function isWorkspaceDatabaseMissing(err: unknown) {
+  if (!err || typeof err !== "object") {
+    return false
+  }
+  const error = err as {
+    reason?: string
+    message?: string
+  }
+  const DATABASE_NOT_FOUND_REASON = "Database does not exist."
+  return (
+    error.reason === DATABASE_NOT_FOUND_REASON ||
+    error.message?.includes(DATABASE_NOT_FOUND_REASON) === true
+  )
+}
+
+function isLegacyRepeatableJobId(jobId?: string) {
+  return !!jobId?.startsWith("repeat:")
+}
+
+async function removeLegacyRepeatableJob(
+  legacyJobId: string,
+  appId: string,
+  automationId?: string
+) {
+  let count = 0
+  try {
+    const jobs = await automationQueue.getBullQueue().getRepeatableJobs()
+    for (let job of jobs) {
+      if (job.key.includes(legacyJobId)) {
+        await automationQueue.getBullQueue().removeRepeatableByKey(job.key)
+        count++
+      }
+    }
+  } catch (err) {
+    console.log("Failed to remove legacy repeatable job", {
+      appId,
+      automationId,
+      jobId: legacyJobId,
+      err,
+    })
+  }
+  return count
 }
 
 function loggingArgs(job: AutomationJob) {
@@ -113,6 +158,9 @@ export async function processEvent(job: AutomationJob) {
       } catch (err) {
         span.addTags({ error: true })
         console.error(`automation was unable to run`, err, ...loggingArgs(job))
+        if (job.opts.repeat && job.id && isWorkspaceDatabaseMissing(err)) {
+          await disableCronById(job.id)
+        }
         return { err }
       }
     }
@@ -209,12 +257,18 @@ export function isRebootTrigger(auto: Automation) {
 export async function enableCronOrEmailTrigger(
   appId: string,
   automation: Automation
-) {
+): Promise<{
+  enabled: boolean
+  automation: Automation
+  clearedRepeatableJobs: number
+}> {
   const trigger = automation ? automation.definition.trigger : null
   let enabled = false
 
+  let clearedRepeatableJobs = 0
+
   if (!trigger || automation.disabled || isRebootTrigger(automation)) {
-    return { enabled, automation }
+    return { enabled, automation, clearedRepeatableJobs }
   }
 
   if (isCronTrigger(trigger)) {
@@ -228,7 +282,18 @@ export async function enableCronOrEmailTrigger(
     }
 
     const existingJobId = trigger.cronJobId
-    const jobId = existingJobId || `${appId}_cron_${utils.newid()}`
+    if (existingJobId && isLegacyRepeatableJobId(existingJobId)) {
+      const removedJobs = await removeLegacyRepeatableJob(
+        existingJobId,
+        appId,
+        automation._id
+      )
+      clearedRepeatableJobs += removedJobs
+    }
+    const jobId =
+      !existingJobId || isLegacyRepeatableJobId(existingJobId)
+        ? `${appId}_cron_${utils.newid()}`
+        : existingJobId
     await automationQueue.add(
       {
         automation,
@@ -248,12 +313,31 @@ export async function enableCronOrEmailTrigger(
     }
 
     enabled = true
-    return { enabled, automation }
+    return { enabled, automation, clearedRepeatableJobs }
   }
 
   if (isEmailTrigger(trigger)) {
+    const inputs = trigger.inputs
+    if (!inputs || !isValidEmailTriggerInputs(inputs)) {
+      console.log("Automation email trigger inputs are not valid, disabling.", {
+        automationId: automation._id,
+        appId,
+      })
+      return { enabled: false, automation, clearedRepeatableJobs }
+    }
     const existingJobId = trigger.cronJobId
-    const jobId = existingJobId || `${appId}_email_${utils.newid()}`
+    if (existingJobId && isLegacyRepeatableJobId(existingJobId)) {
+      const removedJobs = await removeLegacyRepeatableJob(
+        existingJobId,
+        appId,
+        automation._id
+      )
+      clearedRepeatableJobs += removedJobs
+    }
+    const jobId =
+      !existingJobId || isLegacyRepeatableJobId(existingJobId)
+        ? `${appId}_email_${utils.newid()}`
+        : existingJobId
     await automationQueue.add(
       {
         automation,
@@ -273,10 +357,20 @@ export async function enableCronOrEmailTrigger(
     }
 
     enabled = true
-    return { enabled, automation }
+    return { enabled, automation, clearedRepeatableJobs }
   }
 
-  return { enabled, automation }
+  return { enabled, automation, clearedRepeatableJobs }
+}
+
+function isValidEmailTriggerInputs(inputs: EmailTriggerInputs): boolean {
+  return !!(
+    inputs &&
+    inputs.host &&
+    inputs.port &&
+    inputs.username &&
+    inputs.password
+  )
 }
 
 /**

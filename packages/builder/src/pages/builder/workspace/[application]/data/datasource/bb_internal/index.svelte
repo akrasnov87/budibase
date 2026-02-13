@@ -11,6 +11,8 @@
   } from "@/constants/backend"
   import { TableNames } from "@/constants"
 
+  $goto
+
   let modal
 
   $: builderStore.selectResource(BUDIBASE_INTERNAL_DB_ID)
@@ -37,7 +39,7 @@
     <Layout gap="XS" noPadding>
       <header>
         <svelte:component this={ICONS.BUDIBASE} height="26" width="26" />
-        <Heading size="M">Budibase Internal</Heading>
+        <Heading size="M">Budibase DB</Heading>
       </header>
       <Body size="M">
         Budibase internal tables are part of your app, so the data will be

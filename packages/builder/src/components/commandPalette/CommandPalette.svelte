@@ -27,6 +27,10 @@
   import { FeatureFlag } from "@budibase/types"
   import { IntegrationTypes } from "@/constants/backend"
 
+  $goto
+  $isActive
+  $params
+
   const modalContext = getContext(Context.Modal)
 
   let search
@@ -106,6 +110,10 @@
       {
         name: "Workspaces",
         url: BUILDER_URLS.WORKSPACES,
+      },
+      {
+        name: "Home",
+        url: "/builder/workspace/:application/home",
       },
       {
         name: "Data",

@@ -1,8 +1,9 @@
-import { ComponentType } from "svelte"
+import type { Component } from "svelte"
 
 // General
 import ProfilePage from "@/settings/pages/profile.svelte"
-import UsersPage from "@/settings/pages/people/users/index.svelte"
+import OrganisationUsersPage from "@/settings/pages/people/users/organisation.svelte"
+import WorkspaceUsersPage from "@/settings/pages/people/users/workspace.svelte"
 import UserPage from "@/settings/pages/people/users/user.svelte"
 import UserInvitesPage from "@/settings/pages/people/users/invites.svelte"
 import GroupPage from "@/settings/pages/people/groups/group.svelte"
@@ -13,6 +14,8 @@ import EmailTemplatesPage from "@/settings/pages/email/EmailTemplates.svelte"
 import EmailTemplatePage from "@/settings/pages/email/Template.svelte"
 import AuditLogsPage from "@/settings/pages/auditLogs/index.svelte"
 import AIPage from "@/settings/pages/ai/index.svelte"
+import AIConfigsPage from "@/settings/pages/ai/configs.svelte"
+import EmbeddingsPage from "@/settings/pages/ai/embeddings.svelte"
 import AuthPage from "@/settings/pages/auth/index.svelte"
 import OrgPage from "@/settings/pages/organisation.svelte"
 import BrandingPage from "@/settings/pages/branding.svelte"
@@ -34,9 +37,10 @@ import ScriptsPage from "@/settings/pages/scripts.svelte"
 import OAuth2Page from "@/settings/pages/oauth2/index.svelte"
 import Recaptcha from "@/settings/pages/recaptcha.svelte"
 
-const componentMap: Record<string, ComponentType> = {
+const componentMap = {
   profile: ProfilePage,
-  users: UsersPage,
+  users: OrganisationUsersPage,
+  workspace_users: WorkspaceUsersPage,
   user: UserPage,
   user_invites: UserInvitesPage,
   group: GroupPage,
@@ -47,6 +51,8 @@ const componentMap: Record<string, ComponentType> = {
   email_template: EmailTemplatePage,
   audit_logs: AuditLogsPage,
   ai: AIPage,
+  ai_configs: AIConfigsPage,
+  embeddings: EmbeddingsPage,
   auth: AuthPage,
   org: OrgPage,
   branding: BrandingPage,
@@ -65,10 +71,10 @@ const componentMap: Record<string, ComponentType> = {
   translations: Translations,
   oauth2: OAuth2Page,
   recaptcha: Recaptcha,
-}
+} satisfies Record<string, Component<any>>
 
 export const Pages = {
-  get: (key: keyof typeof componentMap) => {
+  get: (key: keyof typeof componentMap): Component<any> | undefined => {
     const component = componentMap[key]
     if (!component) {
       console.error(`Component not found for key: ${key}`)

@@ -12,7 +12,9 @@
   import type { PopoverAPI } from "@budibase/bbui"
   import { url } from "@roxi/routify"
 
-  export let icon: string
+  $url
+
+  export let icon: string | undefined = undefined
   export let breadcrumbs: Breadcrumb[]
   export let showPublish = true
 
@@ -92,11 +94,18 @@
     align-items: center;
     gap: 6px;
   }
-  .breadcrumbs a,
+  .breadcrumbs a {
+    font-size: 14px;
+    font-weight: 500 !important;
+    color: var(--spectrum-global-color-gray-900);
+  }
+  .breadcrumbs a:first-child {
+    color: var(--spectrum-global-color-gray-600);
+  }
   .breadcrumbs .divider {
     font-size: 14px;
-    font-weight: 500;
-    color: var(--spectrum-global-color-gray-900);
+    font-weight: 500 !important;
+    color: var(--spectrum-global-color-gray-600);
   }
   .popover-content {
     display: flex;

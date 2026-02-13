@@ -1,24 +1,52 @@
 <script lang="ts">
-  import { Body, Button, ActionMenu, MenuItem } from "@budibase/bbui"
-  import { type ToolMetadata } from "@budibase/types"
-  import type { IconInfo } from "@/helpers/integrationIcons"
+  import { tick } from "svelte"
+  import { Body, Button, ActionMenu, MenuItem, Icon } from "@budibase/bbui"
+  import { ToolType } from "@budibase/types"
+  import type { AgentTool } from "./toolTypes"
+  import ToolIcon from "./ToolIcon.svelte"
 
-  interface EnrichedTool extends ToolMetadata {
-    readableBinding: string
-    runtimeBinding: string
-    icon?: IconInfo
+  export interface Props {
+    filteredTools: AgentTool[]
+    toolSections: Record<string, AgentTool[]>
+    toolSearch: string
+    webSearchEnabled: boolean
+    onToolClick: (_tool: AgentTool) => void
+    onAddApiConnection: () => void
+    onConfigureWebSearch: () => void
   }
 
-  export let filteredTools: EnrichedTool[]
-  export let toolSections: Record<string, EnrichedTool[]>
-  export let toolSearch: string
-  export let onToolClick: (_tool: EnrichedTool) => void
-  export let onAddApiConnection: () => void
+  let {
+    filteredTools,
+    toolSections,
+    toolSearch = $bindable(""),
+    webSearchEnabled = false,
+    onToolClick,
+    onAddApiConnection,
+    onConfigureWebSearch,
+  }: Props = $props()
+
   let toolsMenu: ActionMenu | undefined
+  let searchInput: HTMLInputElement | undefined
+
+  const focusSearch = async () => {
+    await tick()
+    searchInput?.focus()
+  }
+
+  const openWebSearchConfig = () => {
+    toolsMenu?.hide()
+    onConfigureWebSearch()
+  }
+
+  const handleWebSearchConfigClick = (event: MouseEvent) => {
+    event.stopPropagation()
+    openWebSearchConfig()
+  }
 </script>
 
 <ActionMenu
   bind:this={toolsMenu}
+  on:open={focusSearch}
   align="right"
   roundedPopover
   portalTarget=".tools-popover-container"
@@ -30,6 +58,7 @@
   <div class="tools-menu">
     <div class="tools-menu-header">
       <input
+        bind:this={searchInput}
         class="tools-filter"
         type="text"
         placeholder="Search"
@@ -38,14 +67,15 @@
       />
     </div>
 
-    {#if filteredTools.length === 0}
-      <div class="tool-empty">
-        <Body size="S" color="var(--spectrum-global-color-gray-600)">
-          No tools available
-        </Body>
-      </div>
-    {:else}
-      <div class="tools-menu-content">
+    <div class="tools-menu-content">
+      {#if filteredTools.length === 0}
+        <div class="tool-empty">
+          <Body size="S" color="var(--spectrum-global-color-gray-600)">
+            No tools available
+          </Body>
+        </div>
+      {/if}
+      {#if filteredTools.length > 0}
         {#each Object.keys(toolSections) as section}
           <div class="tool-section">
             <div class="tool-section-header">
@@ -63,34 +93,62 @@
               {/if}
             </div>
             {#each toolSections[section] as tool}
-              <MenuItem on:click={() => onToolClick(tool)}>
+              <MenuItem
+                on:click={() => {
+                  if (
+                    tool.sourceType === ToolType.SEARCH &&
+                    !webSearchEnabled
+                  ) {
+                    openWebSearchConfig()
+                    return
+                  }
+                  onToolClick(tool)
+                }}
+              >
                 <div class="tool-item">
                   <div class="tool-item-icon">
-                    {#if tool?.icon?.icon}
-                      <svelte:component
-                        this={tool.icon.icon}
-                        height="16"
-                        width="16"
-                      />
-                    {:else if tool?.icon?.url}
-                      <img src={tool.icon.url} alt="" width="16" height="16" />
-                    {/if}
+                    <ToolIcon icon={tool.icon} size="S" fallbackIcon="Wrench" />
                   </div>
                   <span class="tool-item-label">
-                    {#if tool.sourceLabel}{tool.sourceLabel}:
-                    {/if}{tool.name}
+                    {#if tool.sourceType === ToolType.SEARCH}
+                      Web search
+                    {:else}
+                      {#if tool.sourceLabel}{tool.sourceLabel}:
+                      {/if}{tool.readableName || tool.name}
+                    {/if}
                   </span>
+                  {#if tool.sourceType === ToolType.SEARCH}
+                    <div class="web-search-actions">
+                      {#if webSearchEnabled}
+                        <Icon
+                          name="check"
+                          size="S"
+                          color="var(--spectrum-semantic-positive-color-default)"
+                        />
+                      {/if}
+                      <Icon
+                        size="S"
+                        name="gear"
+                        hoverable={true}
+                        on:click={handleWebSearchConfigClick}
+                      />
+                    </div>
+                  {/if}
                 </div>
               </MenuItem>
             {/each}
           </div>
         {/each}
-      </div>
-    {/if}
+      {/if}
+    </div>
   </div>
 </ActionMenu>
 
 <style>
+  :global([slot="control"] .spectrum-Button.new-styles .spectrum-Button-label) {
+    font-weight: 500;
+  }
+
   .tools-menu-header {
     display: flex;
     padding: var(--spectrum-listitem-padding-y)
@@ -140,6 +198,13 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-m);
+  }
+
+  .web-search-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-s);
   }
 
   .tool-item-icon {

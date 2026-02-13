@@ -31,6 +31,9 @@
   import { WorkspaceResource, DataEnvironmentMode } from "@budibase/types"
   import { API } from "@/api"
 
+  $params
+  $url
+
   const favourites = workspaceFavouriteStore.lookup
 
   // View overflow
@@ -72,7 +75,7 @@
   $: overflowedViews = views.filter(view => !viewVisibiltyMap[view.id])
   $: viewHidden = viewVisibiltyMap[activeId] === false
   $: tableName =
-    table?._id === TableNames.USERS ? "App users" : table?.name || ""
+    table?._id === TableNames.USERS ? "End users" : table?.name || ""
 
   const viewUrl = derived([url, params], ([$url, $params]) => viewId => {
     return $url(`../${$params.tableId}/${encodeURIComponent(viewId)}`)

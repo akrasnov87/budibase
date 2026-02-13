@@ -16,9 +16,11 @@
     type UIWorkspaceApp,
     type WorkspaceApp,
   } from "@budibase/types"
-  import { goto } from "@roxi/routify"
+  import { goto as gotoStore } from "@roxi/routify"
   import type { ZodType } from "zod"
   import { z } from "zod"
+
+  $: goto = $gotoStore
 
   export let workspaceApp: UIWorkspaceApp | null = null
 
@@ -108,6 +110,7 @@
 
     try {
       if (isNew) {
+        const workspaceId = $appStore.appId
         const workspaceApp = await workspaceAppStore.add({
           ...workspaceAppData,
           disabled: true,
@@ -122,7 +125,9 @@
           workspaceAppId: workspaceApp._id,
         })
         notifications.success("App created successfully")
-        $goto(`./${newScreen._id}`)
+        goto(
+          `/builder/workspace/${workspaceId}/design/${workspaceApp._id}/${newScreen._id}`
+        )
       } else {
         await workspaceAppStore.edit({
           ...workspaceAppData,

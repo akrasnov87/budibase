@@ -22,10 +22,13 @@
   import type { PickerIconInput, ResolvedIcon } from "../../types/Picker"
 
   export let id: string | undefined = undefined
+  export let size: "S" | "M" | "L" = "M"
   export let disabled: boolean = false
+  export let bordered: boolean = true
   export let fieldText: string = ""
   export let fieldIcon: PickerIconInput = undefined
   export let fieldColour: string = ""
+  export let fieldSubtitle: string | null = null
   export let isPlaceholder: boolean = false
   export let placeholderOption: string | undefined | boolean = undefined
   export let options: O[] = []
@@ -83,7 +86,6 @@
 
   let button: HTMLButtonElement | null = null
   let component: HTMLUListElement | null = null
-  let optionIconDescriptor: ResolvedIcon | null = null
   let virtualizedOptions: Array<{ option: O; idx: number }> = []
   let virtualPaddingTop = 0
   let virtualPaddingBottom = 0
@@ -224,7 +226,8 @@
 
 <button
   {id}
-  class="spectrum-Picker spectrum-Picker--sizeM"
+  class="spectrum-Picker spectrum-Picker--size{size}"
+  class:has-border={bordered}
   class:spectrum-Picker--quiet={quiet}
   {disabled}
   class:is-open={open}
@@ -250,8 +253,12 @@
     class="spectrum-Picker-label"
     class:is-placeholder={isPlaceholder}
     class:auto-width={autoWidth}
+    class:has-subtitle={!!fieldSubtitle}
   >
-    {fieldText}
+    <span class="picker-label-text">{fieldText}</span>
+    {#if fieldSubtitle}
+      <span class="picker-label-subtitle">{fieldSubtitle}</span>
+    {/if}
   </span>
   {#if !hideChevron}
     <Icon name="caret-down" size="S" />
@@ -337,9 +344,10 @@
             class="virtual-spacer"
             aria-hidden="true"
             style={`height:${virtualPaddingTop}px`}
-          />
+          ></li>
         {/if}
         {#each virtualizedOptions as { option, idx } (getOptionValue(option, idx) ?? idx)}
+          {@const optionIcon = resolveIcon(getOptionIcon(option, idx))}
           <li
             class="spectrum-Menu-item"
             class:is-selected={isOptionSelected(getOptionValue(option, idx))}
@@ -351,9 +359,9 @@
             on:mouseleave={e => onOptionMouseleave(e, option)}
             class:is-disabled={!isOptionEnabled(option)}
           >
-            {#if (optionIconDescriptor = resolveIcon(getOptionIcon(option, idx)))}
+            {#if optionIcon}
               <span class="option-extra icon">
-                <PickerIcon icon={optionIconDescriptor} {useOptionIconImage} />
+                <PickerIcon icon={optionIcon} {useOptionIconImage} />
               </span>
             {/if}
             {#if getOptionColour(option, idx)}
@@ -396,7 +404,7 @@
             class="virtual-spacer"
             aria-hidden="true"
             style={`height:${virtualPaddingBottom}px`}
-          />
+          ></li>
         {/if}
       {/if}
     </ul>
@@ -419,6 +427,10 @@
   .spectrum-Picker {
     width: 100%;
     box-shadow: none;
+  }
+  .spectrum-Picker.has-border {
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: 6px;
   }
   .spectrum-Picker-label.auto-width {
     margin-right: var(--spacing-xs);
@@ -530,6 +542,26 @@
     color: var(--spectrum-global-color-gray-600);
     display: block;
     margin-top: var(--spacing-s);
+  }
+  .spectrum-Picker-label.has-subtitle {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--spacing-xs);
+    white-space: normal;
+    overflow: visible;
+    height: auto;
+    line-height: normal;
+  }
+  .spectrum-Picker-label.has-subtitle .picker-label-text {
+    font-size: 12px;
+    line-height: 15px;
+  }
+  .picker-label-subtitle {
+    font-size: 12px;
+    line-height: 15px;
+    color: var(--spectrum-global-color-gray-600);
+    font-weight: 500;
   }
 
   .select-all-item {

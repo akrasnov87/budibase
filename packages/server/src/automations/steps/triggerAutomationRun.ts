@@ -24,8 +24,15 @@ export async function run({
       }
     } else {
       const db = context.getWorkspaceDB()
-      let automation = await db.get<Automation>(inputs.automation.automationId)
-
+      let automation = await db.tryGet<Automation>(
+        inputs.automation.automationId
+      )
+      if (!automation) {
+        return {
+          success: false,
+          status: AutomationStatus.ERROR,
+        }
+      }
       let timeout = env.AUTOMATION_THREAD_TIMEOUT
       if (inputs.timeout !== undefined) {
         timeout = inputs.timeout * 1000
@@ -38,8 +45,11 @@ export async function run({
       )
 
       if (triggers.isAutomationResults(response)) {
+        const isSuccessStatus =
+          response.status === AutomationStatus.SUCCESS ||
+          response.status === AutomationStatus.STOPPED
         return {
-          success: response.status === AutomationStatus.SUCCESS,
+          success: isSuccessStatus,
           value: response.steps,
           status: response.status,
         }

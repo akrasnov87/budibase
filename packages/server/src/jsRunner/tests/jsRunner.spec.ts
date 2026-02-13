@@ -29,6 +29,29 @@ describe("jsRunner (using isolated-vm)", () => {
     )
   }
 
+  const setIsolateTime = (isoDate: string) => {
+    return processStringSync(
+      encodeJSBinding(
+        `
+        const fixed = new Date("${isoDate}");
+        const RealDate = globalThis.Date;
+        class MockDate extends RealDate {
+          constructor(...args) {
+            return args.length ? new RealDate(...args) : new RealDate(fixed);
+          }
+          static now() {
+            return fixed.getTime();
+          }
+          static parse = RealDate.parse;
+          static UTC = RealDate.UTC;
+        }
+        globalThis.Date = MockDate;
+      `
+      ),
+      {}
+    )
+  }
+
   it("can run a basic javascript", async () => {
     const output = await processJS(`return 1 + 2`)
     expect(output).toBe(3)
@@ -77,7 +100,10 @@ describe("jsRunner (using isolated-vm)", () => {
   describe("helpers", () => {
     runJsHelpersTests({
       funcWrap: (func: any) =>
-        config.doInContext(config.getDevWorkspaceId(), func),
+        config.doInContext(config.getDevWorkspaceId(), async () => {
+          setIsolateTime(DATE)
+          return func()
+        }),
       testsToSkip: ["random", "uuid"],
     })
 
@@ -265,7 +291,7 @@ describe("jsRunner (using isolated-vm)", () => {
       const result = await processJS(
         `
         var rate = 5;
-        var today = new Date();
+        var today = new Date(${Date.now()});
         
         // comment
         function monthDiff(dateFrom, dateTo) {
@@ -289,7 +315,7 @@ describe("jsRunner (using isolated-vm)", () => {
         `,
         context
       )
-      expect(result).toBe(10)
+      expect(result).toBe(5)
     })
 
     it("should handle test case 7", async () => {

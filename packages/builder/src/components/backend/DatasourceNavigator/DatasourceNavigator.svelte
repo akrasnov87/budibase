@@ -20,6 +20,10 @@
   import { onMount } from "svelte"
   import { DataEnvironmentMode } from "@budibase/types"
 
+  $goto
+  $isActive
+  $params
+
   export let searchTerm
   export let datasourceFilter = _ => true
   export let showAppUsers = true
@@ -66,7 +70,7 @@
     toggledDatasources[datasource._id] = !datasource.open
   }
 
-  const appUsersTableName = "App users"
+  const appUsersTableName = "End users"
   $: showAppUsersTable =
     showAppUsers &&
     (!searchTerm ||

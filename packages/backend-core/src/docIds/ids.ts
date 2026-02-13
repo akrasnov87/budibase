@@ -125,16 +125,34 @@ export const generateAgentID = () => {
   return `${DocumentType.AGENT}${SEPARATOR}${newid()}`
 }
 
-export const generateAgentChatID = (agentId: string) => {
-  return `${DocumentType.AGENT_CHAT}${SEPARATOR}${DocumentType.AGENT}${SEPARATOR}${agentId}${SEPARATOR}${newid()}`
+export const generateChatAppID = () => {
+  return `${DocumentType.CHAT_APP}${SEPARATOR}${newid()}`
+}
+
+export const generateChatConversationID = () => {
+  return `${DocumentType.CHAT_CONVERSATION}${SEPARATOR}${newid()}`
 }
 
 export const generateAgentToolSourceID = () => {
   return `${DocumentType.AGENT_TOOL_SOURCE}${SEPARATOR}${newid()}`
 }
 
-export const generateAIConfigID = () => {
-  return `${DocumentType.AI_CONFIG}${SEPARATOR}${newid()}`
+export const generateAgentFileID = (agentId: string) => {
+  return `${DocumentType.AGENT_FILE}${SEPARATOR}${agentId}${SEPARATOR}${newid()}`
+}
+const isAgentFileIDRegex = new RegExp(
+  `^${DocumentType.AGENT_FILE}${SEPARATOR}.+`
+)
+export const isAgentFileID = (id: string) => {
+  return isAgentFileIDRegex.test(id)
+}
+
+export const generateAIConfigID = (id = newid()) => {
+  return `${DocumentType.AI_CONFIG}${SEPARATOR}${id}`
+}
+
+export const getLiteLLMKeyID = () => {
+  return `${DocumentType.LITELLM_KEY}${SEPARATOR}config`
 }
 
 export const generateWorkspaceAppID = () => {
@@ -143,4 +161,8 @@ export const generateWorkspaceAppID = () => {
 
 export const generateWorkspaceFavouriteID = () => {
   return `${DocumentType.WORKSPACE_FAVOURITE}${SEPARATOR}${newid()}`
+}
+
+export const generateVectorDbID = () => {
+  return `${DocumentType.VECTOR_STORE}${SEPARATOR}${newid()}`
 }

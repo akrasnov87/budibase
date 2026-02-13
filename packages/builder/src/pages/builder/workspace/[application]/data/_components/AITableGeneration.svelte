@@ -4,7 +4,9 @@
   import { datasources, tables } from "@/stores/builder"
   import { auth, licensing } from "@/stores/portal"
   import { ActionButton, notifications } from "@budibase/bbui"
-  import { goto } from "@roxi/routify"
+  import { goto as gotoStore } from "@roxi/routify"
+
+  $: goto = $gotoStore
 
   let promptText = ""
 
@@ -23,7 +25,7 @@
       notifications.success(`Tables created successfully.`)
       await datasources.fetch()
       await tables.fetch()
-      $goto(`./table/${tableToRedirect.id}`)
+      goto(`./table/${tableToRedirect.id}`)
     } catch (e: any) {
       notifications.error(e.message)
     }
@@ -63,15 +65,26 @@
     gap: 10px;
   }
 
+  .ai-generation-prompt {
+    width: 100%;
+  }
+
   .ai-generation-examples {
     display: grid;
     gap: 10px;
+    width: 100%;
+    grid-template-columns: 1fr;
   }
 
   @media (min-width: 833px) {
     .ai-generation-examples {
-      grid-auto-flow: column;
+      grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
     }
+  }
+
+  .ai-generation-examples :global(.spectrum-ActionButton) {
+    width: 100%;
+    justify-content: center;
   }
   .ai-generation :global(.spectrum-Textfield-input),
   .ai-generation :global(.spectrum-ActionButton) {

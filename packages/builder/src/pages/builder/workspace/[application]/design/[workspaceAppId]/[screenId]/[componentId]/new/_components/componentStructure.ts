@@ -78,6 +78,7 @@ export function getComponentStructure({ chatbox } = { chatbox: false }) {
         "bbreferencesinglefield",
         "bbreferencefield",
         "ratingfield",
+        "slider",
       ],
     },
     {
@@ -91,6 +92,7 @@ export function getComponentStructure({ chatbox } = { chatbox: false }) {
         "pie",
         "donut",
         "histogram",
+        "gauge",
       ],
     },
   ]

@@ -1,3 +1,7 @@
+if (process.env.DD_APM_ENABLED) {
+  require("../ddApm")
+}
+
 import { configs, context, events, logging } from "@budibase/backend-core"
 import { quotas } from "@budibase/pro"
 import { automations, dataFilters, helpers } from "@budibase/shared-core"
@@ -50,6 +54,28 @@ import { AutomationTestProgressEvent } from "../automations/testProgress"
 threadUtils.threadSetup()
 const CRON_STEP_ID = automations.triggers.definitions.CRON.stepId
 const STOPPED_STATUS = { success: true, status: AutomationStatus.STOPPED }
+const ERROR_PREVIEW_LENGTH = 512
+
+function getAutomationLogContext(job: Job<AutomationData>) {
+  const appId = job.data.event.appId
+  const automationId = job.data.automation?._id
+  const tenantId = context.getTenantIDFromWorkspaceID(appId!)
+  const trigger = job.data.automation?.definition?.trigger?.event
+
+  return { tenantId, appId, automationId, trigger }
+}
+
+function getErrorLogDetails(err: any) {
+  const message = err?.message ?? `${err}`
+  return {
+    name: err?.name,
+    code: err?.code,
+    messagePreview:
+      typeof message === "string"
+        ? message.slice(0, ERROR_PREVIEW_LENGTH)
+        : undefined,
+  }
+}
 
 function stepSuccess(
   step: Readonly<AutomationStep>,
@@ -563,6 +589,12 @@ class Orchestrator {
               addToContext(step, result, true)
             }
             this.reportStepProgress(step, progressStatus(result), result, ctx)
+            if (
+              result.outputs.success === false &&
+              result.outputs.status == null
+            ) {
+              return results
+            }
             stepIndex++
             break
           }
@@ -584,6 +616,14 @@ class Orchestrator {
             const latest = results.at(-1)
             if (latest) {
               this.reportStepProgress(step, progressStatus(latest), latest, ctx)
+              if (
+                step.stepId === AutomationActionStepId.TRIGGER_AUTOMATION_RUN &&
+                latest.outputs.success === false &&
+                (latest.outputs.status === AutomationStatus.ERROR ||
+                  latest.outputs.status === AutomationStatus.STOPPED_ERROR)
+              ) {
+                return results
+              }
             }
             stepIndex++
             break
@@ -715,6 +755,20 @@ class Orchestrator {
                 )
               )
             }
+
+            if (this.stopped) {
+              const output = automationUtils.buildLoopOutput(
+                storage,
+                undefined,
+                iterations + 1
+              )
+              output.status = AutomationStatus.STOPPED
+              span.addTags({
+                status: AutomationStatus.STOPPED,
+                iterations: iterations + 1,
+              })
+              return stepSuccess(step, output)
+            }
           } finally {
             // Restore the previous loop context (for nested loops)
             ctx.loop = savedLoopContext
@@ -837,6 +891,13 @@ class Orchestrator {
         this.stopped = true
         ;(outputs as any).status = AutomationStatus.STOPPED
       }
+      if (
+        step.stepId === AutomationActionStepId.TRIGGER_AUTOMATION_RUN &&
+        "status" in outputs &&
+        outputs.status === AutomationStatus.STOPPED
+      ) {
+        this.stopped = true
+      }
 
       span.addTags({ outputsKeys: Object.keys(outputs) })
       return stepSuccess(step, outputs, inputs)
@@ -844,7 +905,10 @@ class Orchestrator {
   }
 }
 
-export function execute(job: Job<AutomationData>, callback: WorkerCallback) {
+export async function execute(
+  job: Job<AutomationData>,
+  callback: WorkerCallback
+) {
   const workspaceId = job.data.event.appId
   if (!workspaceId) {
     throw new Error("Unable to execute, event doesn't contain app ID.")
@@ -855,22 +919,31 @@ export function execute(job: Job<AutomationData>, callback: WorkerCallback) {
     throw new Error("Unable to execute, event doesn't contain automation ID.")
   }
 
-  return context.doInAutomationContext({
-    workspaceId,
-    automationId,
-    task: async () => {
-      await reloadAutomation(job)
-      await context.ensureSnippetContext()
-      const envVars = await sdkUtils.getEnvironmentVariables()
-      await context.doInEnvironmentContext(envVars, async () => {
-        const orchestrator = new Orchestrator(job)
+  return await tracer.trace("automation.execute", async span => {
+    span.addTags({ workspaceId, automationId: job.data.automation?._id })
+    return await context.doInAutomationContext({
+      workspaceId,
+      automationId,
+      task: async () => {
         try {
-          callback(null, await orchestrator.execute())
+          await reloadAutomation(job)
+          await context.ensureSnippetContext()
+          const envVars = await sdkUtils.getEnvironmentVariables()
+          await context.doInEnvironmentContext(envVars, async () => {
+            const orchestrator = new Orchestrator(job)
+            callback(null, await orchestrator.execute())
+          })
         } catch (err) {
+          console.error(
+            "automation worker failed",
+            { _logKey: "automation", ...getAutomationLogContext(job) },
+            { _logKey: "bull", jobId: job.id },
+            { _logKey: "error", ...getErrorLogDetails(err) }
+          )
           callback(err)
         }
-      })
-    },
+      },
+    })
   })
 }
 
@@ -878,18 +951,22 @@ export async function executeInThread(
   job: Job<AutomationData>,
   opts: { onProgress?: (event: AutomationTestProgressEvent) => void } = {}
 ): Promise<AutomationResults> {
-  const appId = job.data.event.appId
-  if (!appId) {
-    throw new Error("Unable to execute, event doesn't contain app ID.")
+  const workspaceId = job.data.event.appId
+  if (!workspaceId) {
+    throw new Error("Unable to execute, event doesn't contain workspace ID.")
   }
 
-  return await context.doInWorkspaceContext(appId, async () => {
-    await reloadAutomation(job)
-    await context.ensureSnippetContext()
-    const envVars = await sdkUtils.getEnvironmentVariables()
-    return await context.doInEnvironmentContext(envVars, async () => {
-      const orchestrator = new Orchestrator(job, opts)
-      return orchestrator.execute()
+  return await tracer.trace("automation.executeInThread", async span => {
+    span.addTags({ workspaceId, automationId: job.data.automation?._id })
+
+    return await context.doInWorkspaceContext(workspaceId, async () => {
+      await reloadAutomation(job)
+      await context.ensureSnippetContext()
+      const envVars = await sdkUtils.getEnvironmentVariables()
+      return await context.doInEnvironmentContext(envVars, async () => {
+        const orchestrator = new Orchestrator(job, opts)
+        return orchestrator.execute()
+      })
     })
   })
 }

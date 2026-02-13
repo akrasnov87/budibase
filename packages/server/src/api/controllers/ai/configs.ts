@@ -6,31 +6,73 @@ import {
   UpdateAIConfigRequest,
   PASSWORD_REPLACEMENT,
   UserCtx,
+  AIConfigType,
+  RequiredKeys,
+  LLMProvidersResponse,
+  AIConfigResponse,
+  BUDIBASE_AI_PROVIDER_ID,
 } from "@budibase/types"
 import sdk from "../../../sdk"
 
-const sanitizeConfig = (
+const sanitizeConfig = async (
   config: CustomAIProviderConfig
-): CustomAIProviderConfig => {
-  if (!config.apiKey) {
-    return config
+): Promise<AIConfigResponse> => {
+  const providers = await sdk.ai.configs.fetchLiteLLMProviders()
+  const provider = providers.find(p => p.id === config.provider)
+
+  if (!provider) {
+    throw new Error(`Provider ${config.provider} not found`)
   }
 
-  return {
+  const secretFields = provider.credentialFields
+    .filter(f => f.field_type === "password")
+    .map(f => f.key)
+  const credentialsFields = secretFields.reduce((updatedFields, field) => {
+    updatedFields[field] = PASSWORD_REPLACEMENT
+    return updatedFields
+  }, config.credentialsFields)
+
+  const sanitized: AIConfigResponse = {
     ...config,
-    apiKey: PASSWORD_REPLACEMENT,
+    credentialsFields: { ...credentialsFields },
   }
+
+  if (
+    sanitized.provider === BUDIBASE_AI_PROVIDER_ID &&
+    sanitized.credentialsFields?.api_key
+  ) {
+    sanitized.credentialsFields.api_key = PASSWORD_REPLACEMENT
+  }
+
+  if (sanitized.webSearchConfig?.apiKey) {
+    sanitized.webSearchConfig = {
+      ...sanitized.webSearchConfig,
+      apiKey: PASSWORD_REPLACEMENT,
+    }
+  }
+
+  return sanitized
 }
 
 export const fetchAIConfigs = async (
   ctx: UserCtx<void, AIConfigListResponse>
 ) => {
-  const configs = await sdk.aiConfigs.fetch()
-  ctx.body = configs.map(sanitizeConfig)
+  const configs = await sdk.ai.configs.fetch()
+  const result: AIConfigListResponse = []
+  for (const config of configs) {
+    result.push(await sanitizeConfig(config))
+  }
+  ctx.body = result
+}
+
+export const fetchAIProviders = async (
+  ctx: UserCtx<void, LLMProvidersResponse>
+) => {
+  ctx.body = await sdk.ai.configs.fetchLiteLLMProviders()
 }
 
 export const createAIConfig = async (
-  ctx: UserCtx<CreateAIConfigRequest, CustomAIProviderConfig>
+  ctx: UserCtx<CreateAIConfigRequest, AIConfigResponse>
 ) => {
   const body = ctx.request.body
 
@@ -38,13 +80,26 @@ export const createAIConfig = async (
     throw new HTTPError("Config name is required", 400)
   }
 
-  const newConfig = await sdk.aiConfigs.create(body)
+  const createRequest: RequiredKeys<
+    Parameters<typeof sdk.ai.configs.create>[0]
+  > = {
+    name: body.name,
+    provider: body.provider,
+    credentialsFields: body.credentialsFields,
+    model: body.model,
 
-  ctx.body = sanitizeConfig(newConfig)
+    webSearchConfig: body.webSearchConfig,
+    configType: body.configType,
+    reasoningEffort: body.reasoningEffort,
+  }
+
+  const newConfig = await sdk.ai.configs.create(createRequest)
+
+  ctx.body = await sanitizeConfig(newConfig)
 }
 
 export const updateAIConfig = async (
-  ctx: UserCtx<UpdateAIConfigRequest, CustomAIProviderConfig>
+  ctx: UserCtx<UpdateAIConfigRequest, AIConfigResponse>
 ) => {
   const body = ctx.request.body
 
@@ -52,13 +107,34 @@ export const updateAIConfig = async (
     throw new HTTPError("Config ID is required for updates", 400)
   }
 
+  if (!body._rev) {
+    throw new HTTPError("Revision is required for updates", 400)
+  }
+
   if (!body.name) {
     throw new HTTPError("Config name is required", 400)
   }
 
-  const updatedConfig = await sdk.aiConfigs.update(body)
+  const configType = body.configType ?? AIConfigType.COMPLETIONS
 
-  ctx.body = sanitizeConfig(updatedConfig)
+  const updateRequest: RequiredKeys<
+    RequiredKeys<Parameters<typeof sdk.ai.configs.update>[0]>
+  > = {
+    _id: body._id,
+    _rev: body._rev,
+    name: body.name,
+    provider: body.provider,
+    credentialsFields: body.credentialsFields,
+    model: body.model,
+
+    webSearchConfig: body.webSearchConfig,
+    configType,
+    reasoningEffort: body.reasoningEffort,
+  }
+
+  const updatedConfig = await sdk.ai.configs.update(updateRequest)
+
+  ctx.body = await sanitizeConfig(updatedConfig)
 }
 
 export const deleteAIConfig = async (
@@ -69,7 +145,7 @@ export const deleteAIConfig = async (
     throw new HTTPError("Config ID is required", 400)
   }
 
-  await sdk.aiConfigs.remove(id)
+  await sdk.ai.configs.remove(id)
 
   ctx.body = { deleted: true }
 }

@@ -65,8 +65,11 @@
   let initialValueJS = value?.startsWith?.("{{ js ")
   let jsValue: string | null = initialValueJS ? value : null
   let hbsValue: string | null = initialValueJS ? null : value
-  let getCaretPosition: CaretPositionFn | undefined
-  let insertAtPos: InsertAtPositionFn | undefined
+  let getCaretPosition: CaretPositionFn = () => ({
+    start: 0,
+    end: 0,
+  })
+  let insertAtPos: InsertAtPositionFn = () => {}
   let targetMode: BindingMode | null = null
   let expressionResult: string | undefined
   let expressionLogs: Log[] | undefined
@@ -501,6 +504,11 @@
     flex: 1 1 auto;
     height: 0;
     position: relative;
+  }
+  .editor :global(.code-editor),
+  .editor :global(.code-editor > div),
+  .editor :global(.cm-editor) {
+    height: 100%;
   }
 
   /* Overlay */

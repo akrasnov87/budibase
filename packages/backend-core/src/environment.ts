@@ -153,7 +153,6 @@ const environment = {
     return !isDev()
   },
   BUDIBASE_ENVIRONMENT: process.env.BUDIBASE_ENVIRONMENT,
-  JS_BCRYPT: process.env.JS_BCRYPT,
   JWT_SECRET: process.env.JWT_SECRET
     ? createSecretKey(process.env.JWT_SECRET, "utf8")
     : undefined,
@@ -171,6 +170,7 @@ const environment = {
   SALT_ROUNDS: process.env.SALT_ROUNDS,
   REDIS_URL: process.env.REDIS_URL || "localhost:6379",
   REDIS_PASSWORD: process.env.REDIS_PASSWORD,
+  REDIS_USERNAME: process.env.REDIS_USERNAME,
   REDIS_CLUSTERED: process.env.REDIS_CLUSTERED,
   MINIO_ACCESS_KEY: process.env.MINIO_ACCESS_KEY,
   MINIO_SECRET_KEY: process.env.MINIO_SECRET_KEY,
@@ -265,6 +265,15 @@ const environment = {
     process.env.MIN_VERSION_WITHOUT_POWER_ROLE || "3.0.0",
   DISABLE_CONTENT_SECURITY_POLICY: process.env.DISABLE_CONTENT_SECURITY_POLICY,
   BSON_BUFFER_SIZE: parseIntSafe(process.env.BSON_BUFFER_SIZE),
+  CUSTOM_CSP_MEDIA_SRC: process.env.CUSTOM_CSP_MEDIA_SRC,
+  CUSTOM_CSP_SCRIPT_SRC: process.env.CUSTOM_CSP_SCRIPT_SRC,
+  CUSTOM_CSP_CONNECT_SRC: process.env.CUSTOM_CSP_CONNECT_SRC,
+  CUSTOM_CSP_IMG_SRC: process.env.CUSTOM_CSP_IMG_SRC,
+  CUSTOM_CSP_FONT_SRC: process.env.CUSTOM_CSP_FONT_SRC,
+  CUSTOM_CSP_FRAME_SRC: process.env.CUSTOM_CSP_FRAME_SRC,
+  BBAI_OPENAI_API_KEY: process.env.BBAI_OPENAI_API_KEY,
+  BBAI_MISTRAL_API_KEY: process.env.BBAI_MISTRAL_API_KEY,
+  MISTRAL_BASE_URL: process.env.MISTRAL_BASE_URL || "https://api.mistral.ai/v1",
 }
 
 export function setEnv(newEnvVars: Partial<typeof environment>): () => void {
@@ -308,6 +317,9 @@ export const SECRETS: EnvironmentKey[] = [
   "MINIO_SECRET_KEY",
   "OPENAI_API_KEY",
   "REDIS_PASSWORD",
+  "REDIS_USERNAME",
+  "BBAI_OPENAI_API_KEY",
+  "BBAI_MISTRAL_API_KEY",
 ]
 
 // clean up any environment variable edge cases

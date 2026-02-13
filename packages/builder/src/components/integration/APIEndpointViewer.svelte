@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { goto } from "@roxi/routify"
+  import { goto as gotoStore } from "@roxi/routify"
   import { flags } from "@/stores/builder"
   import { datasources } from "@/stores/builder/datasources"
   import { queries } from "@/stores/builder/queries"
@@ -33,7 +33,11 @@
     type PreviewQueryResponse,
     type UIInternalDatasource,
   } from "@budibase/types"
-  import { customQueryIconColor, QUERY_VERB_MAP } from "@/helpers/data/utils"
+  import {
+    customQueryIconColor,
+    getRestTemplateQueryDisplayName,
+    QUERY_VERB_MAP,
+  } from "@/helpers/data/utils"
   import { RestBodyTypes } from "@/constants/backend"
   import KeyValueBuilder from "./KeyValueBuilder.svelte"
   import APIEndpointVerbBadge from "./APIEndpointVerbBadge.svelte"
@@ -51,8 +55,10 @@
     runQuery,
     keyValueArrayToRecord,
     buildAuthConfigs,
+    getDefaultRestAuthConfig,
   } from "./query"
   import restUtils from "@/helpers/data/utils"
+  import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
   import ConnectedQueryScreens from "./ConnectedQueryScreens.svelte"
   import RestBodyInput from "./RestBodyInput.svelte"
   import CodeEditor from "../common/CodeEditor/CodeEditor.svelte"
@@ -60,9 +66,13 @@
   import { readableToRuntimeMap, runtimeToReadableMap } from "@/dataBinding"
   import ResponsePanel from "./ResponsePanel.svelte"
   import AuthPicker from "./rest/AuthPicker.svelte"
+  import AccessLevelSelect from "@/components/integration/AccessLevelSelect.svelte"
+  import { getErrorMessage } from "@/helpers/errors"
 
   export let queryId
   export let datasourceId
+
+  $: goto = $gotoStore
 
   type EndpointWithIcon = ImportEndpoint & {
     icon?: {
@@ -97,6 +107,9 @@
   let template: RestTemplate | undefined
   let datasource: Datasource | UIInternalDatasource | undefined
   let authConfigs: AuthConfigOption[] = []
+  let defaultAuthApplied = false
+  let defaultAuthKey: string | undefined = undefined
+
   const ensureQueryDefaults = (target: Query) => {
     if (!target.fields?.disabledHeaders) {
       target.fields.disabledHeaders = {}
@@ -175,6 +188,7 @@
     updated.readable = true
     updated.restTemplateMetadata = endpoint
       ? {
+          originalName: endpoint.name,
           operationId: endpoint.operationId,
           docsUrl: endpoint.docsUrl,
           description: endpoint.description,
@@ -203,7 +217,27 @@
 
   let queryKey: string | undefined
   let appliedEndpointKey: string | undefined
+  let lastSyncedQueryId: string | undefined
+  let lastSyncedQueryName: string | undefined
   let isNewQuery = false
+
+  const syncQueryFromStore = (localQuery: Query, storeQuery: Query) => {
+    let updatedQuery = localQuery
+
+    if (
+      lastSyncedQueryName !== undefined &&
+      storeQuery.name !== lastSyncedQueryName &&
+      localQuery.name === lastSyncedQueryName
+    ) {
+      updatedQuery = { ...updatedQuery, name: storeQuery.name }
+    }
+
+    if (updatedQuery !== localQuery) {
+      query = updatedQuery
+    }
+
+    lastSyncedQueryName = storeQuery.name
+  }
   $: storeQuery = getSelectedQuery(queryId, datasourceId)
   $: isNewQuery = !storeQuery?._id
   $: {
@@ -218,12 +252,48 @@
       }
     }
   }
+  $: if (query && query._id && query._id !== lastSyncedQueryId) {
+    lastSyncedQueryId = query._id
+    lastSyncedQueryName = query.name
+  }
+  $: if (query && storeQuery && query._id && query._id === storeQuery._id) {
+    syncQueryFromStore(query, storeQuery)
+  }
+  $: datasourceLookupId = datasourceId || storeQuery?.datasourceId
   $: datasource = structuredClone(
-    $datasources.list.find(
-      d => d._id === datasourceId || query?.datasourceId === d._id
-    )
+    $datasources.list.find(d => d._id === datasourceLookupId)
   )
   $: authConfigs = buildAuthConfigs(datasource)
+  $: {
+    const key = query?._id || `new::${datasourceId || ""}`
+    if (key !== defaultAuthKey) {
+      defaultAuthKey = key
+      defaultAuthApplied = false
+    }
+  }
+  $: if (!defaultAuthApplied && query && datasource && isNewQuery) {
+    const defaultAuth = getDefaultRestAuthConfig(datasource)
+    if (
+      defaultAuth &&
+      !query.fields?.authConfigId &&
+      !query.fields?.authConfigType
+    ) {
+      query = {
+        ...query,
+        fields: {
+          ...query.fields,
+          authConfigId: defaultAuth.authConfigId,
+          authConfigType: defaultAuth.authConfigType,
+        },
+      }
+      defaultAuthApplied = true
+    } else if (
+      defaultAuth &&
+      (query.fields?.authConfigId || query.fields?.authConfigType)
+    ) {
+      defaultAuthApplied = true
+    }
+  }
 
   // QUERY DATA
   $: queryString = query?.fields.queryString
@@ -363,12 +433,13 @@
   }
 
   const loadEndpoints = async (spec?: RestTemplateSpec) => {
-    if (!spec) {
+    const request = getRestTemplateImportInfoRequest(spec)
+    if (!request) {
       return
     }
     try {
       endpointsLoading = true
-      const resp = await queries.fetchImportInfo({ url: spec.url })
+      const resp = await queries.fetchImportInfo(request)
       const { endpoints: respEndpoints, url } = resp || {}
       if (respEndpoints) {
         endpoints = respEndpoints
@@ -418,12 +489,13 @@
     if (query._id && query.restTemplateMetadata) {
       const metadata = query.restTemplateMetadata
       const method = QUERY_VERB_MAP[query.queryVerb]
+      const endpointName = getRestTemplateQueryDisplayName(query)
 
       const endpoint = {
         id:
           metadata.operationId ||
           `${method.toLowerCase()}::${metadata.originalPath}`,
-        name: metadata.operationId || query.name,
+        name: endpointName,
         method,
         path: metadata.originalPath || "",
         description: metadata.description || "",
@@ -497,12 +569,18 @@
     }
     savingQuery = true
     try {
-      const isNew = !builtQuery._rev
+      const queryToSave =
+        builtQuery._id &&
+        storeQuery?._rev &&
+        storeQuery._rev !== builtQuery._rev
+          ? { ...builtQuery, _rev: storeQuery._rev }
+          : builtQuery
+      const isNew = !queryToSave._rev
 
       const datasourceType = datasource?.source
       const integrationInfo = $integrations[datasourceType]
 
-      const { _id } = await queries.save(builtQuery.datasourceId, builtQuery)
+      const { _id } = await queries.save(queryToSave.datasourceId, queryToSave)
 
       const existingVariables = datasource?.config?.dynamicVariables || []
       const updatedVariables = rebuildVariables(
@@ -523,7 +601,7 @@
       notifications.success(`Request saved successfully`)
 
       if (isNew && redirectIfNew) {
-        $goto(`../../${_id}`)
+        goto(`../../${_id}`)
       }
 
       const updatedQuery = getSelectedQuery(_id!, builtQuery.datasourceId)
@@ -571,7 +649,7 @@
         notifications.success("Request sent successfully")
       }
     } catch (error) {
-      notifications.error(`Query Error: ${error}`)
+      notifications.error(`Query Error: ${getErrorMessage(error)}`)
     }
     runningQuery = false
   }
@@ -717,6 +795,11 @@
     </div>
     <div class="actions">
       <div class="grouped">
+        {#if query}
+          <div class="access">
+            <AccessLevelSelect {query} label="Access" />
+          </div>
+        {/if}
         {#if query && selectedEndpointOption}
           <AuthPicker
             bind:authConfigId={query.fields.authConfigId}
@@ -971,7 +1054,7 @@
       class="underlay"
       transition:fade={{ duration: 260 }}
       on:click={() => sidebarExpanded.set(false)}
-    />
+    ></div>
   {/if}
   {#if $sidebarExpanded}
     <div
@@ -1002,7 +1085,7 @@
 
 <style>
   .details :global(.markdown-viewer code) {
-    color: white;
+    color: var(--spectrum-alias-text-color);
   }
   .bottom {
     flex: 1;
@@ -1101,9 +1184,10 @@
   }
   .actions .grouped {
     display: flex;
+    gap: var(--spacing-m);
   }
   .send :global(.spectrum-Button-label) {
-    color: white;
+    color: var(--spectrum-alias-text-color);
   }
   .send :global(.icon) {
     color: var(--spectrum-global-color-gray-700);
@@ -1182,6 +1266,11 @@
     display: flex;
     flex-direction: row;
     gap: var(--spacing-s);
+  }
+  .access {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-m);
   }
   .embed :global(.cm-editor) {
     min-height: 200px;

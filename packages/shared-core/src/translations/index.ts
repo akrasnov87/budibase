@@ -2,6 +2,11 @@ import { userMenuTranslations } from "./userMenu"
 import { profileModalTranslations } from "./profileModal"
 import { passwordModalTranslations } from "./passwordModal"
 import { pickerTranslations } from "./picker"
+import { recaptchaTranslations } from "./recaptcha"
+import { portalTranslations } from "./portal"
+import { loginTranslations } from "./login"
+import { forgotPasswordTranslations } from "./forgotPassword"
+import { validationTranslations } from "./validation"
 import type {
   TranslationCategory,
   TranslationDefinition,
@@ -14,16 +19,41 @@ export {
   profileModalTranslations,
   passwordModalTranslations,
   pickerTranslations,
+  recaptchaTranslations,
+  portalTranslations,
+  loginTranslations,
+  forgotPasswordTranslations,
+  validationTranslations,
 }
+
+const translationModules = [
+  userMenuTranslations,
+  profileModalTranslations,
+  passwordModalTranslations,
+  pickerTranslations,
+  recaptchaTranslations,
+  portalTranslations,
+  loginTranslations,
+  forgotPasswordTranslations,
+  validationTranslations,
+]
+
+export const TRANSLATION_CATEGORY_LABELS: Record<TranslationCategory, string> =
+  {
+    userMenu: "User menu",
+    profileModal: "Profile modal",
+    passwordModal: "Password modal",
+    picker: "Picker",
+    recaptcha: "reCAPTCHA",
+    portal: "Portal",
+    login: "Login",
+    forgotPassword: "Forgot password",
+    validation: "Validation",
+  }
 
 // Central export of all translation definitions across modules.
 // Add new translation modules to this list.
-export const translations: TranslationDefinition[] = [
-  ...userMenuTranslations,
-  ...profileModalTranslations,
-  ...passwordModalTranslations,
-  ...pickerTranslations,
-]
+export const translations: TranslationDefinition[] = translationModules.flat()
 
 // Build a category -> translation[] lookup for efficient access.
 const translationsByCategory = translations.reduce(

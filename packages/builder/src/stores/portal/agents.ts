@@ -2,7 +2,7 @@ import { API } from "@/api"
 import { BudiStore } from "../BudiStore"
 import {
   Agent,
-  AgentChat,
+  AgentFile,
   CreateAgentRequest,
   UpdateAgentRequest,
   ToolMetadata,
@@ -12,24 +12,23 @@ import { derived } from "svelte/store"
 interface AgentStoreState {
   agents: Agent[]
   currentAgentId?: string
-  chats: AgentChat[]
-  currentChatId?: string
   tools: ToolMetadata[]
   agentsLoaded: boolean
+  files: AgentFile[]
 }
 
 export class AgentsStore extends BudiStore<AgentStoreState> {
   constructor() {
     super({
       agents: [],
-      chats: [],
       tools: [],
       agentsLoaded: false,
+      files: [],
     })
   }
 
   init = async () => {
-    await Promise.all([this.fetchAgents(), this.fetchTools()])
+    await this.fetchAgents()
   }
 
   fetchAgents = async () => {
@@ -42,62 +41,33 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     return agents
   }
 
-  fetchChats = async (agentId: string) => {
+  selectAgent = async (agentId: string | undefined) => {
     if (!agentId) {
       this.update(state => {
-        state.chats = []
+        state.currentAgentId = undefined
         return state
       })
-      return []
+      return
     }
-    const chats = await API.fetchChats(agentId)
-    this.update(state => {
-      state.chats = chats
-      return state
-    })
-    return chats
-  }
 
-  removeChat = async (chatId: string, agentId?: string) => {
-    await API.removeChat(chatId)
-    if (agentId) {
-      await this.fetchChats(agentId)
-    }
-  }
-
-  selectAgent = (agentId: string | undefined) => {
     this.update(state => {
       state.currentAgentId = agentId
       if (agentId) {
-        this.fetchChats(agentId)
+        this.fetchFiles(agentId)
       } else {
-        state.chats = []
+        state.files = []
       }
       return state
     })
   }
 
-  fetchTools = async () => {
-    const tools = await API.fetchTools()
+  fetchTools = async (aiconfigId?: string) => {
+    const tools = await API.fetchTools(aiconfigId)
     this.update(state => {
       state.tools = tools
       return state
     })
     return tools
-  }
-
-  setCurrentChatId = (chatId: string) => {
-    this.update(state => {
-      state.currentChatId = chatId
-      return state
-    })
-  }
-
-  clearCurrentChatId = () => {
-    this.update(state => {
-      state.currentChatId = undefined
-      return state
-    })
   }
 
   createAgent = async (agent: CreateAgentRequest) => {
@@ -121,9 +91,60 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     return updated
   }
 
+  duplicateAgent = async (agentId: string) => {
+    const duplicated = await API.duplicateAgent(agentId)
+    this.update(state => {
+      state.agents = [...state.agents, duplicated]
+      return state
+    })
+    return duplicated
+  }
+
   deleteAgent = async (agentId: string) => {
     await API.deleteAgent(agentId)
     await this.fetchAgents()
+  }
+
+  fetchFiles = async (agentId?: string) => {
+    if (!agentId) {
+      this.update(state => {
+        state.files = []
+        return state
+      })
+      return []
+    }
+    const { files } = await API.fetchAgentFiles(agentId)
+    this.update(state => {
+      if (state.currentAgentId === agentId) {
+        state.files = files
+      }
+      return state
+    })
+    return files
+  }
+
+  uploadAgentFile = async (agentId: string, file: File) => {
+    const { file: uploaded } = await API.uploadAgentFile(agentId, file)
+    this.update(state => {
+      if (state.currentAgentId === agentId) {
+        state.files = [
+          uploaded,
+          ...state.files.filter(existing => existing._id !== uploaded._id),
+        ]
+      }
+      return state
+    })
+    return uploaded
+  }
+
+  deleteAgentFile = async (agentId: string, fileId: string) => {
+    await API.deleteAgentFile(agentId, fileId)
+    this.update(state => {
+      if (state.currentAgentId === agentId) {
+        state.files = state.files.filter(file => file._id !== fileId)
+      }
+      return state
+    })
   }
 }
 export const agentsStore = new AgentsStore()

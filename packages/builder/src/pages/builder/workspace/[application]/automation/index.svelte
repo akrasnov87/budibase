@@ -26,16 +26,29 @@
     Modal,
     type ModalAPI,
     notifications,
-    TooltipPosition,
     StatusLight,
   } from "@budibase/bbui"
   import type { UIAutomation } from "@budibase/types"
-  import { PublishResourceState, WorkspaceResource } from "@budibase/types"
-  import { url } from "@roxi/routify"
+  import {
+    FeatureFlag,
+    PublishResourceState,
+    WorkspaceResource,
+  } from "@budibase/types"
+  import { goto as gotoStore, url } from "@roxi/routify"
   import AppsHero from "assets/automation-hero-x1.png"
   import FavouriteResourceButton from "@/pages/builder/_components/FavouriteResourceButton.svelte"
   import NoResults from "../_components/NoResults.svelte"
-  import { appsStore } from "@/stores/portal"
+  import { appsStore, featureFlags } from "@/stores/portal"
+  import { onMount } from "svelte"
+
+  $url
+  $: goto = $gotoStore
+
+  onMount(() => {
+    if ($featureFlags[FeatureFlag.WORKSPACE_HOME]) {
+      goto("../home?type=automation")
+    }
+  })
 
   let showHighlight = true
   let createModal: ModalAPI
@@ -277,11 +290,7 @@
             </div>
 
             <span class="favourite-btn">
-              <FavouriteResourceButton
-                favourite={automation.favourite}
-                position={TooltipPosition.Left}
-                noWrap
-              />
+              <FavouriteResourceButton favourite={automation.favourite} />
             </span>
           </div>
         </a>
@@ -363,11 +372,6 @@
     border: 1px solid transparent;
     padding: 3px 10px;
     height: auto;
-
-    &.is-selected {
-      background: var(--spectrum-global-color-gray-200);
-      border-color: var(--spectrum-global-color-gray-300);
-    }
   }
   .action-buttons {
     display: flex;
@@ -388,37 +392,42 @@
     padding: 9px 12px;
     color: var(--text-color);
     transition: background 130ms ease-out;
+  }
 
-    &:hover,
-    &.active {
-      background: var(--spectrum-global-color-gray-200);
+  .automation:hover,
+  .automation.active {
+    background: var(--spectrum-global-color-gray-200);
+  }
 
-      & .actions > * {
-        opacity: 1;
-        pointer-events: all;
-      }
-    }
-    &.favourite {
-      & .actions .favourite-btn {
-        opacity: 1;
-      }
-    }
+  .automation:hover .actions > *,
+  .automation.active .actions > *,
+  .automation:focus-within .actions > * {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .automation.favourite .actions .favourite-btn {
+    opacity: 1;
+    pointer-events: auto;
   }
   .actions {
     justify-content: flex-end;
     display: flex;
     align-items: center;
-    pointer-events: none;
     gap: var(--spacing-xs);
   }
 
   .actions > * {
     opacity: 0;
+    pointer-events: none;
     transition: opacity 130ms ease-out;
   }
 
-  .actions .favourite-btn {
-    pointer-events: all;
+  @media (hover: none), (pointer: coarse) {
+    .automation .actions > * {
+      opacity: 1;
+      pointer-events: auto;
+    }
   }
 
   .table-wrapper {

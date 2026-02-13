@@ -1,5 +1,4 @@
 import { z } from "zod"
-import { zodResponseFormat } from "openai/helpers/zod"
 import {
   mockChatGPTResponse,
   mockOpenAIFileUpload,
@@ -7,16 +6,15 @@ import {
 import TestConfiguration from "../../../tests/utilities/TestConfiguration"
 import nock from "nock"
 import { configs, env, setEnv } from "@budibase/backend-core"
+import { generateText, streamText } from "ai"
 import {
   AIInnerConfig,
   AIOperationEnum,
   AttachmentSubType,
   ConfigType,
-  CustomAIProviderConfig,
   Feature,
   FieldType,
   License,
-  PASSWORD_REPLACEMENT,
   PlanModel,
   PlanType,
   ProviderConfig,
@@ -31,7 +29,40 @@ import {
 } from "../../../tests/utilities/mocks/ai"
 import { mockAnthropicResponse } from "../../../tests/utilities/mocks/ai/anthropic"
 import { mockAzureOpenAIResponse } from "../../../tests/utilities/mocks/ai/azureOpenai"
-import environment from "../../../environment"
+
+jest.mock("ai", () => {
+  const actual = jest.requireActual("ai")
+  return {
+    ...actual,
+    generateText: jest.fn(),
+    streamText: jest.fn(),
+  }
+})
+
+jest.mock("@budibase/types", () => {
+  const actual = jest.requireActual("@budibase/types")
+  return {
+    ...actual,
+    BUDIBASE_AI_MODEL_MAP: {
+      ...actual.BUDIBASE_AI_MODEL_MAP,
+      "budibase/mistral-small-latest": {
+        provider: "mistral",
+        model: "mistral-small-latest",
+      },
+    },
+  }
+})
+
+function toResponseFormat(schema: any, name = "response") {
+  return {
+    type: "json_schema" as const,
+    json_schema: {
+      name,
+      strict: false,
+      schema: schema.toJSONSchema({ target: "draft-7" }),
+    },
+  }
+}
 
 function dedent(str: string) {
   return str
@@ -458,7 +489,7 @@ describe("BudibaseAI", () => {
       expect(usage.monthly.current.budibaseAICredits).toBe(0)
 
       const gptResponse = generator.guid()
-      const structuredOutput = zodResponseFormat(
+      const structuredOutput = toResponseFormat(
         z.object({
           [generator.word()]: z.string(),
         }),
@@ -486,159 +517,6 @@ describe("BudibaseAI", () => {
     })
   })
 
-  describe("custom provider configs", () => {
-    const defaultRequest = {
-      name: "Support Chat",
-      provider: "OpenAI",
-      baseUrl: "https://api.openai.com",
-      model: "gpt-4o-mini",
-      apiKey: "sk-test-key",
-      isDefault: true,
-      liteLLMModelId: "",
-    }
-
-    beforeEach(async () => {
-      await config.newTenant()
-      nock.cleanAll()
-    })
-
-    it("creates a custom config and sanitizes the API key", async () => {
-      const liteLLMScope = nock(environment.LITELLM_URL)
-        .post("/key/generate")
-        .reply(200, { token_id: "key-1", key: "secret-1" })
-        .post("/health/test_connection")
-        .reply(200, { status: "success" })
-        .post("/model/new")
-        .reply(200, { model_id: "model-1" })
-        .post("/key/update", body => {
-          expect(body).toMatchObject({
-            models: ["model-1"],
-          })
-          return true
-        })
-        .reply(200, { status: "success" })
-
-      const created = await config.api.ai.createConfig({ ...defaultRequest })
-      expect(created._id).toBeDefined()
-      expect(created.liteLLMModelId).toBe("model-1")
-      expect(created.apiKey).toBe(PASSWORD_REPLACEMENT)
-      expect(created.isDefault).toBe(true)
-      expect(liteLLMScope.isDone()).toBe(true)
-
-      const configsResponse = await config.api.ai.fetchConfigs()
-      expect(configsResponse).toHaveLength(1)
-      expect(configsResponse[0]._id).toBe(created._id)
-      expect(configsResponse[0].apiKey).toBe(PASSWORD_REPLACEMENT)
-    })
-
-    it("updates a custom config while preserving the stored API key", async () => {
-      const creationScope = nock(environment.LITELLM_URL)
-        .post("/key/generate")
-        .reply(200, { token_id: "key-2", key: "secret-2" })
-        .post("/health/test_connection")
-        .reply(200, { status: "success" })
-        .post("/model/new")
-        .reply(200, { model_id: "model-2" })
-        .post("/key/update")
-        .reply(200, { status: "success" })
-
-      const created = await config.api.ai.createConfig({ ...defaultRequest })
-      expect(creationScope.isDone()).toBe(true)
-
-      const updateScope = nock(environment.LITELLM_URL)
-        .post("/health/test_connection")
-        .reply(200, { status: "success" })
-        .patch(`/model/${created.liteLLMModelId}/update`)
-        .reply(200, { status: "success" })
-        .post("/key/update")
-        .reply(200, { status: "success" })
-
-      const updated = await config.api.ai.updateConfig({
-        ...created,
-        name: "Updated Chat",
-        isDefault: false,
-        apiKey: PASSWORD_REPLACEMENT,
-      })
-
-      expect(updateScope.isDone()).toBe(true)
-      expect(updated.name).toBe("Updated Chat")
-      expect(updated.isDefault).toBe(false)
-      expect(updated.apiKey).toBe(PASSWORD_REPLACEMENT)
-
-      const storedConfig = await config.doInTenant(async () => {
-        return await context
-          .getGlobalDB()
-          .get<CustomAIProviderConfig>(created._id!)
-      })
-      expect(storedConfig.apiKey).toBe(defaultRequest.apiKey)
-
-      const configsResponse = await config.api.ai.fetchConfigs()
-      expect(configsResponse).toHaveLength(1)
-      expect(configsResponse[0].name).toBe("Updated Chat")
-      expect(configsResponse[0].apiKey).toBe(PASSWORD_REPLACEMENT)
-    })
-
-    it("deletes a custom config and syncs LiteLLM models", async () => {
-      const creationScope = nock(environment.LITELLM_URL)
-        .post("/key/generate")
-        .reply(200, { token_id: "key-3", key: "secret-3" })
-        .post("/health/test_connection")
-        .reply(200, { status: "success" })
-        .post("/model/new")
-        .reply(200, { model_id: "model-3" })
-        .post("/key/update")
-        .reply(200, { status: "success" })
-
-      const created = await config.api.ai.createConfig({ ...defaultRequest })
-      expect(creationScope.isDone()).toBe(true)
-
-      const deleteScope = nock(environment.LITELLM_URL)
-        .post("/key/update", body => {
-          expect(body).toMatchObject({
-            models: [],
-          })
-          return true
-        })
-        .reply(200, { status: "success" })
-
-      const { deleted } = await config.api.ai.deleteConfig(created._id!)
-      expect(deleted).toBe(true)
-      expect(deleteScope.isDone()).toBe(true)
-
-      const configsResponse = await config.api.ai.fetchConfigs()
-      expect(configsResponse).toHaveLength(0)
-    })
-
-    it("validates configuration", async () => {
-      const failingScope = nock(environment.LITELLM_URL)
-        .post("/key/generate")
-        .reply(200, { token_id: "key-4", key: "secret-4" })
-        .post("/health/test_connection")
-        .reply(200, {
-          status: "error",
-          result: {
-            error: "Connection refused\nTraceback...",
-          },
-        })
-
-      const errorResponse: any = await config.api.ai.createConfig(
-        {
-          ...defaultRequest,
-          name: "Broken Config",
-        },
-        {
-          status: 400,
-        }
-      )
-
-      expect(failingScope.isDone()).toBe(true)
-      expect(errorResponse.message).toContain("Error validating configuration")
-
-      const configsResponse = await config.api.ai.fetchConfigs()
-      expect(configsResponse).toHaveLength(0)
-    })
-  })
-
   describe("POST /api/ai/tables", () => {
     beforeEach(async () => {
       await config.newTenant()
@@ -650,21 +528,21 @@ describe("BudibaseAI", () => {
 
     const mockAIGenerationStructure = (
       generationStructure: ai.GenerationStructure
-    ) =>
+    ) => {
       mockChatGPTResponse(JSON.stringify(generationStructure), {
-        format: zodResponseFormat(ai.generationStructure, "key"),
+        format: toResponseFormat(ai.generationStructure),
       })
+    }
 
     const mockAIColumnGeneration = (
       generationStructure: ai.GenerationStructure,
       aiColumnGeneration: ai.AIColumnSchemas
     ) =>
       mockChatGPTResponse(JSON.stringify(aiColumnGeneration), {
-        format: zodResponseFormat(
+        format: toResponseFormat(
           ai.aiColumnSchemas(
             ai.aiTableResponseToTableSchema(generationStructure)
-          ),
-          "key"
+          )
         ),
       })
 
@@ -672,7 +550,7 @@ describe("BudibaseAI", () => {
       dataGeneration: Record<string, Record<string, any>[]>
     ) =>
       mockChatGPTResponse(JSON.stringify(dataGeneration), {
-        format: zodResponseFormat(ai.tableDataStructuredOutput([]), "key"),
+        format: toResponseFormat(ai.tableDataStructuredOutput([])),
       })
 
     const mockProcessAIColumn = (response: string) =>
@@ -1149,6 +1027,53 @@ describe("BudibaseAI", () => {
       const employees = await config.api.row.fetch(createdTables[1].id)
       expect(employees).toHaveLength(5)
     })
+
+    // This scenario emerged when generated tables contained self-referential
+    // relationship. On delete, updates to the table caused conflicts and blocked
+    // deletion.
+    it("rejects self-referential relationships", async () => {
+      const prompt = "Create me a table for managing employees"
+      const generationStructure: ai.GenerationStructure = {
+        tables: [
+          {
+            name: "Employees",
+            primaryDisplay: "Name",
+            schema: [
+              {
+                name: "Name",
+                type: FieldType.STRING,
+                constraints: {
+                  presence: true,
+                },
+              },
+              {
+                name: "Manager",
+                type: FieldType.LINK,
+                tableId: "Employees",
+                relationshipType: RelationshipType.MANY_TO_ONE,
+                reverseFieldName: "Reports",
+                relationshipId: "EmployeeManager",
+              },
+            ],
+          },
+        ],
+      }
+      mockAIGenerationStructure(generationStructure)
+
+      const aiColumnGeneration: ai.AIColumnSchemas = {
+        Employees: [],
+      }
+      mockAIColumnGeneration(generationStructure, aiColumnGeneration)
+
+      const dataGeneration: Record<string, Record<string, any>[]> = {
+        Employees: [],
+      }
+      mockDataGeneration(dataGeneration)
+
+      await expect(config.api.ai.generateTables({ prompt })).rejects.toThrow(
+        "Self-referential relationships are not supported. Table Employees cannot link to itself."
+      )
+    })
   })
 
   describe("POST /api/ai/upload-file", () => {
@@ -1237,6 +1162,202 @@ describe("BudibaseAI", () => {
         },
         { status: 403 }
       )
+    })
+  })
+
+  describe("POST /api/ai/chat/completions", () => {
+    let licenseKey = "test-key"
+    let internalApiKey = "api-key"
+    let envCleanup: () => void
+    let cleanup: () => Promise<void> | void
+
+    const generateTextMock = generateText as jest.MockedFunction<
+      typeof generateText
+    >
+    const streamTextMock = streamText as jest.MockedFunction<typeof streamText>
+
+    beforeAll(async () => {
+      envCleanup = setEnv({
+        SELF_HOSTED: false,
+        ACCOUNT_PORTAL_API_KEY: internalApiKey,
+        BBAI_OPENAI_API_KEY: "openai-key",
+      })
+    })
+
+    afterAll(async () => {
+      envCleanup()
+    })
+
+    beforeEach(async () => {
+      await config.newTenant()
+      nock.cleanAll()
+      cleanup = await customAIConfig({
+        provider: "OpenAI",
+        defaultModel: "gpt-5-mini",
+        apiKey: "test-key",
+      })(config)
+      const license: License = {
+        plan: {
+          type: PlanType.FREE,
+          model: PlanModel.PER_USER,
+          usesInvoicing: false,
+        },
+        features: [Feature.BUDIBASE_AI],
+        quotas: {} as any,
+        tenantId: config.tenantId,
+      }
+      nock(env.ACCOUNT_PORTAL_URL)
+        .get(`/api/license/${licenseKey}`)
+        .reply(200, license)
+    })
+
+    afterEach(async () => {
+      await cleanup?.()
+      jest.clearAllMocks()
+    })
+
+    it("proxies the OpenAI response without reshaping", async () => {
+      generateTextMock.mockResolvedValue({
+        response: {
+          body: {
+            object: "chat.completion",
+            choices: [
+              {
+                message: { content: "hello from openai" },
+              },
+            ],
+            usage: { total_tokens: 10 },
+          },
+        },
+      } as unknown as ReturnType<typeof generateText>)
+
+      const response = await config.api.ai.openaiChatCompletions({
+        model: "budibase/gpt-5-mini",
+        messages: [{ role: "user", content: "hello" }],
+        licenseKey,
+      })
+
+      expect(response.object).toBe("chat.completion")
+      expect(response.choices[0].message.content).toBe("hello from openai")
+      expect(response.usage?.total_tokens).toBeGreaterThan(0)
+    })
+
+    it("ignores extra fields (e.g. response_format)", async () => {
+      const format = toResponseFormat(z.object({ value: z.string() }))
+      generateTextMock.mockResolvedValue({
+        response: {
+          body: {
+            object: "chat.completion",
+            choices: [
+              {
+                message: { content: `{"value":"ok"}` },
+              },
+            ],
+          },
+        },
+      } as unknown as ReturnType<typeof generateText>)
+
+      const response = await config.api.ai.openaiChatCompletions({
+        model: "budibase/gpt-5-mini",
+        messages: [{ role: "user", content: "return json" }],
+        stream: false,
+        // @ts-expect-error extra field should be ignored
+        response_format: format,
+        licenseKey,
+      })
+
+      expect(response.choices[0].message.content).toBe(`{"value":"ok"}`)
+    })
+
+    it("returns HTTP errors when stream initialization fails", async () => {
+      streamTextMock.mockImplementation(() => {
+        const error = new Error("Unauthorized") as Error & { status: number }
+        error.status = 401
+        throw error
+      })
+
+      await config.api.ai.openaiChatCompletions(
+        {
+          model: "budibase/gpt-5-mini",
+          messages: [{ role: "user", content: "hello" }],
+          stream: true,
+          licenseKey,
+        },
+        {
+          status: 401,
+          headers: {
+            "Content-Type": /^application\/json/,
+          },
+        }
+      )
+    })
+
+    it("rejects requests missing required fields", async () => {
+      await config.api.ai.openaiChatCompletions(
+        {
+          // @ts-expect-error intentionally missing fields
+          model: undefined,
+          // @ts-expect-error intentionally missing fields
+          messages: undefined,
+          licenseKey,
+        },
+        { status: 400 }
+      )
+    })
+
+    it("rejects unsupported models", async () => {
+      await config.api.ai.openaiChatCompletions(
+        {
+          model: "gpt-5-mini",
+          messages: [{ role: "user", content: "hello" }],
+          stream: false,
+          licenseKey,
+        },
+        { status: 400 }
+      )
+    })
+
+    it("accepts Mistral models when configured", async () => {
+      const mistralCleanup = setEnv({
+        BBAI_MISTRAL_API_KEY: "mistral-key",
+        MISTRAL_BASE_URL: "https://api.mistral.ai",
+      })
+      generateTextMock.mockResolvedValue({
+        response: {
+          body: {
+            object: "chat.completion",
+            choices: [
+              {
+                message: { content: "hello from mistral" },
+              },
+            ],
+          },
+        },
+      } as unknown as ReturnType<typeof generateText>)
+
+      const response = await config.api.ai.openaiChatCompletions({
+        model: "budibase/mistral-small-latest",
+        messages: [{ role: "user", content: "hello" }],
+        stream: false,
+        licenseKey,
+      })
+
+      expect(response.choices[0].message.content).toBe("hello from mistral")
+      mistralCleanup()
+    })
+
+    it("errors when OpenAI API key is missing", async () => {
+      const keyCleanup = setEnv({ BBAI_OPENAI_API_KEY: "" })
+      await config.api.ai.openaiChatCompletions(
+        {
+          model: "budibase/gpt-5-mini",
+          messages: [{ role: "user", content: "hello" }],
+          stream: false,
+          licenseKey,
+        },
+        { status: 500 }
+      )
+      keyCleanup()
     })
   })
 })

@@ -5,6 +5,8 @@ import {
   DocumentType,
   UpdateAgentRequest,
 } from "@budibase/types"
+import { helpers } from "@budibase/shared-core"
+import { listAgentFiles, removeAgentFile } from "./files"
 
 const withAgentDefaults = (agent: Agent): Agent => ({
   ...agent,
@@ -49,7 +51,7 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
     _id: docIds.generateAgentID(),
     name: request.name,
     description: request.description,
-    aiconfig: request.aiconfig,
+    aiconfig: request.aiconfig || "", // this might be set later, it will be validated on publish/usage
     promptInstructions: request.promptInstructions,
     live: request.live ?? false,
     icon: request.icon,
@@ -58,6 +60,10 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
     createdAt: now,
     createdBy: request.createdBy,
     enabledTools: request.enabledTools || [],
+    embeddingModel: request.embeddingModel,
+    vectorDb: request.vectorDb,
+    ragMinDistance: request.ragMinDistance,
+    ragTopK: request.ragTopK,
   }
 
   const { rev } = await db.put(agent)
@@ -65,8 +71,37 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
   return withAgentDefaults(agent)
 }
 
-export async function update(request: UpdateAgentRequest): Promise<Agent> {
-  const { _id, _rev } = request
+export async function duplicate(
+  source: Agent,
+  createdBy: string
+): Promise<Agent> {
+  const allAgents = await fetch()
+  const name = helpers.duplicateName(
+    source.name,
+    allAgents.map(agent => agent.name)
+  )
+
+  return await create({
+    name,
+    description: source.description,
+    aiconfig: source.aiconfig,
+    promptInstructions: source.promptInstructions,
+    goal: source.goal,
+    icon: source.icon,
+    iconColor: source.iconColor,
+    live: source.live,
+    _deleted: false,
+    createdBy,
+    enabledTools: source.enabledTools || [],
+    embeddingModel: source.embeddingModel,
+    vectorDb: source.vectorDb,
+    ragMinDistance: source.ragMinDistance,
+    ragTopK: source.ragTopK,
+  })
+}
+
+export async function update(agent: UpdateAgentRequest): Promise<Agent> {
+  const { _id, _rev } = agent
   if (!_id || !_rev) {
     throw new HTTPError("_id and _rev are required", 400)
   }
@@ -76,9 +111,9 @@ export async function update(request: UpdateAgentRequest): Promise<Agent> {
 
   const updated: Agent = {
     ...existing,
-    ...request,
+    ...agent,
     updatedAt: new Date().toISOString(),
-    enabledTools: request.enabledTools ?? existing?.enabledTools ?? [],
+    enabledTools: agent.enabledTools ?? existing?.enabledTools ?? [],
   }
 
   const { rev } = await db.put(updated)
@@ -91,4 +126,11 @@ export async function remove(agentId: string) {
   const agent = await getOrThrow(agentId)
 
   await db.remove(agent)
+
+  if (agent.vectorDb) {
+    const files = await listAgentFiles(agentId)
+    if (files.length > 0) {
+      await Promise.all(files.map(file => removeAgentFile(agent, file)))
+    }
+  }
 }

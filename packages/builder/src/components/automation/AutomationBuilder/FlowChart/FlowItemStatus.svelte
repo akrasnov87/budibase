@@ -8,6 +8,7 @@
     ViewMode,
   } from "@/types/automations"
   import {
+    AutomationStatus,
     type AutomationStep,
     type AutomationStepResult,
     type AutomationTrigger,
@@ -169,6 +170,22 @@
       }
     }
 
+    const outputStatus =
+      outputs && "status" in outputs && typeof outputs.status === "string"
+        ? outputs.status.toLowerCase()
+        : undefined
+
+    if (
+      outputStatus === AutomationStatus.STOPPED ||
+      outputStatus === AutomationStatus.STOPPED_ERROR
+    ) {
+      return {
+        message: "Stopped",
+        icon: "warning",
+        type: FlowStatusType.WARN,
+      }
+    }
+
     if (branch && isBranchStep(block)) {
       // Do not give status markers to branch nodes that were not part of the run.
       if (outputs && "branchId" in outputs && outputs.branchId !== branch.id)
@@ -208,7 +225,7 @@
       <ActionButton size="S" active={false} icon="recycle">Looping</ActionButton
       >
     {:else}
-      <span />
+      <span></span>
     {/if}
     {#if isRunning && !isTriggerBlock}
       <span class="flow-blue flow-running flow-status-btn">

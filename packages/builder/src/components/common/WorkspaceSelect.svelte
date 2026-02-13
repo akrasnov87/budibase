@@ -10,6 +10,9 @@
   import WorkspaceSortMenu from "./WorkspaceSortMenu.svelte"
   import type { EnrichedApp } from "@/types"
 
+  // Manually subscribe - https://github.com/roxiness/routify/issues/563
+  $goto
+
   const SORT_OPTIONS = [
     { key: "name", label: "Alphabetical" },
     { key: "updated", label: "Last edited" },
@@ -21,7 +24,7 @@
     workspaceMenu?.hide()
   }
 
-  const dispatch = createEventDispatcher()
+  const dispatch = createEventDispatcher<{ create: void }>()
 
   export let open = false
   let sortOpen = false
@@ -39,7 +42,7 @@
   $: favourites = filtered.filter(app => app.favourite)
   $: nonFavourites = filtered.filter(app => !app.favourite)
   $: displayApps = [...favourites, ...nonFavourites]
-  $: activeIndex = displayApps.length ? 0 : -1
+  $: activeIndex = displayApps.findIndex(a => a.devId === appId)
 
   $: if (open && activeIndex >= 0) {
     itemEls[activeIndex]?.scrollIntoView({ block: "nearest" })
@@ -187,7 +190,7 @@
           }}
         />
       {:else}
-        <span class="header-actions-spacer" aria-hidden="true" />
+        <span class="header-actions-spacer" aria-hidden="true"></span>
       {/if}
       <WorkspaceSortMenu
         {currentSort}
@@ -326,7 +329,7 @@
     display: flex;
     align-items: center;
     background: var(--spectrum-global-color-gray-200);
-    border-radius: 8px;
+    border-radius: 6px;
     justify-content: space-between;
     cursor: pointer;
     transition: background-color 130ms ease-in-out;
@@ -342,7 +345,7 @@
     display: flex;
     gap: var(--spacing-s);
     align-items: center;
-    font-size: var(--font-size-m);
+    font-size: 13px;
     flex: 1 1 0;
     min-width: 0;
     overflow: hidden;
@@ -355,8 +358,13 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .workspace-menu-text :global(i) {
+    font-size: 14px;
+    width: 14px;
+    height: 14px;
+  }
   .workspace-menu-text:hover {
-    border-radius: 8px 0 0 8px;
+    border-radius: 6px 0 0 6px;
   }
   .workspace-menu.disabled .workspace-menu-text:hover {
     border-radius: 0;

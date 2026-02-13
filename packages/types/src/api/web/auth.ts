@@ -1,4 +1,5 @@
 import { UserStatus } from "../../documents"
+import type { ScreenLayoutType } from "../../documents/global/user"
 
 export interface LoginRequest {
   username: string
@@ -49,6 +50,7 @@ export interface UpdateSelfRequest {
   freeTrialConfirmedAt?: string
   appFavourites?: string[]
   appSort?: string
+  defaultLayout?: ScreenLayoutType
 }
 
 export interface UpdateSelfResponse {

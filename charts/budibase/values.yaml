@@ -1,5 +1,12 @@
 # -- Passed to all pods created by this chart. Should not ordinarily need to be changed.
 imagePullSecrets: []
+
+podDisruptionBudget:
+  # -- Whether to create a PodDisruptionBudget for the services.
+  enabled: false
+  # -- The minimum number of available pods for the services.
+  minAvailable: 1
+
 # -- Override the name of the deployment. Defaults to {{ .Chart.Name }}.
 nameOverride: ""
 
@@ -41,6 +48,9 @@ awsAlbIngress:
   enabled: false
   # -- If you're wanting to use HTTPS, you'll need to create an ACM certificate and specify the ARN here.
   certificateArn: ""
+  # -- Time in seconds ALB waits for in-flight requests during target deregistration.
+  # This allows graceful connection draining during pod rollouts.
+  deregistrationDelay: 30
 
 # -- Sets the tolerations for all pods created by this chart. Should not ordinarily need to be changed.
 # See <https://kubernetes.io/docs/concepts/scheduling-eviction/taint-and-toleration/> for more information
@@ -164,6 +174,11 @@ services:
       worker: "http://worker-service.{{ .Release.Namespace }}.svc.{{ .Values.services.dns }}:{{ .Values.services.worker.port }}"
       minio: "http://minio-service.{{ .Release.Namespace }}.svc.{{ .Values.services.dns }}:{{ .Values.services.objectStore.port }}"
       couchdb: "http://{{ .Release.Name }}-svc-couchdb:{{ .Values.services.couchdb.port }}"
+    # -- The time in seconds to wait before sending SIGKILL after SIGTERM.
+    # Must be greater than preStopDelaySeconds to allow graceful shutdown.
+    terminationGracePeriodSeconds: 60
+    # -- Seconds to sleep before SIGTERM to allow load balancer deregistration.
+    preStopDelaySeconds: 10
     # -- The resources to use for proxy pods. See
     # <https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/>
     # for more information on how to set these.
@@ -179,7 +194,7 @@ services:
         port: 10000
         scheme: HTTP
       # @ignore
-      failureThreshold: 30
+      failureThreshold: 40
       # @ignore
       periodSeconds: 3
     # -- Readiness probe configuration for proxy pods. You shouldn't need to
@@ -193,9 +208,9 @@ services:
         port: 10000
         scheme: HTTP
       # @ignore
-      periodSeconds: 3
+      periodSeconds: 5
       # @ignore
-      failureThreshold: 1
+      failureThreshold: 3
     # -- Liveness probe configuration for proxy pods. You shouldn't need to
     # change this, but if you want to you can find more information here:
     # <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
@@ -251,6 +266,11 @@ services:
     # container. This is used to give the apps service time to finish processing
     # any requests before shutting down. You shouldn't need to change this.
     terminationGracePeriodSeconds: 60
+    # -- Seconds to wait after pod is Ready before adding to endpoints.
+    # Ensures pods are stable before receiving traffic.
+    minReadySeconds: 10
+    # -- Seconds to sleep before SIGTERM to allow load balancer deregistration.
+    preStopDelaySeconds: 5
     # -- Extra environment variables to set for apps pods. Takes a list of
     # name=value pairs.
     extraEnv: []
@@ -443,6 +463,11 @@ services:
     # processing any requests before shutting down. You shouldn't need to change
     # this.
     terminationGracePeriodSeconds: 60
+    # -- Seconds to wait after pod is Ready before adding to endpoints.
+    # Ensures pods are stable before receiving traffic.
+    minReadySeconds: 10
+    # -- Seconds to sleep before SIGTERM to allow load balancer deregistration.
+    preStopDelaySeconds: 10
     # -- Extra environment variables to set for worker pods. Takes a list of
     # name=value pairs.
     extraEnv: []
@@ -464,7 +489,7 @@ services:
         port: 4003
         scheme: HTTP
       # @ignore
-      failureThreshold: 30
+      failureThreshold: 40
       # @ignore
       periodSeconds: 3
     # -- Readiness probe configuration for worker pods. You shouldn't need to
@@ -478,9 +503,9 @@ services:
         port: 4003
         scheme: HTTP
       # @ignore
-      periodSeconds: 3
+      periodSeconds: 5
       # @ignore
-      failureThreshold: 1
+      failureThreshold: 3
     # -- Liveness probe configuration for worker pods. You shouldn't need to
     # change this, but if you want to you can find more information here:
     # <https://kubernetes.io/docs/tasks/configure-pod-container/configure-liveness-readiness-startup-probes/>
@@ -558,6 +583,9 @@ services:
     # -- The password to use when connecting to Redis. It's recommended that you change
     # this from the default if you're running Redis in-cluster.
     password: "budibase"
+    # -- The username to use when connecting to Redis. Only required for Redis 6+ with ACL
+    # authentication enabled.
+    username: ""
     # -- How much persistent storage to allocate to Redis.
     storage: 100Mi
     # -- If defined, storageClassName: <storageClass> If set to "-",
@@ -596,7 +624,9 @@ services:
     # -- Resources for litellm pods.
     resources: {}
     # -- Extra environment variables for the litellm container.
-    extraEnv: []
+    extraEnv:
+      - name: LITELLM_REASONING_AUTO_SUMMARY
+        value: "true"
     # -- Additional volumeMounts on the litellm container.
     extraVolumeMounts: []
     # -- Additional volumes on the litellm pod.
@@ -605,11 +635,26 @@ services:
     saltKey: ""
     # -- The master key to use for litellm.
     masterKey: ""
+    # -- Optional username for LiteLLM Admin UI login.
+    # If not set, LiteLLM uses its built-in defaults.
+    uiUsername: ""
+    # -- Optional password for LiteLLM Admin UI login.
+    # If not set, LiteLLM uses its built-in defaults.
+    uiPassword: ""
     # -- Inline configuration passed to litellm as config.yaml.
     config: |
       general_settings:
         store_model_in_db: true
         store_prompts_in_spend_logs: true
+      litellm_settings:
+        drop_params: true
+        num_retries: 3
+        retry_after: 5
+        retry_policy:
+          RateLimitErrorRetries: 4
+    tailscale:
+      # -- Whether to expose the litellm service to a Tailscale tailnet via annotation.
+      expose: false
 
   objectStore:
     # -- Set to false if using another object store, such as S3. You will need
@@ -692,11 +737,26 @@ couchdb:
   # can't guarantee that Budibase will work.
   image:
     # @ignore
-    repository: budibase/couchdb
+    repository: budibase/database
     # @ignore
-    tag: v3.3.3-sqs-v2.1.1
+    tag: "2.0.0"
     # @ignore
     pullPolicy: Always
+
+  # -- Environment variables to pass to the CouchDB container
+  extraEnvs:
+    - name: DATA_DIR
+      value: "/data"
+
+  # -- Persistent volume configuration for CouchDB data
+  persistentVolume:
+    enabled: true
+    accessModes:
+      - ReadWriteOnce
+    size: 10Gi
+    # -- The path where the persistent volume will be mounted.
+    # If you change this, make sure to also update the DATA_DIR environment variable above.
+    mountPath: /data
 
   extraPorts:
     # -- Extra ports to expose on the CouchDB service. We expose the SQS port
@@ -715,7 +775,7 @@ couchdb:
 
   # @ignore
   # This should remain false. We ship Clouseau ourselves as part of the
-  # budibase/couchdb image, and it's not possible to disable it because it's a
+  # budibase/database image, and it's not possible to disable it because it's a
   # core part of the Budibase experience.
   enableSearch: false
 
