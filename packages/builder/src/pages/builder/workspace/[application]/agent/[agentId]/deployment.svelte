@@ -9,8 +9,8 @@
   } from "@budibase/bbui"
   import { FeatureFlag, type Agent, type DeploymentRow } from "@budibase/types"
   import { selectedAgent, agentsStore, featureFlags } from "@/stores/portal"
+  import AgentChatChannel from "./DeploymentChannels/AgentChatChannel.svelte"
   import DiscordConfig from "./DeploymentChannels/DiscordConfig.svelte"
-  import BBAILogo from "assets/bb-ai.svg"
   import DiscordLogo from "assets/discord.svg"
 
   const AI_CONFIG_REQUIRED_MESSAGE =
@@ -37,30 +37,16 @@
   const hasAiConfig = $derived.by(() => !!currentAgent?.aiconfig?.trim())
   const agentChatEnabled = $derived(!!$featureFlags[FeatureFlag.AI_CHAT])
 
-  const channels = $derived.by<DeploymentRow[]>(() => {
-    const rows: DeploymentRow[] = [
-      {
-        id: "discord",
-        name: "Discord",
-        logo: DiscordLogo,
-        status: discordEnabled ? "Enabled" : "Disabled",
-        details: "Allow this agent to respond in Discord channels and threads",
-        configurable: true,
-      },
-    ]
-
-    if (agentChatEnabled) {
-      rows.unshift({
-        id: "agent-chat",
-        name: "Agent Chat",
-        logo: BBAILogo,
-        status: "Enabled",
-        details: "An out-of-the-box chat application for AI agents",
-      })
-    }
-
-    return rows
-  })
+  const channels = $derived.by<DeploymentRow[]>(() => [
+    {
+      id: "discord",
+      name: "Discord",
+      logo: DiscordLogo,
+      status: discordEnabled ? "Enabled" : "Disabled",
+      details: "Allow this agent to respond in Discord channels and threads",
+      configurable: true,
+    },
+  ])
 
   const onConfigureChannel = (channel: DeploymentRow) => {
     if (channel.id === "discord") {
@@ -133,6 +119,9 @@
       >
     </div>
     <div class="integration-list">
+      {#if agentChatEnabled}
+        <AgentChatChannel />
+      {/if}
       {#each channels as channel (channel.id)}
         <div class="integration-row">
           <div class="channel-main">
