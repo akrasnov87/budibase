@@ -245,6 +245,7 @@
   $effect(() => {
     if (chat?._id !== lastChatId) {
       lastChatId = chat?._id
+      stableSessionId = Helpers.uuid()
       chatInstance.messages = chat?.messages || []
       expandedTools = {}
     }
