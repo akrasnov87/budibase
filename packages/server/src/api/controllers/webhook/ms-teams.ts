@@ -345,7 +345,7 @@ interface ResponseProxy {
   setHeader: (name: string, value: string | number | readonly string[]) => void
 }
 
-const createResponseProxy = (ctx: Ctx<any, any>): ResponseProxy => {
+const createResponseProxy = (ctx: Ctx<unknown, unknown>): ResponseProxy => {
   let statusCode = 200
   const proxy: ResponseProxy = {
     status: (code: number) => {
@@ -709,7 +709,11 @@ const handleTeamsTurn = async ({
 }
 
 export async function MSTeamsWebhook(
-  ctx: Ctx<any, any, { instance: string; chatAppId: string; agentId: string }>
+  ctx: Ctx<
+    unknown,
+    unknown,
+    { instance: string; chatAppId: string; agentId: string }
+  >
 ) {
   const { instance, chatAppId, agentId } = ctx.params
   const prodAppId = ensureProdWorkspaceWebhookRoute({

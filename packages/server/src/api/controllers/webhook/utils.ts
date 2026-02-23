@@ -6,7 +6,7 @@ export const ensureProdWorkspaceWebhookRoute = ({
   instance,
   providerName,
 }: {
-  ctx: Ctx<any, any>
+  ctx: Ctx<unknown, unknown>
   instance: string
   providerName: string
 }) => {

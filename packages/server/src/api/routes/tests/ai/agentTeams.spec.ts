@@ -1,12 +1,109 @@
-import { context } from "@budibase/backend-core"
-import type { Agent } from "@budibase/types"
+interface MockTeamsRequest {
+  headers?: {
+    authorization?: unknown
+  }
+  body?: unknown
+}
+
+interface MockTeamsResponse {
+  status: (statusCode: number) => {
+    send: (body: unknown) => void
+  }
+}
+
+interface MockTeamsTurnContext {
+  activity: unknown
+  sendActivity: (message: string) => Promise<void>
+}
+
+interface MockWebhookChatPayload {
+  chat: {
+    messages: unknown[]
+    title?: string
+  }
+}
+
+jest.mock("@microsoft/agents-hosting", () => {
+  const authorizeJWT = jest.fn(
+    () =>
+      async (
+        request: MockTeamsRequest,
+        response: MockTeamsResponse,
+        next: () => void
+      ) => {
+      const authorization = request.headers?.authorization
+      if (typeof authorization !== "string") {
+        response.status(401).send({
+          "jwt-auth-error": "authorization header not found",
+        })
+        return
+      }
+      if (authorization !== "Bearer valid-token") {
+        response.status(401).send({
+          "jwt-auth-error": "invalid token",
+        })
+        return
+      }
+      next()
+    }
+  )
+
+  class CloudAdapter {
+    async process(
+      request: MockTeamsRequest,
+      response: MockTeamsResponse,
+      logic: (turnContext: MockTeamsTurnContext) => Promise<void>
+    ) {
+      const sentActivities: string[] = []
+      await logic({
+        activity: request.body,
+        sendActivity: async (message: string) => {
+          sentActivities.push(message)
+        },
+      })
+      response.status(200).send({ messages: sentActivities })
+    }
+  }
+
+  return {
+    authorizeJWT,
+    CloudAdapter,
+    getAuthConfigWithDefaults: jest.fn((config: unknown) => config),
+  }
+})
+
+jest.mock("../../../controllers/ai/chatConversations", () => {
+  const actual = jest.requireActual("../../../controllers/ai/chatConversations")
+  return {
+    ...actual,
+    webhookChat: jest.fn(async ({ chat }: MockWebhookChatPayload) => ({
+      messages: [
+        ...chat.messages,
+        {
+          id: `assistant-${chat.messages.length + 1}`,
+          role: "assistant",
+          parts: [{ type: "text", text: "Mock assistant response" }],
+        },
+      ],
+      assistantText: "Mock assistant response",
+      title: chat.title || "Mock conversation",
+    })),
+  }
+})
+
+import { context, docIds } from "@budibase/backend-core"
+import { DocumentType, type Agent, type ChatConversation } from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
+import { webhookChat } from "../../../controllers/ai/chatConversations"
+
+const mockedWebhookChat = webhookChat as jest.MockedFunction<typeof webhookChat>
 
 describe("agent teams integration provisioning", () => {
   const config = new TestConfiguration()
 
   beforeEach(async () => {
     await config.newTenant()
+    mockedWebhookChat.mockClear()
   })
 
   afterAll(() => {
@@ -136,6 +233,167 @@ describe("agent teams integration provisioning", () => {
         .expect(401)
 
       expect(response.body["jwt-auth-error"]).toBeTruthy()
+    })
+  })
+
+  describe("teams webhook incoming messages", () => {
+    const postTeamsMessage = async ({
+      path,
+      body,
+    }: {
+      path: string
+      body: Record<string, unknown>
+    }) =>
+      await config
+        .getRequest()!
+        .post(path)
+        .set("Authorization", "Bearer valid-token")
+        .send(body)
+        .expect(200)
+
+    const fetchConversations = async () =>
+      await config.doInContext(config.getProdWorkspaceId(), async () => {
+        const db = context.getWorkspaceDB()
+        const response = await db.allDocs<ChatConversation>(
+          docIds.getDocParams(DocumentType.CHAT_CONVERSATION, undefined, {
+            include_docs: true,
+          })
+        )
+        return response.rows
+          .map(row => row.doc)
+          .filter((chat): chat is ChatConversation => !!chat)
+      })
+
+    const setupProvisionedTeamsAgent = async () => {
+      const agent = await config.api.agent.create({
+        name: "Teams Incoming Messages Agent",
+        MSTeamsIntegration: {
+          appId: "teams-app-id",
+          appPassword: "teams-app-password",
+        },
+      })
+      const channel = await config.api.agent.provisionMSTeamsChannel(agent._id!)
+      await config.publish()
+      return { agent, chatAppId: channel.chatAppId }
+    }
+
+    it("creates a conversation from an incoming ask message", async () => {
+      const { agent, chatAppId } = await setupProvisionedTeamsAgent()
+      const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
+
+      const response = await postTeamsMessage({
+        path,
+        body: {
+          id: "activity-ask-1",
+          type: "message",
+          text: "ask hello teams",
+          from: { id: "user-1", name: "Teams User" },
+          conversation: { id: "conversation-1", conversationType: "personal" },
+          channelData: { tenant: { id: "tenant-1" } },
+        },
+      })
+
+      expect(response.body.messages).toContain("Mock assistant response")
+      expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
+      expect(
+        mockedWebhookChat.mock.calls[0]?.[0].chat.messages[0]?.parts[0]?.text
+      ).toEqual("hello teams")
+
+      const conversations = await fetchConversations()
+      expect(conversations).toHaveLength(1)
+      expect(conversations[0]?.channel?.provider).toEqual("msteams")
+      expect(conversations[0]?.messages).toHaveLength(2)
+    })
+
+    it("reuses the existing conversation for subsequent messages in the same scope", async () => {
+      const { agent, chatAppId } = await setupProvisionedTeamsAgent()
+      const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
+
+      await postTeamsMessage({
+        path,
+        body: {
+          id: "activity-ask-1",
+          type: "message",
+          text: "ask first",
+          from: { id: "user-1", name: "Teams User" },
+          conversation: { id: "conversation-1", conversationType: "personal" },
+          channelData: { tenant: { id: "tenant-1" } },
+        },
+      })
+
+      await postTeamsMessage({
+        path,
+        body: {
+          id: "activity-ask-2",
+          type: "message",
+          text: "ask second",
+          from: { id: "user-1", name: "Teams User" },
+          conversation: { id: "conversation-1", conversationType: "personal" },
+          channelData: { tenant: { id: "tenant-1" } },
+        },
+      })
+
+      expect(mockedWebhookChat).toHaveBeenCalledTimes(2)
+      const conversations = await fetchConversations()
+      expect(conversations).toHaveLength(1)
+      expect(conversations[0]?.messages).toHaveLength(4)
+      const userTexts = conversations[0]!.messages
+        .filter(message => message.role === "user")
+        .map(message => message.parts?.[0]?.type === "text" && message.parts[0].text)
+      expect(userTexts).toEqual(["first", "second"])
+    })
+
+    it("starts a new empty conversation for /new without calling chat completion", async () => {
+      const { agent, chatAppId } = await setupProvisionedTeamsAgent()
+      const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
+
+      const response = await postTeamsMessage({
+        path,
+        body: {
+          id: "activity-new-1",
+          type: "message",
+          text: "new",
+          from: { id: "user-1", name: "Teams User" },
+          conversation: { id: "conversation-1", conversationType: "personal" },
+          channelData: { tenant: { id: "tenant-1" } },
+        },
+      })
+
+      expect(response.body.messages).toContain(
+        "Started a new conversation. Send a message to continue."
+      )
+      expect(mockedWebhookChat).not.toHaveBeenCalled()
+
+      const conversations = await fetchConversations()
+      expect(conversations).toHaveLength(1)
+      expect(conversations[0]?.messages).toHaveLength(0)
+    })
+
+    it("deduplicates retried incoming activities by activity id", async () => {
+      const { agent, chatAppId } = await setupProvisionedTeamsAgent()
+      const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
+
+      const payload = {
+        id: "activity-dedupe-1",
+        type: "message",
+        text: "ask dedupe me",
+        from: { id: "user-1", name: "Teams User" },
+        conversation: { id: "conversation-1", conversationType: "personal" },
+        channelData: { tenant: { id: "tenant-1" } },
+      }
+
+      await postTeamsMessage({ path, body: payload })
+      const duplicateResponse = await postTeamsMessage({ path, body: payload })
+
+      expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
+      expect(duplicateResponse.body.messages).toEqual([])
+
+      const conversations = await fetchConversations()
+      expect(conversations).toHaveLength(1)
+      const userMessages = conversations[0]!.messages.filter(
+        message => message.role === "user"
+      )
+      expect(userMessages).toHaveLength(1)
     })
   })
 })
