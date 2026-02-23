@@ -2,14 +2,14 @@
   import { Body, CopyInput, Input, notifications } from "@budibase/bbui"
   import type {
     Agent,
-    ProvisionAgentTeamsChannelResponse,
+    ProvisionAgentMSTeamsChannelResponse,
   } from "@budibase/types"
   import { agentsStore } from "@/stores/portal"
   import ChannelConfigLayout from "./ChannelConfigLayout.svelte"
   import { toOptionalIdleTimeout, toOptionalValue } from "./utils"
 
-  const TEAMS_NEW_COMMAND = "new"
-  const TEAMS_ASK_COMMAND = "ask"
+  const MS_TEAMS_NEW_COMMAND = "new"
+  const MS_TEAMS_ASK_COMMAND = "ask"
   const DEFAULT_IDLE_TIMEOUT_MINUTES = 45
 
   let { agent }: { agent?: Agent } = $props()
@@ -23,11 +23,13 @@
   })
 
   let provisioning = $state(false)
-  let provisionResult = $state<ProvisionAgentTeamsChannelResponse | undefined>()
+  let provisionResult = $state<
+    ProvisionAgentMSTeamsChannelResponse | undefined
+  >()
 
   const messagingEndpointUrl = $derived(
     provisionResult?.messagingEndpointUrl ||
-      agent?.teamsIntegration?.messagingEndpointUrl ||
+      agent?.MSTeamsIntegration?.messagingEndpointUrl ||
       ""
   )
 
@@ -45,7 +47,7 @@
       return
     }
 
-    const integration = currentAgent.teamsIntegration
+    const integration = currentAgent.MSTeamsIntegration
     draft = {
       appId: integration?.appId || "",
       appPassword: integration?.appPassword || "",
@@ -66,12 +68,12 @@
     try {
       await agentsStore.updateAgent({
         ...agent,
-        teamsIntegration: {
+        MSTeamsIntegration: {
           appId: toOptionalValue(draft.appId),
           appPassword: toOptionalValue(draft.appPassword),
           tenantId: toOptionalValue(draft.tenantId),
-          chatAppId: agent.teamsIntegration?.chatAppId,
-          messagingEndpointUrl: agent.teamsIntegration?.messagingEndpointUrl,
+          chatAppId: agent.MSTeamsIntegration?.chatAppId,
+          messagingEndpointUrl: agent.MSTeamsIntegration?.messagingEndpointUrl,
           idleTimeoutMinutes: toOptionalIdleTimeout(draft.idleTimeoutMinutes),
         },
       })
@@ -119,10 +121,10 @@
 
   {#snippet response()}
     <Body size="S">
-      Use `{TEAMS_ASK_COMMAND}` to ask a new conversation.
+      Use `{MS_TEAMS_NEW_COMMAND}` to ask a new conversation.
     </Body>
     <Body size="S">
-      Use `{TEAMS_NEW_COMMAND}` to start a new conversation.
+      Use `{MS_TEAMS_NEW_COMMAND}` to start a new conversation.
     </Body>
 
     <CopyInput

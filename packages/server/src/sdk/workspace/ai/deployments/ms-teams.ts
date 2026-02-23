@@ -1,11 +1,11 @@
 import { HTTPError } from "@budibase/backend-core"
-import type { Agent, ResolvedTeamsIntegration } from "@budibase/types"
+import type { Agent, ResolvedMSTeamsIntegration } from "@budibase/types"
 import * as shared from "./shared"
 
-export const validateTeamsIntegration = (
+export const validateMSTeamsIntegration = (
   agent: Agent
-): ResolvedTeamsIntegration => {
-  const integration = agent.teamsIntegration
+): ResolvedMSTeamsIntegration => {
+  const integration = agent.MSTeamsIntegration
   if (!integration) {
     throw new HTTPError(
       "Teams integration is not configured for this agent",
@@ -40,12 +40,12 @@ export const resolveChatAppForAgent = async (
     chatAppId,
   })
 
-export const buildTeamsWebhookUrl = async (
+export const buildMSTeamsWebhookUrl = async (
   chatAppId: string,
   agentId: string
 ) =>
   await shared.buildWebhookUrl({
-    provider: "teams",
+    provider: "ms-teams",
     chatAppId,
     agentId,
     useProdWorkspaceId: true,

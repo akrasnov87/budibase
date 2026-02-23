@@ -4,8 +4,8 @@ import {
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentsResponse,
-  ProvisionAgentTeamsChannelRequest,
-  ProvisionAgentTeamsChannelResponse,
+  ProvisionAgentMSTeamsChannelRequest,
+  ProvisionAgentMSTeamsChannelResponse,
   RequiredKeys,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
@@ -35,11 +35,11 @@ const obfuscateAgentSecrets = (agent: Agent): Agent => {
           },
         }
       : {}),
-    ...(agent.teamsIntegration
+    ...(agent.MSTeamsIntegration
       ? {
-          teamsIntegration: {
-            ...agent.teamsIntegration,
-            ...(agent.teamsIntegration.appPassword
+          MSTeamsIntegration: {
+            ...agent.MSTeamsIntegration,
+            ...(agent.MSTeamsIntegration.appPassword
               ? { appPassword: TEAMS_SECRET_MASK }
               : {}),
           },
@@ -148,7 +148,7 @@ export async function createAgent(
     ragMinDistance: body.ragMinDistance,
     ragTopK: body.ragTopK,
     discordIntegration: body.discordIntegration,
-    teamsIntegration: body.teamsIntegration,
+    MSTeamsIntegration: body.MSTeamsIntegration,
   }
 
   const agent = await sdk.ai.agents.create(createRequest)
@@ -179,7 +179,7 @@ export async function updateAgent(
     ragMinDistance: body.ragMinDistance,
     ragTopK: body.ragTopK,
     discordIntegration: body.discordIntegration,
-    teamsIntegration: body.teamsIntegration,
+    MSTeamsIntegration: body.MSTeamsIntegration,
   }
 
   const agent = await sdk.ai.agents.update(updateRequest)
@@ -243,8 +243,8 @@ export async function syncAgentDiscordCommands(
 
 export async function provisionAgentMSTeamsChannel(
   ctx: UserCtx<
-    ProvisionAgentTeamsChannelRequest,
-    ProvisionAgentTeamsChannelResponse,
+    ProvisionAgentMSTeamsChannelRequest,
+    ProvisionAgentMSTeamsChannelResponse,
     { agentId: string }
   >
 ) {
@@ -255,14 +255,14 @@ export async function provisionAgentMSTeamsChannel(
     agent,
     agentId,
     requestedChatAppId,
-    validateIntegration: sdk.ai.deployments.teams.validateTeamsIntegration,
-    resolveChatAppForAgent: sdk.ai.deployments.teams.resolveChatAppForAgent,
-    buildEndpointUrl: sdk.ai.deployments.teams.buildTeamsWebhookUrl,
+    validateIntegration: sdk.ai.deployments.MSTeams.validateMSTeamsIntegration,
+    resolveChatAppForAgent: sdk.ai.deployments.MSTeams.resolveChatAppForAgent,
+    buildEndpointUrl: sdk.ai.deployments.MSTeams.buildMSTeamsWebhookUrl,
     persistIntegration: async (resolvedChatAppId, messagingEndpointUrl) => {
       await sdk.ai.agents.update({
         ...agent,
-        teamsIntegration: {
-          ...agent.teamsIntegration,
+        MSTeamsIntegration: {
+          ...agent.MSTeamsIntegration,
           chatAppId: resolvedChatAppId,
           messagingEndpointUrl,
         },

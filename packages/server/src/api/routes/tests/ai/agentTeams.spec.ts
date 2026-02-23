@@ -16,7 +16,7 @@ describe("agent teams integration provisioning", () => {
   it("provisions teams channel for an agent", async () => {
     const agent = await config.api.agent.create({
       name: "Teams Agent",
-      teamsIntegration: {
+      MSTeamsIntegration: {
         appId: "teams-app-id",
         appPassword: "teams-app-password",
       },
@@ -26,14 +26,14 @@ describe("agent teams integration provisioning", () => {
 
     expect(result.success).toBe(true)
     expect(result.chatAppId).toBeTruthy()
-    expect(result.messagingEndpointUrl).toContain("/api/webhooks/teams/")
+    expect(result.messagingEndpointUrl).toContain("/api/webhooks/ms-teams/")
     expect(result.messagingEndpointUrl).toContain(`/${result.chatAppId}/`)
     expect(result.messagingEndpointUrl).toContain(`/${agent._id}`)
 
     const { agents } = await config.api.agent.fetch()
     const updated = agents.find(candidate => candidate._id === agent._id)
-    expect(updated?.teamsIntegration?.chatAppId).toEqual(result.chatAppId)
-    expect(updated?.teamsIntegration?.messagingEndpointUrl).toEqual(
+    expect(updated?.MSTeamsIntegration?.chatAppId).toEqual(result.chatAppId)
+    expect(updated?.MSTeamsIntegration?.messagingEndpointUrl).toEqual(
       result.messagingEndpointUrl
     )
   })
@@ -42,28 +42,30 @@ describe("agent teams integration provisioning", () => {
     const created = await config.api.agent.create({
       name: "Teams Obfuscation Agent",
       aiconfig: "test-config",
-      teamsIntegration: {
+      MSTeamsIntegration: {
         appId: "teams-app-id",
         appPassword: "teams-app-password",
       },
     })
 
-    expect(created.teamsIntegration?.appPassword).toEqual("********")
+    expect(created.MSTeamsIntegration?.appPassword).toEqual("********")
 
     const { agents } = await config.api.agent.fetch()
     const fetched = agents.find(a => a._id === created._id)
-    expect(fetched?.teamsIntegration?.appPassword).toEqual("********")
+    expect(fetched?.MSTeamsIntegration?.appPassword).toEqual("********")
 
     const updated = await config.api.agent.update({
       ...(fetched as NonNullable<typeof fetched>),
       live: true,
     })
-    expect(updated.teamsIntegration?.appPassword).toEqual("********")
+    expect(updated.MSTeamsIntegration?.appPassword).toEqual("********")
 
     await config.doInContext(config.getDevWorkspaceId(), async () => {
       const db = context.getWorkspaceDB()
       const stored = await db.get<Agent>(created._id!)
-      expect(stored.teamsIntegration?.appPassword).toEqual("teams-app-password")
+      expect(stored.MSTeamsIntegration?.appPassword).toEqual(
+        "teams-app-password"
+      )
     })
   })
 
@@ -80,7 +82,7 @@ describe("agent teams integration provisioning", () => {
   it("returns a validation error when teams app password is missing", async () => {
     const agent = await config.api.agent.create({
       name: "Missing Teams Password",
-      teamsIntegration: {
+      MSTeamsIntegration: {
         appId: "teams-app-id",
       },
     })
@@ -94,7 +96,7 @@ describe("agent teams integration provisioning", () => {
     it("rejects requests without an authorization header", async () => {
       const agent = await config.api.agent.create({
         name: "Teams Webhook Agent",
-        teamsIntegration: {
+        MSTeamsIntegration: {
           appId: "teams-app-id",
           appPassword: "teams-app-password",
         },
@@ -104,7 +106,7 @@ describe("agent teams integration provisioning", () => {
       const response = await config
         .getRequest()!
         .post(
-          `/api/webhooks/teams/${config.getProdWorkspaceId()}/chatapp-test/${agent._id}`
+          `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/chatapp-test/${agent._id}`
         )
         .send({})
         .expect(401)
@@ -117,7 +119,7 @@ describe("agent teams integration provisioning", () => {
     it("rejects invalid bearer tokens", async () => {
       const agent = await config.api.agent.create({
         name: "Teams Invalid Token Agent",
-        teamsIntegration: {
+        MSTeamsIntegration: {
           appId: "teams-app-id",
           appPassword: "teams-app-password",
         },
@@ -127,7 +129,7 @@ describe("agent teams integration provisioning", () => {
       const response = await config
         .getRequest()!
         .post(
-          `/api/webhooks/teams/${config.getProdWorkspaceId()}/chatapp-test/${agent._id}`
+          `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/chatapp-test/${agent._id}`
         )
         .set("Authorization", "Bearer not-a-real-token")
         .send({})

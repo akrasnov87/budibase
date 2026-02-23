@@ -46,12 +46,12 @@ const mergeDiscordIntegration = ({
   return merged
 }
 
-const mergeTeamsIntegration = ({
+const mergeMSTeamsIntegration = ({
   existing,
   incoming,
 }: {
-  existing?: Agent["teamsIntegration"]
-  incoming?: Agent["teamsIntegration"]
+  existing?: Agent["MSTeamsIntegration"]
+  incoming?: Agent["MSTeamsIntegration"]
 }) => {
   if (incoming === undefined) {
     return existing
@@ -123,7 +123,7 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
     ragMinDistance: request.ragMinDistance,
     ragTopK: request.ragTopK,
     discordIntegration: request.discordIntegration,
-    teamsIntegration: request.teamsIntegration,
+    MSTeamsIntegration: request.MSTeamsIntegration,
   }
 
   const { rev } = await db.put(agent)
@@ -178,9 +178,9 @@ export async function update(agent: UpdateAgentRequest): Promise<Agent> {
       existing: existing?.discordIntegration,
       incoming: agent.discordIntegration,
     }),
-    teamsIntegration: mergeTeamsIntegration({
-      existing: existing?.teamsIntegration,
-      incoming: agent.teamsIntegration,
+    MSTeamsIntegration: mergeMSTeamsIntegration({
+      existing: existing?.MSTeamsIntegration,
+      incoming: agent.MSTeamsIntegration,
     }),
   }
 

@@ -51,7 +51,7 @@ export const buildWebhookUrl = async ({
   agentId,
   useProdWorkspaceId = false,
 }: {
-  provider: "discord" | "teams"
+  provider: "discord" | "ms-teams"
   chatAppId: string
   agentId: string
   useProdWorkspaceId?: boolean

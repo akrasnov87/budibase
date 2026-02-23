@@ -5,7 +5,7 @@ const WEBHOOK_ENDPOINTS = new RegExp(
     "webhooks/trigger",
     "webhooks/schema",
     "webhooks/discord",
-    "webhooks/teams",
+    "webhooks/ms-teams",
   ].join("|")
 )
 

@@ -20,7 +20,7 @@ import * as triggers from "../../automations/triggers"
 import { getWebhookParams } from "../../db/utils"
 import sdk from "../../sdk"
 import { discordWebhook } from "./webhook/discord"
-import { teamsWebhook } from "./webhook/teams"
+import { MSTeamsWebhook } from "./webhook/ms-teams"
 
 const toJsonSchema = require("to-json-schema")
 const validate = require("jsonschema").validate
@@ -154,4 +154,4 @@ export async function trigger(
 }
 
 export const discord = discordWebhook
-export const teams = teamsWebhook
+export const MSTeams = MSTeamsWebhook

@@ -29,7 +29,7 @@ export interface DiscordAgentIntegration {
   interactionsEndpointUrl?: string
 }
 
-export interface TeamsAgentIntegration {
+export interface MSTeamsAgentIntegration {
   appId?: string
   appPassword?: string
   tenantId?: string
@@ -54,7 +54,7 @@ export interface Agent extends Document {
   ragMinDistance?: number
   ragTopK?: number
   discordIntegration?: DiscordAgentIntegration
-  teamsIntegration?: TeamsAgentIntegration
+  MSTeamsIntegration?: MSTeamsAgentIntegration
 }
 
 export interface AgentMessageRagSource {

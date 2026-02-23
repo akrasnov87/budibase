@@ -14,9 +14,9 @@ import type {
   ChatConversationRequest,
   ContextUser,
   Ctx,
-  TeamsActivity,
-  TeamsCommand,
-  TeamsConversationScope,
+  MSTeamsActivity,
+  MSTeamsCommand,
+  MSTeamsConversationScope,
 } from "@budibase/types"
 import { DocumentType } from "@budibase/types"
 import sdk from "../../../sdk"
@@ -46,10 +46,10 @@ const TEAMS_FALLBACK_ERROR_MESSAGE =
   "Sorry, something went wrong while processing your request."
 const TEAMS_WELCOME_MESSAGE = `Budibase agent is ready. Send a message to chat, or "${TEAMS_NEW_COMMAND}" to start a new conversation.`
 
-const teamsConversationCache = new Map<string, string>()
-const teamsRuntimeCache = new Map<string, TimedCacheEntry<TeamsRuntime>>()
+const MSTeamsConversationCache = new Map<string, string>()
+const MSTeamsRuntimeCache = new Map<string, TimedCacheEntry<MSTeamsRuntime>>()
 
-interface TeamsRuntime {
+interface MSTeamsRuntime {
   adapter: CloudAdapter
   authenticate: ReturnType<typeof authorizeJWT>
 }
@@ -69,7 +69,7 @@ const getTeamsConversationCacheKey = ({
   scope,
 }: {
   workspaceId: string
-  scope: TeamsConversationScope
+  scope: MSTeamsConversationScope
 }) =>
   [
     workspaceId,
@@ -85,7 +85,7 @@ export const matchesTeamsConversationScope = ({
   scope,
 }: {
   chat: ChatConversation
-  scope: TeamsConversationScope
+  scope: MSTeamsConversationScope
 }) => {
   const ch = chat.channel
   if (
@@ -111,7 +111,7 @@ export const pickTeamsConversation = ({
   nowMs = Date.now(),
 }: {
   chats: ChatConversation[]
-  scope: TeamsConversationScope
+  scope: MSTeamsConversationScope
   idleTimeoutMs: number
   nowMs?: number
 }) =>
@@ -131,11 +131,11 @@ const findTeamsConversation = async ({
 }: {
   db: ReturnType<typeof context.getWorkspaceDB>
   workspaceId: string
-  scope: TeamsConversationScope
+  scope: MSTeamsConversationScope
   idleTimeoutMs: number
 }) => {
   const cacheKey = getTeamsConversationCacheKey({ workspaceId, scope })
-  const cachedChatId = teamsConversationCache.get(cacheKey)
+  const cachedChatId = MSTeamsConversationCache.get(cacheKey)
   if (cachedChatId) {
     const cachedChat = await db.tryGet<ChatConversation>(cachedChatId)
     if (
@@ -144,14 +144,14 @@ const findTeamsConversation = async ({
       !isTeamsConversationExpired({ chat: cachedChat, idleTimeoutMs })
     ) {
       touchConversationCache({
-        cache: teamsConversationCache,
+        cache: MSTeamsConversationCache,
         cacheKey,
         chatId: cachedChatId,
         maxSize: TEAMS_DEFAULT_CONVERSATION_CACHE_MAX_ENTRIES,
       })
       return cachedChat
     }
-    teamsConversationCache.delete(cacheKey)
+    MSTeamsConversationCache.delete(cacheKey)
   }
 
   const response = await db.allDocs<ChatConversation>(
@@ -167,7 +167,7 @@ const findTeamsConversation = async ({
   const picked = pickTeamsConversation({ chats, scope, idleTimeoutMs })
   if (picked?._id) {
     touchConversationCache({
-      cache: teamsConversationCache,
+      cache: MSTeamsConversationCache,
       cacheKey,
       chatId: picked._id,
       maxSize: TEAMS_DEFAULT_CONVERSATION_CACHE_MAX_ENTRIES,
@@ -223,7 +223,7 @@ export const stripTeamsMentions = (text: string) =>
 export const parseTeamsCommand = (
   text?: string
 ): {
-  command: TeamsCommand
+  command: MSTeamsCommand
   content: string
 } => {
   const normalized = stripTeamsMentions(text || "")
@@ -272,7 +272,7 @@ const buildTeamsAuthConfig = ({
   return getAuthConfigWithDefaults(authConfig)
 }
 
-const getTeamsRuntime = ({
+const getMSTeamsRuntime = ({
   agentId,
   appId,
   appPassword,
@@ -282,20 +282,20 @@ const getTeamsRuntime = ({
   appId: string
   appPassword: string
   tenantId?: string
-}): TeamsRuntime => {
+}): MSTeamsRuntime => {
   const nowMs = Date.now()
   const maxSize = TEAMS_DEFAULT_RUNTIME_CACHE_MAX_ENTRIES
   const ttlMs = TEAMS_DEFAULT_RUNTIME_CACHE_TTL_MS
   const cacheKey = [agentId, appId, appPassword, tenantId || ""].join(":")
   evictExpiredTimedCache({
-    cache: teamsRuntimeCache,
+    cache: MSTeamsRuntimeCache,
     ttlMs,
     nowMs,
   })
-  const existing = teamsRuntimeCache.get(cacheKey)
+  const existing = MSTeamsRuntimeCache.get(cacheKey)
   if (existing) {
     touchTimedCache({
-      cache: teamsRuntimeCache,
+      cache: MSTeamsRuntimeCache,
       cacheKey,
       value: existing.value,
       maxSize,
@@ -305,12 +305,12 @@ const getTeamsRuntime = ({
   }
 
   const authConfig = buildTeamsAuthConfig({ appId, appPassword, tenantId })
-  const runtime: TeamsRuntime = {
+  const runtime: MSTeamsRuntime = {
     adapter: new CloudAdapter(authConfig),
     authenticate: authorizeJWT(authConfig),
   }
   touchTimedCache({
-    cache: teamsRuntimeCache,
+    cache: MSTeamsRuntimeCache,
     cacheKey,
     value: runtime,
     maxSize,
@@ -319,9 +319,9 @@ const getTeamsRuntime = ({
   return runtime
 }
 
-type AuthRequest = Parameters<TeamsRuntime["authenticate"]>[0]
-type AuthResponse = Parameters<TeamsRuntime["authenticate"]>[1]
-type AuthNext = Parameters<TeamsRuntime["authenticate"]>[2]
+type AuthRequest = Parameters<MSTeamsRuntime["authenticate"]>[0]
+type AuthResponse = Parameters<MSTeamsRuntime["authenticate"]>[1]
+type AuthNext = Parameters<MSTeamsRuntime["authenticate"]>[2]
 
 interface ResponseProxy {
   status: (code: number) => ResponseProxy
@@ -374,7 +374,7 @@ const runTeamsAuth = async ({
   request,
   response,
 }: {
-  runtime: TeamsRuntime
+  runtime: MSTeamsRuntime
   request: AuthRequest
   response: AuthResponse
 }) => {
@@ -397,7 +397,7 @@ const handleTeamsMessage = async ({
   prodAppId: string
   chatAppId: string
   agentId: string
-  activity: TeamsActivity
+  activity: MSTeamsActivity
 }) => {
   const reply = async (content: string) => {
     const chunks = splitTeamsMessage(content)
@@ -461,7 +461,7 @@ const handleTeamsMessage = async ({
       externalUserName: displayName,
     }
 
-    const scope: TeamsConversationScope = {
+    const scope: MSTeamsConversationScope = {
       chatAppId,
       agentId,
       conversationId,
@@ -489,7 +489,7 @@ const handleTeamsMessage = async ({
         })
       )
       touchConversationCache({
-        cache: teamsConversationCache,
+        cache: MSTeamsConversationCache,
         cacheKey: getTeamsConversationCacheKey({
           workspaceId: prodAppId,
           scope,
@@ -516,7 +516,7 @@ const handleTeamsMessage = async ({
             workspaceId: prodAppId,
             scope,
             idleTimeoutMs: getIdleTimeoutMs(
-              agentConfig.teamsIntegration?.idleTimeoutMinutes
+              agentConfig.MSTeamsIntegration?.idleTimeoutMinutes
             ),
           })
 
@@ -559,7 +559,7 @@ const handleTeamsMessage = async ({
     )
 
     touchConversationCache({
-      cache: teamsConversationCache,
+      cache: MSTeamsConversationCache,
       cacheKey: getTeamsConversationCacheKey({
         workspaceId: prodAppId,
         scope,
@@ -577,7 +577,7 @@ const handleTeamsLifecycleActivity = async ({
   activity,
 }: {
   turnContext: TurnContext
-  activity: TeamsActivity
+  activity: MSTeamsActivity
 }) => {
   if (!isTeamsLifecycleActivity(activity)) {
     return
@@ -585,7 +585,7 @@ const handleTeamsLifecycleActivity = async ({
   await turnContext.sendActivity(TEAMS_WELCOME_MESSAGE)
 }
 
-export const isTeamsLifecycleActivity = (activity: TeamsActivity) =>
+export const isTeamsLifecycleActivity = (activity: MSTeamsActivity) =>
   activity.type === "conversationUpdate" ||
   activity.type === "installationUpdate"
 
@@ -600,7 +600,7 @@ const handleTeamsTurn = async ({
   chatAppId: string
   agentId: string
 }) => {
-  const activity = turnContext.activity as TeamsActivity
+  const activity = turnContext.activity as MSTeamsActivity
   if (activity.type === "message") {
     await handleTeamsMessage({
       turnContext,
@@ -618,7 +618,7 @@ const handleTeamsTurn = async ({
   })
 }
 
-export async function teamsWebhook(
+export async function MSTeamsWebhook(
   ctx: Ctx<any, any, { instance: string; chatAppId: string; agentId: string }>
 ) {
   const { instance, chatAppId, agentId } = ctx.params
@@ -632,12 +632,12 @@ export async function teamsWebhook(
   }
 
   let integration: ReturnType<
-    typeof sdk.ai.deployments.teams.validateTeamsIntegration
+    typeof sdk.ai.deployments.MSTeams.validateMSTeamsIntegration
   >
   try {
     integration = await context.doInWorkspaceContext(prodAppId, async () => {
       const agent = await sdk.ai.agents.getOrThrow(agentId)
-      return sdk.ai.deployments.teams.validateTeamsIntegration(agent)
+      return sdk.ai.deployments.MSTeams.validateMSTeamsIntegration(agent)
     })
   } catch (error) {
     if (error instanceof HTTPError) {
@@ -648,7 +648,7 @@ export async function teamsWebhook(
     throw error
   }
 
-  const runtime = getTeamsRuntime({
+  const runtime = getMSTeamsRuntime({
     agentId,
     appId: integration.appId,
     appPassword: integration.appPassword,
@@ -675,7 +675,7 @@ export async function teamsWebhook(
     await runtime.adapter.process(
       request,
       responseProxy as unknown as Parameters<CloudAdapter["process"]>[1],
-      async turnContext => {
+      async (turnContext: TurnContext) => {
         try {
           await handleTeamsTurn({
             turnContext,

@@ -5,8 +5,8 @@ import {
   DuplicateAgentResponse,
   FetchAgentFilesResponse,
   FetchAgentsResponse,
-  ProvisionAgentTeamsChannelRequest,
-  ProvisionAgentTeamsChannelResponse,
+  ProvisionAgentMSTeamsChannelRequest,
+  ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
   ToolMetadata,
@@ -38,8 +38,8 @@ export interface AgentEndpoints {
   ) => Promise<SyncAgentDiscordCommandsResponse>
   provisionAgentMSTeamsChannel: (
     agentId: string,
-    body?: ProvisionAgentTeamsChannelRequest
-  ) => Promise<ProvisionAgentTeamsChannelResponse>
+    body?: ProvisionAgentMSTeamsChannelRequest
+  ) => Promise<ProvisionAgentMSTeamsChannelResponse>
 }
 
 export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
@@ -117,8 +117,8 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
 
   provisionAgentMSTeamsChannel: async (agentId: string, body) => {
     return await API.post<
-      ProvisionAgentTeamsChannelRequest | undefined,
-      ProvisionAgentTeamsChannelResponse
+      ProvisionAgentMSTeamsChannelRequest | undefined,
+      ProvisionAgentMSTeamsChannelResponse
     >({
       url: `/api/agent/${agentId}/ms-teams/provision`,
       body,

@@ -1,2 +1,2 @@
 export * as discord from "./discord"
-export * as teams from "./teams"
+export * as MSTeams from "./ms-teams"

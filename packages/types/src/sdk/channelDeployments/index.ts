@@ -1,2 +1,2 @@
 export * from "./discord"
-export * from "./teams"
+export * from "./ms-teams"

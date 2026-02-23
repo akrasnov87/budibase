@@ -11,11 +11,11 @@
   import DiscordConfig from "./DeploymentChannels/DiscordConfig.svelte"
   import MicrosoftTeamsConfig from "./DeploymentChannels/MicrosoftTeamsConfig.svelte"
   import DiscordLogo from "assets/discord.svg"
-  import TeamsLogo from "assets/rest-template-icons/microsoft-teams.svg"
+  import MSTeamsLogo from "assets/rest-template-icons/microsoft-teams.svg"
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let discordModal: Modal
-  let teamsModal: Modal
+  let MSTeamsModal: Modal
 
   const discordConfigured = $derived.by(() => {
     const integration = currentAgent?.discordIntegration
@@ -27,8 +27,8 @@
     )
   })
 
-  const teamsConfigured = $derived.by(() => {
-    const integration = currentAgent?.teamsIntegration
+  const MSTeamsConfigured = $derived.by(() => {
+    const integration = currentAgent?.MSTeamsIntegration
     return !!(
       integration?.appId?.trim() &&
       integration?.appPassword?.trim() &&
@@ -46,10 +46,10 @@
       configurable: true,
     },
     {
-      id: "teams",
+      id: "MSTeams",
       name: "Microsoft Teams",
-      logo: TeamsLogo,
-      status: teamsConfigured ? "Enabled" : "Disabled",
+      logo: MSTeamsLogo,
+      status: MSTeamsConfigured ? "Enabled" : "Disabled",
       details:
         "Configure this agent for Microsoft Teams personal, group, and team chats",
       configurable: true,
@@ -61,8 +61,8 @@
       discordModal?.show()
       return
     }
-    if (channel.id === "teams") {
-      teamsModal?.show()
+    if (channel.id === "MSTeams") {
+      MSTeamsModal?.show()
       return
     }
   }
@@ -161,7 +161,7 @@
   </ModalContent>
 </Modal>
 
-<Modal bind:this={teamsModal}>
+<Modal bind:this={MSTeamsModal}>
   <ModalContent
     size="L"
     showCloseIcon
@@ -174,7 +174,7 @@
           alt="Microsoft Teams"
           width="24px"
           height="24px"
-          src={TeamsLogo}
+          src={MSTeamsLogo}
           class="modal-header-logo"
         />
         <div class="modal-header-copy">

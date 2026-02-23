@@ -6,7 +6,7 @@ import {
   pickTeamsConversation,
   splitTeamsMessage,
   stripTeamsMentions,
-} from "./teams"
+} from "./ms-teams"
 import { evictExpiredTimedCache, touchTimedCache } from "./utils"
 
 const makeChat = (
