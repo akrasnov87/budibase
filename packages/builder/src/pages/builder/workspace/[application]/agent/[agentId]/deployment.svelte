@@ -241,6 +241,18 @@
     color: var(--spectrum-global-color-gray-700);
   }
 
+  .status-chip {
+    font-weight: 500;
+  }
+
+  .status-chip.enabled {
+    color: var(--spectrum-semantic-positive-status-color);
+  }
+
+  .status-chip.disabled {
+    color: var(--spectrum-global-color-gray-600);
+  }
+
   .channel-details {
     display: flex;
     flex-direction: column;
