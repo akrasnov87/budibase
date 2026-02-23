@@ -1,7 +1,9 @@
+type MSTeamsIdRef = { id?: string }
+
 export interface MSTeamsChannelData {
-  channel?: { id?: string }
-  team?: { id?: string }
-  tenant?: { id?: string }
+  channel?: MSTeamsIdRef
+  team?: MSTeamsIdRef
+  tenant?: MSTeamsIdRef
 }
 
 export interface MSTeamsChannelAccount {
