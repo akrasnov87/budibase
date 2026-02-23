@@ -141,20 +141,17 @@
             </div>
           </div>
           <div class="row-action">
-            {#if channel.configurable}
-              <ActionButton
-                size="S"
-                icon="gear"
-                accentColor="Blue"
-                on:click={() => onConfigureChannel(channel)}
-                >Manage</ActionButton
-              >
-              <Toggle
-                value={channel.status === "Enabled"}
-                disabled={toggling}
-                on:change={() => onToggleChannel(channel)}
-              />
-            {/if}
+            <ActionButton
+              size="S"
+              icon="gear"
+              accentColor="Blue"
+              on:click={() => onConfigureChannel(channel)}>Manage</ActionButton
+            >
+            <Toggle
+              value={channel.status === "Enabled"}
+              disabled={toggling}
+              on:change={() => onToggleChannel(channel)}
+            />
           </div>
         </div>
       {/each}
