@@ -16,7 +16,6 @@ export interface ChatApp extends Document {
   title?: string
   greeting?: string
   description?: string
-  theme?: string
   agents: ChatAppAgent[]
   live?: boolean
   settings?: Record<string, any>
@@ -27,10 +26,6 @@ export interface ChatConversationChannel {
   guildId?: string
   channelId?: string
   threadId?: string
-  conversationId?: string
-  conversationType?: string
-  teamId?: string
-  tenantId?: string
   externalUserId?: string
   externalUserName?: string
 }
@@ -42,6 +37,7 @@ export interface ChatConversationRequest extends Document {
   messages: UIMessage<AgentMessageMetadata>[]
   transient?: boolean
   isPreview?: boolean
+  sessionId?: string
   channel?: ChatConversationChannel
 }
 

@@ -9,6 +9,8 @@ import {
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  ToggleAgentDiscordRequest,
+  ToggleAgentDiscordResponse,
   ToolMetadata,
   UpdateAgentRequest,
   UpdateAgentResponse,
@@ -40,6 +42,10 @@ export interface AgentEndpoints {
     agentId: string,
     body?: ProvisionAgentMSTeamsChannelRequest
   ) => Promise<ProvisionAgentMSTeamsChannelResponse>
+  toggleAgentDiscordDeployment: (
+    agentId: string,
+    enabled: boolean
+  ) => Promise<ToggleAgentDiscordResponse>
 }
 
 export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
@@ -122,6 +128,16 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     >({
       url: `/api/agent/${agentId}/ms-teams/provision`,
       body,
+    })
+  },
+
+  toggleAgentDiscordDeployment: async (agentId: string, enabled: boolean) => {
+    return await API.post<
+      ToggleAgentDiscordRequest,
+      ToggleAgentDiscordResponse
+    >({
+      url: `/api/agent/${agentId}/discord/toggle`,
+      body: { enabled },
     })
   },
 })

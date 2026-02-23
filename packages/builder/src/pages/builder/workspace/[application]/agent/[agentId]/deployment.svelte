@@ -5,17 +5,22 @@
     Modal,
     ModalContent,
     Toggle,
+    notifications,
   } from "@budibase/bbui"
   import type { Agent, DeploymentRow } from "@budibase/types"
-  import { selectedAgent } from "@/stores/portal"
+  import { selectedAgent, agentsStore } from "@/stores/portal"
   import DiscordConfig from "./DeploymentChannels/DiscordConfig.svelte"
   import MicrosoftTeamsConfig from "./DeploymentChannels/MicrosoftTeamsConfig.svelte"
   import DiscordLogo from "assets/discord.svg"
   import MSTeamsLogo from "assets/rest-template-icons/microsoft-teams.svg"
 
+  const AI_CONFIG_REQUIRED_MESSAGE =
+    "Select an AI model in Agent config before enabling Discord."
+
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let discordModal: Modal
   let MSTeamsModal: Modal
+  let toggling = $state(false)
 
   const discordConfigured = $derived.by(() => {
     const integration = currentAgent?.discordIntegration
@@ -27,6 +32,10 @@
     )
   })
 
+  const discordEnabled = $derived(
+    !!currentAgent?.discordIntegration?.interactionsEndpointUrl
+  )
+
   const MSTeamsConfigured = $derived.by(() => {
     const integration = currentAgent?.MSTeamsIntegration
     return !!(
@@ -36,12 +45,14 @@
     )
   })
 
+  const hasAiConfig = $derived.by(() => !!currentAgent?.aiconfig?.trim())
+
   const channels = $derived.by<DeploymentRow[]>(() => [
     {
       id: "discord",
       name: "Discord",
       logo: DiscordLogo,
-      status: discordConfigured ? "Enabled" : "Disabled",
+      status: discordEnabled ? "Enabled" : "Disabled",
       details: "Allow this agent to respond in Discord channels and threads",
       configurable: true,
     },
@@ -64,6 +75,37 @@
     if (channel.id === "MSTeams") {
       MSTeamsModal?.show()
       return
+    }
+  }
+
+  const onToggleChannel = async (channel: DeploymentRow) => {
+    if (channel.id !== "discord" || !currentAgent?._id) {
+      return
+    }
+    const isCurrentlyEnabled = channel.status === "Enabled"
+    if (!isCurrentlyEnabled && !hasAiConfig) {
+      notifications.error(AI_CONFIG_REQUIRED_MESSAGE)
+      return
+    }
+    toggling = true
+    try {
+      if (isCurrentlyEnabled) {
+        await agentsStore.toggleDiscordDeployment(currentAgent._id, false)
+        notifications.success("Discord channel disabled")
+      } else if (discordConfigured) {
+        await agentsStore.toggleDiscordDeployment(currentAgent._id, true)
+        notifications.success("Discord channel enabled")
+      } else {
+        discordModal?.show()
+      }
+    } catch (e) {
+      notifications.error(
+        isCurrentlyEnabled
+          ? "Failed to disable Discord channel"
+          : "Failed to enable Discord channel"
+      )
+    } finally {
+      toggling = false
     }
   }
 </script>
@@ -125,8 +167,11 @@
               accentColor="Blue"
               on:click={() => onConfigureChannel(channel)}>Manage</ActionButton
             >
-            <Toggle value={channel.status === "Enabled" ? true : false}
-            ></Toggle>
+            <Toggle
+              value={channel.status === "Enabled"}
+              disabled={toggling || channel.id !== "discord"}
+              on:change={() => onToggleChannel(channel)}
+            />
           </div>
         </div>
       {/each}
@@ -196,6 +241,12 @@
     min-height: 0;
   }
 
+  .deployment-section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-s);
+  }
+
   .section {
     display: flex;
     gap: var(--spacing-xs);
@@ -232,6 +283,18 @@
 
   .channel-main :global(.spectrum-Icon) {
     color: var(--spectrum-global-color-gray-700);
+  }
+
+  .status-chip {
+    font-weight: 500;
+  }
+
+  .status-chip.enabled {
+    color: var(--spectrum-semantic-positive-status-color);
+  }
+
+  .status-chip.disabled {
+    color: var(--spectrum-global-color-gray-600);
   }
 
   .channel-details {
