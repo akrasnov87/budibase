@@ -18,14 +18,30 @@ export interface MSTeamsConversationAccount {
   conversationType?: string
 }
 
-export interface MSTeamsActivity {
+export interface MSTeamsMentionedEntity {
+  id?: string
+  name?: string
+}
+
+export interface MSTeamsActivityEntity {
   type?: string
+  text?: string
+  mentioned?: MSTeamsMentionedEntity
+}
+
+export interface MSTeamsActivity {
+  id?: string
+  type?: string
+  action?: string
   text?: string
   channelId?: string
   serviceUrl?: string
   from?: MSTeamsChannelAccount
+  recipient?: MSTeamsChannelAccount
+  membersAdded?: MSTeamsChannelAccount[]
   conversation?: MSTeamsConversationAccount
   channelData?: MSTeamsChannelData
+  entities?: MSTeamsActivityEntity[]
 }
 
 export interface MSTeamsConversationScope {

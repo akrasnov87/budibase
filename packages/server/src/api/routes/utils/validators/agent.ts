@@ -42,7 +42,7 @@ export function createAgentValidator() {
       ragMinDistance: OPTIONAL_NUMBER.min(0).max(1),
       ragTopK: OPTIONAL_NUMBER.integer().min(1).max(10),
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
-      teamsIntegration: TEAMS_INTEGRATION_SCHEMA,
+      MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
     })
   )
 }
@@ -65,7 +65,7 @@ export function updateAgentValidator() {
       ragMinDistance: OPTIONAL_NUMBER.min(0).max(1),
       ragTopK: OPTIONAL_NUMBER.integer().min(1).max(10),
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
-      teamsIntegration: TEAMS_INTEGRATION_SCHEMA,
+      MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
     }).unknown(true)
   )
 }

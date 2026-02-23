@@ -121,7 +121,7 @@
 
   {#snippet response()}
     <Body size="S">
-      Use `{MS_TEAMS_NEW_COMMAND}` to ask a new conversation.
+      Use `{MS_TEAMS_ASK_COMMAND}` to ask a question.
     </Body>
     <Body size="S">
       Use `{MS_TEAMS_NEW_COMMAND}` to start a new conversation.

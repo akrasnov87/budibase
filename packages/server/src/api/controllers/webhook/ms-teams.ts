@@ -41,6 +41,8 @@ const TEAMS_DEFAULT_IDLE_TIMEOUT_MS = 45 * 60 * 1000
 const TEAMS_DEFAULT_CONVERSATION_CACHE_MAX_ENTRIES = 5000
 const TEAMS_DEFAULT_RUNTIME_CACHE_MAX_ENTRIES = 500
 const TEAMS_DEFAULT_RUNTIME_CACHE_TTL_MS = 60 * 60 * 1000
+const TEAMS_ACTIVITY_DEDUPE_CACHE_MAX_ENTRIES = 10000
+const TEAMS_ACTIVITY_DEDUPE_TTL_MS = 15 * 60 * 1000
 const TEAMS_MAX_MESSAGE_LENGTH = 3500
 const TEAMS_FALLBACK_ERROR_MESSAGE =
   "Sorry, something went wrong while processing your request."
@@ -48,6 +50,7 @@ const TEAMS_WELCOME_MESSAGE = `Budibase agent is ready. Send a message to chat, 
 
 const MSTeamsConversationCache = new Map<string, string>()
 const MSTeamsRuntimeCache = new Map<string, TimedCacheEntry<MSTeamsRuntime>>()
+const MSTeamsProcessedActivityCache = new Map<string, TimedCacheEntry<true>>()
 
 interface MSTeamsRuntime {
   adapter: CloudAdapter
@@ -93,15 +96,13 @@ export const matchesTeamsConversationScope = ({
     chat.agentId !== scope.agentId ||
     ch?.provider !== "msteams" ||
     ch?.conversationId !== scope.conversationId ||
-    (ch?.channelId || undefined) !== scope.channelId
+    (ch?.channelId || undefined) !== scope.channelId ||
+    ch.externalUserId !== scope.externalUserId
   ) {
     return false
   }
 
-  if (ch?.externalUserId) {
-    return ch.externalUserId === scope.externalUserId
-  }
-  return chat.userId === `msteams:${scope.externalUserId}`
+  return true
 }
 
 export const pickTeamsConversation = ({
@@ -214,19 +215,33 @@ export const splitTeamsMessage = (
   return chunks
 }
 
-export const stripTeamsMentions = (text: string) =>
-  text
-    .replace(/<at>[^<]*<\/at>/gi, " ")
-    .replace(/\s+/g, " ")
-    .trim()
+export const stripTeamsMentions = (
+  text: string,
+  entities: MSTeamsActivity["entities"] = []
+) => {
+  let withoutMentionEntities = text
+  for (const entity of entities) {
+    if (entity.type?.toLowerCase() !== "mention") {
+      continue
+    }
+    const mentionText = entity.text?.trim()
+    if (!mentionText) {
+      continue
+    }
+    withoutMentionEntities = withoutMentionEntities.split(mentionText).join(" ")
+  }
+
+  return withoutMentionEntities.replace(/\s+/g, " ").trim()
+}
 
 export const parseTeamsCommand = (
-  text?: string
+  text?: string,
+  entities?: MSTeamsActivity["entities"]
 ): {
   command: MSTeamsCommand
   content: string
 } => {
-  const normalized = stripTeamsMentions(text || "")
+  const normalized = stripTeamsMentions(text || "", entities)
   if (!normalized) {
     return { command: "unsupported" as const, content: "" }
   }
@@ -424,7 +439,10 @@ const handleTeamsMessage = async ({
 
     const agentConfig = await sdk.ai.agents.getOrThrow(agentId)
 
-    const { command, content } = parseTeamsCommand(activity.text)
+    const { command, content } = parseTeamsCommand(
+      activity.text,
+      activity.entities
+    )
     if (command === "unsupported") {
       return await reply(
         `Send a message to chat, or "${TEAMS_NEW_COMMAND}" to start a new conversation.`
@@ -585,9 +603,71 @@ const handleTeamsLifecycleActivity = async ({
   await turnContext.sendActivity(TEAMS_WELCOME_MESSAGE)
 }
 
+const isTeamsBotAddedToConversation = (activity: MSTeamsActivity) => {
+  if (activity.type !== "conversationUpdate") {
+    return false
+  }
+
+  const recipientId = activity.recipient?.id?.trim()
+  if (!recipientId) {
+    return false
+  }
+
+  return (activity.membersAdded || []).some(
+    member => member.id?.trim() === recipientId
+  )
+}
+
+const isTeamsInstallAddedActivity = (activity: MSTeamsActivity) =>
+  activity.type === "installationUpdate" &&
+  activity.action?.toLowerCase() === "add"
+
 export const isTeamsLifecycleActivity = (activity: MSTeamsActivity) =>
-  activity.type === "conversationUpdate" ||
-  activity.type === "installationUpdate"
+  isTeamsInstallAddedActivity(activity) ||
+  isTeamsBotAddedToConversation(activity)
+
+const markTeamsActivityAsProcessedIfNew = ({
+  chatAppId,
+  agentId,
+  activityId,
+}: {
+  chatAppId: string
+  agentId: string
+  activityId?: string
+}) => {
+  const normalizedActivityId = activityId?.trim()
+  if (!normalizedActivityId) {
+    return true
+  }
+
+  const nowMs = Date.now()
+  evictExpiredTimedCache({
+    cache: MSTeamsProcessedActivityCache,
+    ttlMs: TEAMS_ACTIVITY_DEDUPE_TTL_MS,
+    nowMs,
+  })
+
+  const cacheKey = [chatAppId, agentId, normalizedActivityId].join(":")
+  if (MSTeamsProcessedActivityCache.has(cacheKey)) {
+    touchTimedCache({
+      cache: MSTeamsProcessedActivityCache,
+      cacheKey,
+      value: true,
+      maxSize: TEAMS_ACTIVITY_DEDUPE_CACHE_MAX_ENTRIES,
+      nowMs,
+    })
+    return false
+  }
+
+  touchTimedCache({
+    cache: MSTeamsProcessedActivityCache,
+    cacheKey,
+    value: true,
+    maxSize: TEAMS_ACTIVITY_DEDUPE_CACHE_MAX_ENTRIES,
+    nowMs,
+  })
+  return true
+}
 
 const handleTeamsTurn = async ({
   turnContext,
@@ -602,6 +682,16 @@ const handleTeamsTurn = async ({
 }) => {
   const activity = turnContext.activity as MSTeamsActivity
   if (activity.type === "message") {
+    if (
+      !markTeamsActivityAsProcessedIfNew({
+        chatAppId,
+        agentId,
+        activityId: activity.id,
+      })
+    ) {
+      return
+    }
+
     await handleTeamsMessage({
       turnContext,
       prodAppId,

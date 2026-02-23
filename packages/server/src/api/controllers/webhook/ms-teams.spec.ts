@@ -30,10 +30,15 @@ const makeChat = (
 })
 
 describe("teams webhook helpers", () => {
-  it("strips teams mention tags", () => {
-    expect(stripTeamsMentions("<at>Budibase Bot</at> ask hello")).toEqual(
-      "ask hello"
-    )
+  it("strips teams mention entities", () => {
+    expect(
+      stripTeamsMentions("<at>Budibase Bot</at> ask hello", [
+        {
+          type: "mention",
+          text: "<at>Budibase Bot</at>",
+        },
+      ])
+    ).toEqual("ask hello")
   })
 
   it.each([
@@ -41,13 +46,23 @@ describe("teams webhook helpers", () => {
     ["/ask hello there", { command: "ask", content: "hello there" }],
     ["new", { command: "new", content: "" }],
     ["/new start fresh", { command: "new", content: "start fresh" }],
-    [
-      "<at>Budibase Bot</at> ask follow up",
-      { command: "ask", content: "follow up" },
-    ],
     ["status", { command: "ask", content: "status" }],
   ] as const)("parses command text %s", (text, expected) => {
     expect(parseTeamsCommand(text)).toEqual(expected)
+  })
+
+  it("parses command text containing mention entities", () => {
+    expect(
+      parseTeamsCommand("<at>Budibase Bot</at> ask follow up", [
+        {
+          type: "mention",
+          text: "<at>Budibase Bot</at>",
+        },
+      ])
+    ).toEqual({
+      command: "ask",
+      content: "follow up",
+    })
   })
 
   it("returns unsupported for empty text", () => {
@@ -64,8 +79,20 @@ describe("teams webhook helpers", () => {
   })
 
   it("detects Teams lifecycle activities", () => {
-    expect(isTeamsLifecycleActivity({ type: "conversationUpdate" })).toBe(true)
-    expect(isTeamsLifecycleActivity({ type: "installationUpdate" })).toBe(true)
+    expect(
+      isTeamsLifecycleActivity({ type: "installationUpdate", action: "add" })
+    ).toBe(true)
+    expect(
+      isTeamsLifecycleActivity({
+        type: "conversationUpdate",
+        recipient: { id: "bot-1" },
+        membersAdded: [{ id: "bot-1" }],
+      })
+    ).toBe(true)
+    expect(
+      isTeamsLifecycleActivity({ type: "installationUpdate", action: "remove" })
+    ).toBe(false)
+    expect(isTeamsLifecycleActivity({ type: "conversationUpdate" })).toBe(false)
     expect(isTeamsLifecycleActivity({ type: "message" })).toBe(false)
   })
 
@@ -113,7 +140,7 @@ describe("teams webhook helpers", () => {
     )
   })
 
-  it("falls back to legacy userId matching when channel external user is missing", () => {
+  it("requires channel external user id to match conversation scope", () => {
     const chat = makeChat({
       userId: "msteams:user-legacy",
       channel: {
@@ -131,7 +158,7 @@ describe("teams webhook helpers", () => {
       externalUserId: "user-legacy",
     }
 
-    expect(matchesTeamsConversationScope({ chat, scope })).toBe(true)
+    expect(matchesTeamsConversationScope({ chat, scope })).toBe(false)
   })
 
   it("selects latest non-expired conversation", () => {
