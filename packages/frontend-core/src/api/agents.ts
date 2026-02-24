@@ -5,6 +5,12 @@ import {
   DuplicateAgentResponse,
   FetchAgentFilesResponse,
   FetchAgentsResponse,
+  ProvisionAgentMSTeamsChannelRequest,
+  ProvisionAgentMSTeamsChannelResponse,
+  SyncAgentDiscordCommandsRequest,
+  SyncAgentDiscordCommandsResponse,
+  ToggleAgentDiscordRequest,
+  ToggleAgentDiscordResponse,
   ToolMetadata,
   UpdateAgentRequest,
   UpdateAgentResponse,
@@ -28,6 +34,18 @@ export interface AgentEndpoints {
     agentId: string,
     fileId: string
   ) => Promise<{ deleted: true }>
+  syncAgentDiscordCommands: (
+    agentId: string,
+    body?: SyncAgentDiscordCommandsRequest
+  ) => Promise<SyncAgentDiscordCommandsResponse>
+  provisionAgentMSTeamsChannel: (
+    agentId: string,
+    body?: ProvisionAgentMSTeamsChannelRequest
+  ) => Promise<ProvisionAgentMSTeamsChannelResponse>
+  toggleAgentDiscordDeployment: (
+    agentId: string,
+    enabled: boolean
+  ) => Promise<ToggleAgentDiscordResponse>
 }
 
 export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
@@ -90,6 +108,36 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
   deleteAgentFile: async (agentId: string, fileId: string) => {
     return await API.delete({
       url: `/api/agent/${agentId}/files/${fileId}`,
+    })
+  },
+
+  syncAgentDiscordCommands: async (agentId: string, body) => {
+    return await API.post<
+      SyncAgentDiscordCommandsRequest | undefined,
+      SyncAgentDiscordCommandsResponse
+    >({
+      url: `/api/agent/${agentId}/discord/sync`,
+      body,
+    })
+  },
+
+  provisionAgentMSTeamsChannel: async (agentId: string, body) => {
+    return await API.post<
+      ProvisionAgentMSTeamsChannelRequest | undefined,
+      ProvisionAgentMSTeamsChannelResponse
+    >({
+      url: `/api/agent/${agentId}/ms-teams/provision`,
+      body,
+    })
+  },
+
+  toggleAgentDiscordDeployment: async (agentId: string, enabled: boolean) => {
+    return await API.post<
+      ToggleAgentDiscordRequest,
+      ToggleAgentDiscordResponse
+    >({
+      url: `/api/agent/${agentId}/discord/toggle`,
+      body: { enabled },
     })
   },
 })

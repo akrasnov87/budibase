@@ -615,19 +615,6 @@
                       </div>
                     </svelte:fragment>
                   </SideNavLink>
-                  <SideNavLink
-                    icon="chat-circle"
-                    text="Chat"
-                    url={$url("./chat")}
-                    {collapsed}
-                    on:click={keepCollapsed}
-                  >
-                    <svelte:fragment slot="right">
-                      <div class="beta-tag-wrapper">
-                        <Tag emphasized>Alpha</Tag>
-                      </div>
-                    </svelte:fragment>
-                  </SideNavLink>
                 {/if}
               {/if}
             </div>
