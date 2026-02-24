@@ -299,8 +299,8 @@ describe("agent teams integration provisioning", () => {
 
       expect(response.body.messages).toContain("Mock assistant response")
       expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
-      const firstPart = mockedWebhookChat.mock.calls[0]?.[0].chat.messages[0]
-        ?.parts[0]
+      const firstPart =
+        mockedWebhookChat.mock.calls[0]?.[0].chat.messages[0]?.parts[0]
       expect(firstPart?.type === "text" ? firstPart.text : undefined).toEqual(
         "hello teams"
       )
