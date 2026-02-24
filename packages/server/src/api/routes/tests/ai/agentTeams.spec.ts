@@ -31,21 +31,21 @@ jest.mock("@microsoft/agents-hosting", () => {
         response: MockTeamsResponse,
         next: () => void
       ) => {
-      const authorization = request.headers?.authorization
-      if (typeof authorization !== "string") {
-        response.status(401).send({
-          "jwt-auth-error": "authorization header not found",
-        })
-        return
+        const authorization = request.headers?.authorization
+        if (typeof authorization !== "string") {
+          response.status(401).send({
+            "jwt-auth-error": "authorization header not found",
+          })
+          return
+        }
+        if (authorization !== "Bearer valid-token") {
+          response.status(401).send({
+            "jwt-auth-error": "invalid token",
+          })
+          return
+        }
+        next()
       }
-      if (authorization !== "Bearer valid-token") {
-        response.status(401).send({
-          "jwt-auth-error": "invalid token",
-        })
-        return
-      }
-      next()
-    }
   )
 
   class CloudAdapter {
@@ -92,7 +92,11 @@ jest.mock("../../../controllers/ai/chatConversations", () => {
 })
 
 import { context, docIds } from "@budibase/backend-core"
-import { DocumentType, type Agent, type ChatConversation } from "@budibase/types"
+import {
+  DocumentType,
+  type Agent,
+  type ChatConversation,
+} from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { webhookChat } from "../../../controllers/ai/chatConversations"
 
@@ -295,9 +299,11 @@ describe("agent teams integration provisioning", () => {
 
       expect(response.body.messages).toContain("Mock assistant response")
       expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
-      expect(
-        mockedWebhookChat.mock.calls[0]?.[0].chat.messages[0]?.parts[0]?.text
-      ).toEqual("hello teams")
+      const firstPart = mockedWebhookChat.mock.calls[0]?.[0].chat.messages[0]
+        ?.parts[0]
+      expect(firstPart?.type === "text" ? firstPart.text : undefined).toEqual(
+        "hello teams"
+      )
 
       const conversations = await fetchConversations()
       expect(conversations).toHaveLength(1)
@@ -339,7 +345,10 @@ describe("agent teams integration provisioning", () => {
       expect(conversations[0]?.messages).toHaveLength(4)
       const userTexts = conversations[0]!.messages
         .filter(message => message.role === "user")
-        .map(message => message.parts?.[0]?.type === "text" && message.parts[0].text)
+        .map(
+          message =>
+            message.parts?.[0]?.type === "text" && message.parts[0].text
+        )
       expect(userTexts).toEqual(["first", "second"])
     })
 
