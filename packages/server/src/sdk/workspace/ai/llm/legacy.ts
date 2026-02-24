@@ -7,6 +7,13 @@ import { LLMResponse } from "."
 import { ai, licensing } from "@budibase/pro"
 import { createBBAIClient } from "./bbai"
 
+const normalizeLegacyOpenAIBaseUrl = (baseUrl?: string) => {
+  if (!baseUrl) return baseUrl
+  const normalised =
+    baseUrl === "https://api.openai.com" ? "https://api.openai.com/v1" : baseUrl
+  return normalised
+}
+
 const getLegacyProviderClient = async (
   provider: AIProvider,
   config: LLMProviderConfig
@@ -17,6 +24,10 @@ const getLegacyProviderClient = async (
 
   switch (provider) {
     case "OpenAI":
+      return createOpenAI({
+        baseURL: normalizeLegacyOpenAIBaseUrl(config.baseUrl),
+        apiKey: config.apiKey,
+      })
     case "TogetherAI":
     case "Custom":
       return createOpenAI({
