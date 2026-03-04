@@ -191,7 +191,10 @@
     onFinish: async () => {
       if (persistConversation && !chat._id && chat.chatAppId) {
         try {
-          const history = await API.fetchChatHistory(chat.chatAppId)
+          const history = await API.fetchChatHistory(
+            chat.chatAppId,
+            chat.agentId
+          )
           const msgs = chatInstance.messages
           const lastMessageId = msgs[msgs.length - 1]?.id
           const savedConversation =
@@ -216,7 +219,16 @@
     },
     onError: error => {
       console.error(error)
-      notifications.error(error.message || "Failed to send message")
+      let message = error.message || "Failed to send message"
+      try {
+        const parsed = JSON.parse(message)
+        if (parsed?.message) {
+          message = parsed.message
+        }
+      } catch {
+        // not JSON, use as-is
+      }
+      notifications.error(message)
     },
   })
 

@@ -1,6 +1,6 @@
-import type { EmbeddingModelV3, LanguageModelV3 } from "@ai-sdk/provider"
 import { HTTPError, env } from "@budibase/backend-core"
-import { BUDIBASE_AI_PROVIDER_ID } from "@budibase/types"
+import { quotas } from "@budibase/pro"
+import { BUDIBASE_AI_PROVIDER_ID, LLMResponse } from "@budibase/types"
 import tracer from "dd-trace"
 import sdk from "../../.."
 import { createBBAIClient } from "./bbai"
@@ -8,18 +8,7 @@ import { createLiteLLMOpenAI } from "./litellm"
 
 export * as bbai from "./bbai"
 export * from "./utils"
-
-export interface LLMResponse {
-  chat: LanguageModelV3
-  embedding: EmbeddingModelV3
-  providerOptions?: (hasTools: boolean) =>
-    | {
-        openai: {
-          parallelToolCalls: boolean
-        }
-      }
-    | undefined
-}
+export * from "./messages"
 
 export async function createLLM(
   configId: string,
@@ -32,6 +21,10 @@ export async function createLLM(
   const aiConfig = await sdk.ai.configs.find(configId)
   if (!aiConfig) {
     throw new HTTPError(`Config id "${configId}" not found`, 422)
+  }
+
+  if (aiConfig.provider === BUDIBASE_AI_PROVIDER_ID) {
+    await quotas.throwIfBudibaseAICreditsExceeded()
   }
 
   if (aiConfig.provider === BUDIBASE_AI_PROVIDER_ID && !env.SELF_HOSTED) {
