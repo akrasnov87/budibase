@@ -43,6 +43,7 @@ import componentTreeNodesStore from "./componentTreeNodes"
 import { oauth2 } from "./oauth2"
 import { recaptchaStore } from "./recaptcha"
 import { dataEnvironmentStore, dataAPI } from "./dataEnvironment"
+import { workspaceConnections } from "./workspaceConnection"
 
 import { FetchAppPackageResponse } from "@budibase/types"
 import { selectedAppUrls } from "./appUrls"
@@ -96,6 +97,7 @@ export {
   dataEnvironmentStore,
   dataAPI,
   restTemplates,
+  workspaceConnections,
 }
 
 export const reset = () => {
