@@ -65,7 +65,7 @@ RUN apt-get update && \
 
 # Install litellm
 RUN python3 -m venv /opt/venv/litellm
-RUN /opt/venv/litellm/bin/pip install 'litellm[proxy]'
+RUN /opt/venv/litellm/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --default-timeout=100 'litellm[proxy]'
 ENV PATH="/opt/venv/litellm/bin:${PATH}"
 RUN mkdir -p /litellm
 
@@ -126,7 +126,7 @@ COPY hosting/single/litellm-db-runner.sh .
 RUN chmod +x ./litellm-db-runner.sh
 COPY hosting/single/healthcheck.sh .
 RUN chmod +x ./healthcheck.sh
-RUN /opt/venv/litellm/bin/pip install prisma
+RUN /opt/venv/litellm/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ --default-timeout=100 prisma
 RUN LITELLM_SCHEMA_PATH=$(/opt/venv/litellm/bin/python -c "from importlib.util import find_spec; from pathlib import Path; spec = find_spec('litellm'); assert spec and spec.origin; print(Path(spec.origin).resolve().parent / 'proxy' / 'schema.prisma')") && \
     PRISMA_HIDE_UPDATE_MESSAGE=true /opt/venv/litellm/bin/prisma generate --schema "${LITELLM_SCHEMA_PATH}"
 RUN LITELLM_PROXY_EXTRAS_SCHEMA_PATH=$(/opt/venv/litellm/bin/python -c "from importlib.util import find_spec; from pathlib import Path; spec = find_spec('litellm_proxy_extras'); assert spec and spec.origin; print(Path(spec.origin).resolve().parent / 'schema.prisma')") && \

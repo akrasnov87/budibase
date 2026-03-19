@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.634.486",
+  "version": "0.643.473",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -103,7 +103,6 @@
     "mode:cloud": "yarn env:selfhost:disable && yarn env:multi:enable && yarn env:account:disable",
     "mode:account": "yarn mode:cloud && yarn env:account:enable",
     "security:audit": "node scripts/audit.js",
-    "postinstall": "husky install",
     "submodules:load": "git submodule init && git submodule update && yarn",
     "submodules:unload": "git submodule deinit --all && yarn",
     "add-workspace-migration": "node scripts/add-workspace-migration.js --title"
