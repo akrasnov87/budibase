@@ -4,9 +4,18 @@ import fsp from "fs/promises"
 import path from "path"
 import { tmpdir } from "os"
 import { setEnv } from "../../../environment"
+import * as fileSystem from "../../../utilities/fileSystem"
 import { afterAll as _afterAll, getConfig, getRequest } from "./utilities"
 
 jest.mock("extract-zip", () => jest.fn())
+
+jest.mock("../../../utilities/fileSystem", () => {
+  const actual = jest.requireActual("../../../utilities/fileSystem")
+  return {
+    ...actual,
+    shouldServeLocally: jest.fn(actual.shouldServeLocally),
+  }
+})
 
 jest.mock("@budibase/backend-core", () => {
   const actual = jest.requireActual("@budibase/backend-core")
@@ -53,13 +62,34 @@ describe("/static", () => {
     it("should serve the app by url", async () => {
       const headers = config.defaultHeaders()
       delete headers[constants.Header.APP_ID]
+      const workspaceId = config.getProdWorkspaceId()
 
       const res = await request
         .get(`/app${config.getProdWorkspace().url}`)
         .set(headers)
         .expect(200)
 
-      expect(res.body.appId).toBe(config.prodWorkspaceId)
+      expect(res.body.appId).toBe(workspaceId)
+      expect(res.body.clientLibPath).toContain(
+        `/api/assets/${workspaceId}/client?`
+      )
+    })
+
+    it("should serve app-chat with the global client library path", async () => {
+      const headers = config.defaultHeaders()
+      delete headers[constants.Header.APP_ID]
+      const workspaceId = config.getProdWorkspaceId()
+
+      const res = await request
+        .get(`/app-chat${config.getProdWorkspace().url}`)
+        .set(headers)
+        .expect(200)
+
+      expect(res.body.appId).toBe(workspaceId)
+      expect(res.body.clientLibPath).toContain("/api/assets/global/client?")
+      expect(res.body.clientLibPath).not.toContain(
+        `/api/assets/${workspaceId}/client?`
+      )
     })
 
     it("should serve the app preview by id", async () => {
@@ -171,6 +201,32 @@ describe("/static", () => {
 
       expect(res.body.appId).toBe(config.devWorkspaceId)
       expect(res.body.builderPreview).toBe(true)
+    })
+  })
+
+  describe("/api/assets/:appId/client", () => {
+    it("should serve the global client library without an app ID header", async () => {
+      const headers = config.defaultHeaders()
+      delete headers[constants.Header.APP_ID]
+      const shouldServeLocallyMock =
+        fileSystem.shouldServeLocally as jest.MockedFunction<
+          typeof fileSystem.shouldServeLocally
+        >
+      shouldServeLocallyMock.mockClear()
+      const getReadStreamSpy = jest.spyOn(objectStore, "getReadStream")
+
+      try {
+        const res = await request
+          .get("/api/assets/global/client")
+          .set(headers)
+          .expect(200)
+
+        expect(res.headers["content-type"]).toContain("javascript")
+        expect(shouldServeLocallyMock).not.toHaveBeenCalled()
+        expect(getReadStreamSpy).not.toHaveBeenCalled()
+      } finally {
+        getReadStreamSpy.mockRestore()
+      }
     })
   })
 

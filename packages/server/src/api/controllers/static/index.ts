@@ -5,6 +5,7 @@ import {
   BadRequestError,
   configs,
   context,
+  env as envCore,
   objectStore,
   roles,
   utils,
@@ -65,6 +66,7 @@ const ACTIVE_CONTENT_MIME_TYPES = [
 ]
 
 const MAX_SNIFF_BYTES = 4096
+const GLOBAL_CLIENT_ASSET_ID = "global"
 
 const detectActiveContent = async (filePath: fs.PathLike) => {
   const handle = await fsp.open(filePath, "r")
@@ -308,6 +310,12 @@ export const serveApp = async function (ctx: UserCtx<void, ServeAppResponse>) {
     const workspaceApp = await sdk.workspaceApps.getMatchedWorkspaceApp(ctx.url)
 
     const appInfo = await sdk.workspaces.metadata.get()
+    const clientVersion = isChatRoute ? envCore.VERSION : appInfo.version
+    const clientCacheKey = await objectStore.getClientCacheKey(clientVersion)
+    const clientAssetScopeId = isChatRoute
+      ? GLOBAL_CLIENT_ASSET_ID
+      : workspaceId
+    const clientLibPath = `/api/assets/${clientAssetScopeId}/client?${clientCacheKey}`
     const hideDevTools = !!ctx.params.appUrl
     const sideNav = workspaceApp?.navigation.navigation === "Left"
     const hideFooter =
@@ -345,7 +353,8 @@ export const serveApp = async function (ctx: UserCtx<void, ServeAppResponse>) {
         metaTitle: isChatRoute
           ? "Chat"
           : branding?.metaTitle || `${appName} - built with Budibase`,
-        clientCacheKey: await objectStore.getClientCacheKey(appInfo.version),
+        clientCacheKey,
+        clientLibPath,
         usedPlugins: plugins,
         favicon: branding.faviconUrl
           ? await objectStore.getGlobalFileUrl("settings", "faviconUrl")
@@ -411,7 +420,7 @@ export const serveApp = async function (ctx: UserCtx<void, ServeAppResponse>) {
       })
     } else {
       // just return the app info for jest to assert on
-      ctx.body = appInfo
+      ctx.body = { ...appInfo, clientCacheKey, clientLibPath }
     }
   } catch (error: any) {
     let msg = "An unknown error occurred"
@@ -475,6 +484,11 @@ function serveLocalFile(ctx: Ctx, fileName: string) {
 export const serveClientLibrary = async function (
   ctx: Ctx<void, ServeClientLibraryResponse>
 ) {
+  const appId = ctx.params.appId
+  if (appId === GLOBAL_CLIENT_ASSET_ID) {
+    return serveLocalFile(ctx, "budibase-client.js")
+  }
+
   const workspaceId = context.getWorkspaceId()
 
   if (!workspaceId) {
@@ -498,6 +512,10 @@ export const serve3rdPartyFile = async function (ctx: Ctx) {
   const file = Array.isArray(ctx.params.file)
     ? ctx.params.file.join("/")
     : ctx.params.file
+  const appId = ctx.params.appId
+  if (appId === GLOBAL_CLIENT_ASSET_ID) {
+    return serveLocalFile(ctx, file)
+  }
 
   const workspaceId = context.getWorkspaceId()
   if (!workspaceId) {
