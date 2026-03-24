@@ -159,7 +159,7 @@ export const createAPIClient = (config: APIClientConfig = {}): APIClient => {
       headers["Content-Type"] = "application/json"
     }
     if (config?.attachHeaders) {
-      config.attachHeaders(headers)
+      config.attachHeaders(headers, { url, method })
     }
 
     // Build request body
