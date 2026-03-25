@@ -1,6 +1,8 @@
 <script lang="ts">
   import type EasyMDE from "easymde"
+  import { tick } from "svelte"
   import SpectrumMDE from "./SpectrumMDE.svelte"
+  import ColorPicker from "../ColorPicker/ColorPicker.svelte"
   import { createEventDispatcher } from "svelte"
 
   export let value: string | null = null
@@ -36,7 +38,10 @@
   interface EasyMDEWithToolbar extends EasyMDE {
     toolbarElements?: Record<string, HTMLElement>
   }
-  let colorInput: HTMLInputElement | undefined = undefined
+  let colorPickerAnchor: HTMLDivElement | undefined = undefined
+  let colorPickerX = 0
+  let colorPickerY = 0
+  let colorPickerKey = 0
   let activeMode: ColorMode = "text"
   let selectedColors: Record<ColorMode, string> = {
     text: colorDefaults.text,
@@ -79,6 +84,10 @@
   }
 
   const openColorPicker = (editor: EasyMDE, mode: ColorMode) => {
+    openBudibaseColorPicker(editor, mode)
+  }
+
+  const openBudibaseColorPicker = async (editor: EasyMDE, mode: ColorMode) => {
     const currentSelections = editor.codemirror.listSelections()
     const hasSelectedText = editor.codemirror
       .getSelections()
@@ -87,31 +96,22 @@
       ? currentSelections
       : lastNonEmptySelections || currentSelections
     pendingSelections = cloneSelections(activeSelections)
-    const picker = colorInput
-    if (!picker) {
-      return
-    }
     activeMode = mode
-    picker.value = selectedColors[mode]
     const toolbarButtonName = modeConfig[mode].toolbarButtonName
     const toolbarButton = (editor as EasyMDEWithToolbar).toolbarElements?.[
       toolbarButtonName
     ]
     if (toolbarButton) {
       const rect = toolbarButton.getBoundingClientRect()
-      picker.style.left = `${Math.round(rect.left + rect.width / 2)}px`
-      picker.style.top = `${Math.round(rect.bottom)}px`
+      colorPickerX = Math.round(rect.left + rect.width / 2)
+      colorPickerY = Math.round(rect.bottom)
     }
-    picker.focus()
-    try {
-      if (typeof picker.showPicker === "function") {
-        picker.showPicker()
-        return
-      }
-      picker.click()
-    } catch (_err) {
-      picker.click()
-    }
+    colorPickerKey += 1
+    await tick()
+    const trigger = colorPickerAnchor?.querySelector(".preview") as
+      | HTMLElement
+      | undefined
+    trigger?.click()
   }
 
   const applyStyledSelections = (color: string, mode: ColorMode) => {
@@ -139,8 +139,8 @@
     pendingSelections = null
   }
 
-  const onColorChange = (event: Event) => {
-    const color = (event.target as HTMLInputElement).value?.trim()
+  const onColorChange = (event: CustomEvent<string | undefined>) => {
+    const color = event.detail?.trim()
     if (!color) {
       return
     }
@@ -235,24 +235,23 @@
   />
 {/key}
 
-<input
-  bind:this={colorInput}
-  class="native-color-picker"
-  type="color"
-  value={selectedColors[activeMode]}
-  on:input={onColorChange}
-  on:change={onColorChange}
-/>
+<div
+  bind:this={colorPickerAnchor}
+  class="budibase-color-picker-anchor"
+  style={`left:${colorPickerX}px;top:${colorPickerY}px;`}
+>
+  {#key colorPickerKey}
+    <ColorPicker value={selectedColors[activeMode]} size="S" on:change={onColorChange} />
+  {/key}
+</div>
 
 <style>
-  .native-color-picker {
+  .budibase-color-picker-anchor {
     position: fixed;
-    top: 0;
-    left: 0;
     width: 1px;
     height: 1px;
+    overflow: hidden;
     opacity: 0;
-    border: 0;
-    padding: 0;
+    pointer-events: none;
   }
 </style>
