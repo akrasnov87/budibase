@@ -1,6 +1,6 @@
 <script lang="ts">
   import type EasyMDE from "easymde"
-  import { tick } from "svelte"
+  import { onDestroy, tick } from "svelte"
   import SpectrumMDE from "./SpectrumMDE.svelte"
   import ColorPicker from "../ColorPicker/ColorPicker.svelte"
   import { createEventDispatcher } from "svelte"
@@ -17,7 +17,11 @@
   const dispatch = createEventDispatcher()
 
   let latestValue: string | null
-  let mde: any
+  interface EditorInstance extends EasyMDE {
+    togglePreview: () => void
+    value: (value?: string) => string
+  }
+  let mde: EditorInstance | null = null
   const colorDefaults = {
     text: "#d73f09",
     highlight: "#fff59d",
@@ -35,6 +39,10 @@
     },
   } as const
   type ColorMode = keyof typeof colorDefaults
+  interface EditorSelectionRange {
+    anchor: { line: number; ch: number }
+    head: { line: number; ch: number }
+  }
   interface EasyMDEWithToolbar extends EasyMDE {
     toolbarElements?: Record<string, HTMLElement>
   }
@@ -47,27 +55,32 @@
     text: colorDefaults.text,
     highlight: colorDefaults.highlight,
   }
-  let pendingSelections: any[] | null = null
-  let lastNonEmptySelections: any[] | null = null
-  let eventsBoundTo: EasyMDE | null = null
+  let pendingSelections: EditorSelectionRange[] | null = null
+  let lastNonEmptySelections: EditorSelectionRange[] | null = null
+  let eventsBoundTo: EditorInstance | null = null
 
-  const cloneSelections = (selections: any[]) =>
+  const cloneSelections = (selections: EditorSelectionRange[]) =>
     selections.map(selection => ({
       anchor: { ...selection.anchor },
       head: { ...selection.head },
     }))
 
+  const hasSelectedText = (editor: EasyMDE) =>
+    editor.codemirror.getSelections().some((text: string) => text.length > 0)
+
+  const getSelections = (editor: EasyMDE) =>
+    cloneSelections(
+      editor.codemirror.listSelections() as EditorSelectionRange[]
+    )
+
   const cacheSelection = () => {
     if (!mde) {
       return
     }
-    const hasSelectedText = mde.codemirror
-      .getSelections()
-      .some((text: string) => text.length > 0)
-    if (!hasSelectedText) {
+    if (!hasSelectedText(mde)) {
       return
     }
-    lastNonEmptySelections = cloneSelections(mde.codemirror.listSelections())
+    lastNonEmptySelections = getSelections(mde)
   }
 
   const bindEditorEvents = () => {
@@ -83,16 +96,9 @@
     eventsBoundTo = mde
   }
 
-  const openColorPicker = (editor: EasyMDE, mode: ColorMode) => {
-    openBudibaseColorPicker(editor, mode)
-  }
-
-  const openBudibaseColorPicker = async (editor: EasyMDE, mode: ColorMode) => {
-    const currentSelections = editor.codemirror.listSelections()
-    const hasSelectedText = editor.codemirror
-      .getSelections()
-      .some((text: string) => text.length > 0)
-    const activeSelections = hasSelectedText
+  const openColorPicker = async (editor: EasyMDE, mode: ColorMode) => {
+    const currentSelections = getSelections(editor)
+    const activeSelections = hasSelectedText(editor)
       ? currentSelections
       : lastNonEmptySelections || currentSelections
     pendingSelections = cloneSelections(activeSelections)
@@ -133,7 +139,8 @@
     const { wrapperTag, stylePrefix } = modeConfig[mode]
     const styleAttr = `${stylePrefix}: ${safeColor};`
     const replacements = selectedTexts.map(
-      (text: string) => `<${wrapperTag} style="${styleAttr}">${text}</${wrapperTag}>`
+      (text: string) =>
+        `<${wrapperTag} style="${styleAttr}">${text}</${wrapperTag}>`
     )
     mde.codemirror.replaceSelections(replacements)
     pendingSelections = null
@@ -150,6 +157,14 @@
     }
     applyStyledSelections(color, activeMode)
   }
+
+  onDestroy(() => {
+    if (!eventsBoundTo) {
+      return
+    }
+    eventsBoundTo.codemirror.off("blur", update)
+    eventsBoundTo.codemirror.off("cursorActivity", cacheSelection)
+  })
 
   const textColorToolbarButton = {
     name: "text-color",
@@ -192,16 +207,19 @@
   $: checkValue(value)
   $: bindEditorEvents()
   $: if (readonly || disabled) {
-    mde?.togglePreview()
+    mde?.togglePreview?.()
   }
 
   const checkValue = (val: string | null) => {
     if (mde && val !== latestValue) {
-      mde.value(val)
+      mde.value(val ?? "")
     }
   }
 
   const update = () => {
+    if (!mde) {
+      return
+    }
     latestValue = mde.value()
     dispatch("change", latestValue)
   }
@@ -241,7 +259,11 @@
   style={`left:${colorPickerX}px;top:${colorPickerY}px;`}
 >
   {#key colorPickerKey}
-    <ColorPicker value={selectedColors[activeMode]} size="S" on:change={onColorChange} />
+    <ColorPicker
+      value={selectedColors[activeMode]}
+      size="S"
+      on:change={onColorChange}
+    />
   {/key}
 </div>
 
