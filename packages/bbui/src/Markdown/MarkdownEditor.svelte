@@ -19,7 +19,7 @@
   let latestValue: string | null
   interface EditorInstance extends EasyMDE {
     togglePreview: () => void
-    value: (value?: string) => string
+    value: (_value?: string) => string
   }
   let mde: EditorInstance | null = null
   const colorDefaults = {
