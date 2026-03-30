@@ -83,17 +83,17 @@
     lastNonEmptySelections = getSelections(mde)
   }
 
-  const bindEditorEvents = () => {
-    if (!mde || eventsBoundTo === mde) {
+  const bindEditorEvents = (editor: EditorInstance) => {
+    if (eventsBoundTo === editor) {
       return
     }
     if (eventsBoundTo) {
       eventsBoundTo.codemirror.off("blur", update)
       eventsBoundTo.codemirror.off("cursorActivity", cacheSelection)
     }
-    mde.codemirror.on("blur", update)
-    mde.codemirror.on("cursorActivity", cacheSelection)
-    eventsBoundTo = mde
+    editor.codemirror.on("blur", update)
+    editor.codemirror.on("cursorActivity", cacheSelection)
+    eventsBoundTo = editor
   }
 
   const openColorPicker = async (editor: EasyMDE, mode: ColorMode) => {
@@ -204,15 +204,17 @@
 
   // Ensure the value is updated if the value prop changes outside the editor's
   // control
-  $: checkValue(value)
-  $: bindEditorEvents()
-  $: if (readonly || disabled) {
-    mde?.togglePreview?.()
+  $: checkValue(mde, value)
+  $: if (mde) {
+    bindEditorEvents(mde)
+  }
+  $: if ((readonly || disabled) && mde) {
+    mde.togglePreview?.()
   }
 
-  const checkValue = (val: string | null) => {
-    if (mde && val !== latestValue) {
-      mde.value(val ?? "")
+  const checkValue = (editor: EditorInstance | null, val: string | null) => {
+    if (editor && val !== latestValue) {
+      editor.value(val ?? "")
     }
   }
 
