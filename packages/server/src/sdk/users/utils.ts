@@ -99,12 +99,16 @@ export async function fetchMetadata(): Promise<ContextUserMetadata[]> {
     // find the metadata that matches up to the global ID
     const info = metadata.find(meta => meta._id!.includes(user._id!))
     // remove these props, not for the correct DB
-    users.push({
+    const mergedUser = {
       ...user,
       ...info,
       tableId: InternalTables.USER_METADATA,
       // make sure the ID is always a local ID, not a global one
       _id: generateUserMetadataID(user._id!),
+    }
+    users.push({
+      ...mergedUser,
+      fullName: getFullName(mergedUser),
     })
   }
   return users
