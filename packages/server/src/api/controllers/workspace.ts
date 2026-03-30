@@ -13,7 +13,7 @@ import {
   users,
   utils,
 } from "@budibase/backend-core"
-import { groups, licensing, quotas } from "@budibase/pro"
+import { features, groups, licensing, quotas } from "@budibase/pro"
 import {
   DefaultAppTheme,
   helpers,
@@ -34,6 +34,7 @@ import {
   APIWarningCode,
   FetchAppDefinitionResponse,
   FetchAppPackageResponse,
+  FetchMicrofrontendBootstrapResponse,
   FetchPublishedAppsResponse,
   FetchPublishedChatAppsResponse,
   FetchWorkspacesResponse,
@@ -603,6 +604,103 @@ export async function fetchAppPackage(
     recaptchaKey: recaptchaConfig?.config.siteKey,
     clientCacheKey,
   }
+}
+
+const parseMicrofrontendAppPath = (value: unknown) => {
+  if (typeof value !== "string") {
+    return undefined
+  }
+  const normalizedPath = value.trim().split("?")[0].replace(/\/$/, "")
+  if (
+    !normalizedPath.startsWith("/app/") &&
+    !normalizedPath.startsWith("/app-chat/")
+  ) {
+    return undefined
+  }
+
+  const parts = normalizedPath.split("/")
+  if (!parts[2]) {
+    return undefined
+  }
+
+  return normalizedPath
+}
+
+const resolveProdWorkspaceIdFromAppPath = async (appPath: string) => {
+  const workspaceUrl = appPath.split("/")[2]
+  if (!workspaceUrl) {
+    return undefined
+  }
+
+  const possibleUrl = `/${workspaceUrl.toLowerCase()}`
+  const workspaces = await dbCore.getAllWorkspaces({ dev: false })
+  const workspace = workspaces.find(
+    app => app.url?.toLowerCase() === possibleUrl
+  )
+  return workspace?.appId
+}
+
+export async function fetchMicrofrontendBootstrap(
+  ctx: UserCtx<void, FetchMicrofrontendBootstrapResponse>
+) {
+  const license = await licensing.cache.getCachedLicense()
+  if (!(await features.isMicrofrontendFeatureEnabled(license))) {
+    ctx.throw(
+      403,
+      "Microfrontend bootstrap is only available when the microfrontend feature is enabled."
+    )
+  }
+
+  const appPath = parseMicrofrontendAppPath(ctx.query.appPath)
+  if (!appPath) {
+    ctx.throw(
+      400,
+      "Invalid appPath. Provide /app/<workspace-url> or /app-chat/<workspace-url>."
+    )
+  }
+
+  const workspaceId = await resolveProdWorkspaceIdFromAppPath(appPath)
+  if (!workspaceId) {
+    ctx.throw(404, `No matching workspace app found for URL path: ${appPath}`)
+  }
+
+  const isChatRoute =
+    appPath === "/app-chat" || appPath.startsWith("/app-chat/")
+
+  const bootstrap = await context.doInWorkspaceContext(
+    workspaceId,
+    async () => {
+      const matchedWorkspaceApp =
+        await sdk.workspaceApps.getMatchedWorkspaceApp(appPath)
+
+      if (
+        !isChatRoute &&
+        (!matchedWorkspaceApp || matchedWorkspaceApp.disabled)
+      ) {
+        ctx.throw(
+          404,
+          `No matching workspace app found for URL path: ${appPath}`
+        )
+      }
+
+      const appInfo = await sdk.workspaces.metadata.get()
+      const clientLibPath = await objectStore.clientLibraryUrl(
+        workspaceId,
+        appInfo.version
+      )
+      const clientCacheKey = await objectStore.getClientCacheKey(
+        appInfo.version
+      )
+
+      return {
+        appId: workspaceId,
+        clientLibPath,
+        clientCacheKey,
+      }
+    }
+  )
+
+  ctx.body = bootstrap
 }
 
 async function performWorkspaceCreate(
