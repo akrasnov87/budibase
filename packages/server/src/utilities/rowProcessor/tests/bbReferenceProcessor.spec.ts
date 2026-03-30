@@ -33,6 +33,17 @@ jest.mock("@budibase/backend-core", (): typeof backendCore => {
 
 const config = new DBTestConfiguration()
 
+const getFullName = (user: Pick<User, "firstName" | "lastName" | "email">) => {
+  const firstName = user.firstName?.trim()
+  const lastName = user.lastName?.trim()
+
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`
+  }
+
+  return firstName || lastName || user.email
+}
+
 describe("bbReferenceProcessor", () => {
   const cacheGetUserSpy = backendCore.cache.user.getUser as jest.MockedFunction<
     typeof backendCore.cache.user.getUser
@@ -245,6 +256,7 @@ describe("bbReferenceProcessor", () => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
+          fullName: getFullName(user),
         })
         expect(cacheGetUserSpy).toHaveBeenCalledTimes(1)
         expect(cacheGetUserSpy).toHaveBeenCalledWith({
@@ -285,6 +297,7 @@ describe("bbReferenceProcessor", () => {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
+            fullName: getFullName(user),
           },
         ])
         expect(cacheGetUsersSpy).toHaveBeenCalledTimes(1)
@@ -312,6 +325,7 @@ describe("bbReferenceProcessor", () => {
               email: u.email,
               firstName: u.firstName,
               lastName: u.lastName,
+              fullName: getFullName(u),
             }))
           )
         )
@@ -347,6 +361,7 @@ describe("bbReferenceProcessor", () => {
               email: u.email,
               firstName: u.firstName,
               lastName: u.lastName,
+              fullName: getFullName(u),
             }))
           )
         )

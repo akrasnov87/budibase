@@ -107,6 +107,7 @@ describe("syncGlobalUsers", () => {
         email: user1.email,
         firstName: user1.firstName,
         lastName: user1.lastName,
+        fullName: `${user1.firstName} ${user1.lastName}`,
         builder: { global: false },
         admin: { global: false },
 
@@ -118,6 +119,54 @@ describe("syncGlobalUsers", () => {
       expect(metadata).not.toContainEqual(
         expect.objectContaining({
           _id: db.generateUserMetadataID(user2._id!),
+        })
+      )
+    })
+  })
+
+  it("uses email as fullName fallback when first and last names are empty", async () => {
+    const user = await config.createUser({
+      firstName: "",
+      lastName: "",
+      admin: { global: false },
+      builder: { global: false },
+      roles: {
+        [config.getProdWorkspaceId()]: roles.BUILTIN_ROLE_IDS.BASIC,
+      },
+    })
+
+    await config.doInContext(config.devWorkspaceId, async () => {
+      await syncGlobalUsers()
+
+      const metadata = await rawUserMetadata()
+      expect(metadata).toContainEqual(
+        expect.objectContaining({
+          _id: db.generateUserMetadataID(user._id!),
+          fullName: user.email,
+        })
+      )
+    })
+  })
+
+  it("uses single-name fullName fallback when only one name part exists", async () => {
+    const user = await config.createUser({
+      firstName: "Only",
+      lastName: "",
+      admin: { global: false },
+      builder: { global: false },
+      roles: {
+        [config.getProdWorkspaceId()]: roles.BUILTIN_ROLE_IDS.BASIC,
+      },
+    })
+
+    await config.doInContext(config.devWorkspaceId, async () => {
+      await syncGlobalUsers()
+
+      const metadata = await rawUserMetadata()
+      expect(metadata).toContainEqual(
+        expect.objectContaining({
+          _id: db.generateUserMetadataID(user._id!),
+          fullName: "Only",
         })
       )
     })
