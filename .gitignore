@@ -129,3 +129,5 @@ scripts/resources/minio
 HIDDEN.md
 .claude
 .opencode
+.env
+docker-compose.yaml
