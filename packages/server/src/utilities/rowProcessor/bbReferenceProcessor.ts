@@ -113,6 +113,22 @@ interface UserReferenceInfo {
   email: string
   firstName?: string
   lastName?: string
+  fullName?: string
+}
+
+const getFullName = (user: {
+  firstName?: string
+  lastName?: string
+  email: string
+}) => {
+  const firstName = user.firstName?.trim()
+  const lastName = user.lastName?.trim()
+
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`
+  }
+
+  return firstName || lastName || user.email
 }
 
 export async function processOutputBBReference(
@@ -145,6 +161,7 @@ export async function processOutputBBReference(
         email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
+        fullName: getFullName(user),
       }
     }
     default:
@@ -176,6 +193,7 @@ export async function processOutputBBReferences(
         email: u.email,
         firstName: u.firstName,
         lastName: u.lastName,
+        fullName: getFullName(u),
       }))
     }
     default:

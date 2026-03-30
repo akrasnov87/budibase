@@ -16,6 +16,21 @@ import {
 } from "../../db/utils"
 import { getGlobalUsers } from "../../utilities/global"
 
+const getFullName = (user: {
+  firstName?: string
+  lastName?: string
+  email?: string
+}) => {
+  const firstName = user.firstName?.trim()
+  const lastName = user.lastName?.trim()
+
+  if (firstName && lastName) {
+    return `${firstName} ${lastName}`
+  }
+
+  return firstName || lastName || user.email
+}
+
 export function combineMetadataAndUser(
   user: ContextUser,
   metadata: UserMetadata | UserMetadata[]
@@ -38,6 +53,7 @@ export function combineMetadataAndUser(
   delete user._rev
   const newDoc = {
     ...user,
+    fullName: getFullName(user),
     _id: metadataId,
     tableId: InternalTables.USER_METADATA,
   }
@@ -141,6 +157,7 @@ export function getUserContextBindings(user: ContextUser): UserBindings {
     _rev: user._rev,
     firstName: user.firstName,
     lastName: user.lastName,
+    fullName: getFullName(user),
     email: user.email,
     status: user.status,
     roleId: user.roleId,
