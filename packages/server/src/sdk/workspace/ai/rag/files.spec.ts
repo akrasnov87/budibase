@@ -100,6 +100,7 @@ describe("rag files", () => {
         _id: "agent_1",
         _rev: "1-x",
         name: "Agent 1",
+        aiconfig: "config_1",
         knowledgeBases: [],
       } as Agent
       const created = {
