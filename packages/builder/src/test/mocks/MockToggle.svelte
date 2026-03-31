@@ -6,10 +6,5 @@
 
 <label>
   <span>{text}</span>
-  <input
-    type="checkbox"
-    aria-label={text}
-    bind:checked={value}
-    {disabled}
-  />
+  <input type="checkbox" aria-label={text} bind:checked={value} {disabled} />
 </label>

@@ -84,7 +84,7 @@ describe("workspaceInviteUtils", () => {
     const payload = buildWorkspaceInvitePayload(
       [
         {
-          email: "group-user@test.com",
+          email: "group-user@example.com",
           role: Constants.BudibaseRoles.AppUser,
           appRole: Constants.Roles.BASIC,
           password: "password",
@@ -114,7 +114,7 @@ describe("workspaceInviteUtils", () => {
     const payload = buildWorkspaceInvitePayload(
       [
         {
-          email: "basic-user@test.com",
+          email: "basic-user@example.com",
           role: Constants.BudibaseRoles.AppUser,
           appRole: Constants.Roles.BASIC,
           password: "password",
@@ -131,15 +131,18 @@ describe("workspaceInviteUtils", () => {
 
   it("resolves default group id when no groups are selected", () => {
     expect(
-      getEffectiveGroupIds([], [
-        {
-          _id: "group_default",
-          isDefault: true,
-          name: "Default",
-          icon: "ri-user-line",
-          color: "#000000",
-        },
-      ])
+      getEffectiveGroupIds(
+        [],
+        [
+          {
+            _id: "group_default",
+            isDefault: true,
+            name: "Default",
+            icon: "ri-user-line",
+            color: "#000000",
+          },
+        ]
+      )
     ).toEqual(["group_default"])
   })
 })
