@@ -36,6 +36,7 @@ import {
   getAccountHolderFromUsers,
   isAdmin,
   isCreatorAsync,
+  isCreatorSync,
   validateUniqueUser,
 } from "./utils"
 
@@ -288,6 +289,30 @@ export class UserDB {
     }
 
     const isNewUser = !dbUser
+    let groupIdsToAssignForNewUser = [...userGroups]
+    if (isNewUser && groupIdsToAssignForNewUser.length === 0) {
+      const defaultGroup = await UserDB.groups.getDefaultGroup?.()
+      if (defaultGroup?._id) {
+        groupIdsToAssignForNewUser = [defaultGroup._id]
+      }
+    }
+    if (isNewUser && !opts.isAccountHolder) {
+      const groupsForCreatorCheck = (
+        groupIdsToAssignForNewUser.length
+          ? await UserDB.groups.getBulk(groupIdsToAssignForNewUser)
+          : []
+      ).filter((group): group is UserGroup => !!group)
+      creatorsChange = isCreatorSync(
+        {
+          ...user,
+          userGroups: groupIdsToAssignForNewUser,
+        },
+        groupsForCreatorCheck
+      ) // derived from the effective assignment (explicit/default groups)
+        ? 1
+        : 0
+    }
+
     const isEmailChanging = !!dbUser && !!email && dbUser.email !== email
     const shouldValidateUniqueUser =
       !opts.isAccountHolder && !!email && (isNewUser || isEmailChanging)
@@ -310,11 +335,8 @@ export class UserDB {
       // make sure we set the _id field for a new user
       // Also if this is a new user, associate groups with them
       let groupIdsToAssign = [...userGroups]
-      if (isNewUser && groupIdsToAssign.length === 0) {
-        const defaultGroup = await UserDB.groups.getDefaultGroup?.()
-        if (defaultGroup?._id) {
-          groupIdsToAssign = [defaultGroup._id]
-        }
+      if (isNewUser) {
+        groupIdsToAssign = [...groupIdsToAssignForNewUser]
       }
 
       const groupPromises = []

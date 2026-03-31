@@ -40,6 +40,7 @@ describe("UserDB", () => {
   beforeEach(() => {
     jest.clearAllMocks()
     groups.getDefaultGroup.mockResolvedValue(undefined)
+    groups.getBulk.mockResolvedValue([])
   })
 
   describe("save", () => {
@@ -142,6 +143,35 @@ describe("UserDB", () => {
           expect(groups.addUsers).not.toHaveBeenCalledWith(defaultGroupId, [
             saved._id!,
           ])
+        })
+      })
+
+      it("increments creator quota when default group grants creator role", async () => {
+        const defaultGroupId = `group_${generator.guid()}`
+        const workspaceId = `app_${generator.guid()}`
+        const defaultGroup: UserGroup = {
+          ...structures.userGroups.userGroup(),
+          _id: defaultGroupId,
+          roles: { [workspaceId]: "CREATOR" },
+        }
+        groups.getDefaultGroup.mockResolvedValue(defaultGroup)
+        groups.getBulk.mockResolvedValue([defaultGroup])
+
+        const user: User = structures.users.user({
+          email: generator.email({}),
+          tenantId: config.getTenantId(),
+        })
+        delete user.userGroups
+
+        await config.doInTenant(async () => {
+          await getGlobalDB().put(defaultGroup)
+          await db.save(user)
+
+          expect(quotas.addUsers).toHaveBeenCalledWith(
+            1,
+            1,
+            expect.any(Function)
+          )
         })
       })
     })
