@@ -81,7 +81,6 @@ const runEvent = (event: QueryEvent): Promise<string | undefined> => {
     let capturedPath: string | undefined
     ;(getIntegration as jest.Mock).mockResolvedValue(
       class {
-        constructor(_config: any) {}
         read = jest.fn(async (opts: any) => {
           capturedPath = opts.path
           return []
