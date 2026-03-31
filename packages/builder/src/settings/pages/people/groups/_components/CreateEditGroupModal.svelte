@@ -6,6 +6,7 @@
     ModalContent,
     Input,
     IconPicker,
+    Toggle,
   } from "@budibase/bbui"
 
   export let group
@@ -34,6 +35,9 @@
     error={nameError}
     disabled={readonlyTitle}
   />
+  <div class="toggle-row">
+    <Toggle bind:value={group.isDefault} text="Make this the default group" />
+  </div>
   <div class="modal-format">
     <div class="modal-inner">
       <Body size="XS">Icon</Body>
@@ -61,6 +65,9 @@
     display: flex;
     justify-content: space-between;
     width: 40%;
+  }
+  .toggle-row {
+    margin-top: var(--spacing-s);
   }
 
   .modal-inner {

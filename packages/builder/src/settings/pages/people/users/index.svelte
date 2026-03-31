@@ -334,7 +334,8 @@
       usersForInvite,
       userData.groups,
       currentWorkspaceId,
-      assignToWorkspace
+      assignToWorkspace,
+      $groups
     )
     try {
       inviteUsersResponse = await users.invite(payload)
@@ -440,7 +441,9 @@
         const assignmentResult = await assignCreatedUsersToWorkspace(
           bulkSaveResponse.successful,
           usersForCreation.users,
-          currentWorkspaceId
+          currentWorkspaceId,
+          usersForCreation.groups,
+          $groups
         )
         if (assignmentResult.failedCount) {
           notifications.error("Error adding some users to workspace")

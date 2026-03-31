@@ -48,11 +48,13 @@ type GroupUpdateFn = (groupId: string, userIds: string[]) => Promise<any>
 type FeatureFn = () => Promise<Boolean>
 type GroupGetFn = (ids: string[]) => Promise<UserGroup[]>
 type GroupBuildersFn = (user: User) => Promise<string[]>
+type GetDefaultGroupFn = () => Promise<UserGroup | undefined>
 type QuotaFns = { addUsers: QuotaUpdateFn; removeUsers: QuotaUpdateFn }
 type GroupFns = {
   addUsers: GroupUpdateFn
   getBulk: GroupGetFn
   getGroupBuilderAppIds: GroupBuildersFn
+  getDefaultGroup?: GetDefaultGroupFn
 }
 type CreateAdminUserOpts = {
   password?: string
@@ -307,14 +309,21 @@ export class UserDB {
 
       // make sure we set the _id field for a new user
       // Also if this is a new user, associate groups with them
+      let groupIdsToAssign = [...userGroups]
+      if (isNewUser && groupIdsToAssign.length === 0) {
+        const defaultGroup = await UserDB.groups.getDefaultGroup?.()
+        if (defaultGroup?._id) {
+          groupIdsToAssign = [defaultGroup._id]
+        }
+      }
+
       const groupPromises = []
-      if (!_id) {
-        if (userGroups.length > 0) {
-          for (let groupId of userGroups) {
-            groupPromises.push(
-              UserDB.groups.addUsers(groupId, [builtUser._id!])
-            )
-          }
+      if (isNewUser) {
+        if (groupIdsToAssign.length > 0) {
+          builtUser.userGroups = groupIdsToAssign
+        }
+        for (let groupId of groupIdsToAssign) {
+          groupPromises.push(UserDB.groups.addUsers(groupId, [builtUser._id!]))
         }
       }
 
@@ -364,6 +373,13 @@ export class UserDB {
     const emails = newUsersRequested.map((user: User) => user.email)
     const existingEmails = await searchExistingEmails(emails)
     const unsuccessful: { email: string; reason: string }[] = []
+    let groupIdsToAssign = groups && groups.length ? [...groups] : []
+    if (!groupIdsToAssign.length) {
+      const defaultGroup = await UserDB.groups.getDefaultGroup?.()
+      if (defaultGroup?._id) {
+        groupIdsToAssign = [defaultGroup._id]
+      }
+    }
 
     for (const newUser of newUsersRequested) {
       const duplicateUser = newUsers.find(
@@ -374,7 +390,7 @@ export class UserDB {
         unsuccessful.push({ email: newUser.email, reason: `Unavailable` })
         continue
       }
-      newUser.userGroups = groups || []
+      newUser.userGroups = [...groupIdsToAssign]
       newUsers.push(newUser)
       if (await isCreatorAsync(newUser)) {
         newCreators.push(newUser)
@@ -423,10 +439,10 @@ export class UserDB {
         })
 
         // now update the groups
-        if (Array.isArray(saved) && groups) {
+        if (Array.isArray(saved) && groupIdsToAssign.length) {
           const groupPromises = []
           const createdUserIds = saved.map(user => user._id!)
-          for (let groupId of groups) {
+          for (let groupId of groupIdsToAssign) {
             groupPromises.push(UserDB.groups.addUsers(groupId, createdUserIds))
           }
           await Promise.all(groupPromises)

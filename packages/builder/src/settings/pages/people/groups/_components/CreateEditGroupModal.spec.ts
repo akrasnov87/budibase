@@ -5,6 +5,7 @@ import MockColorPicker from "@/test/mocks/MockColorPicker.svelte"
 import MockIconPicker from "@/test/mocks/MockIconPicker.svelte"
 import MockInput from "@/test/mocks/MockInput.svelte"
 import MockModalContent from "@/test/mocks/MockModalContent.svelte"
+import MockToggle from "@/test/mocks/MockToggle.svelte"
 
 vi.mock("@budibase/bbui", () => ({
   keepOpen: Symbol("keepOpen"),
@@ -13,6 +14,7 @@ vi.mock("@budibase/bbui", () => ({
   ModalContent: MockModalContent,
   Input: MockInput,
   IconPicker: MockIconPicker,
+  Toggle: MockToggle,
 }))
 
 import CreateEditGroupModal from "./CreateEditGroupModal.svelte"
@@ -41,6 +43,9 @@ describe("CreateEditGroupModal", () => {
     expect(screen.getByLabelText("Name")).toBeDisabled()
     expect(screen.getByLabelText("Icon")).not.toBeDisabled()
     expect(screen.getByLabelText("Color")).not.toBeDisabled()
+    expect(
+      screen.getByLabelText("Make this the default group")
+    ).not.toBeDisabled()
   })
 
   it("allows non-scim groups to edit all exposed fields", () => {
@@ -54,5 +59,8 @@ describe("CreateEditGroupModal", () => {
     expect(screen.getByLabelText("Name")).not.toBeDisabled()
     expect(screen.getByLabelText("Icon")).not.toBeDisabled()
     expect(screen.getByLabelText("Color")).not.toBeDisabled()
+    expect(
+      screen.getByLabelText("Make this the default group")
+    ).not.toBeDisabled()
   })
 })

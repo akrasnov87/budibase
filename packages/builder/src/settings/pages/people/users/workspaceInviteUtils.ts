@@ -1,7 +1,7 @@
 import { users } from "@/stores/portal/users"
 import type { UserInfo } from "@/types"
 import { Constants } from "@budibase/frontend-core"
-import type { User } from "@budibase/types"
+import type { User, UserGroup } from "@budibase/types"
 import { getRoleFlags, shouldSyncGlobalRole } from "./roleUtils"
 
 export interface UserData {
@@ -52,10 +52,19 @@ export const buildWorkspaceInvitePayload = (
   usersForInvite: UserInfo[],
   groups: string[],
   workspaceId: string,
-  assignToWorkspace = true
+  assignToWorkspace = true,
+  allGroups: UserGroup[] = []
 ): InvitePayloadUser[] => {
   return usersForInvite.map(user => {
-    const workspaceRole = getWorkspaceRole(workspaceId, user.role, user.appRole)
+    const workspaceRole = shouldUseGroupWorkspaceRole({
+      workspaceId,
+      role: user.role,
+      appRole: user.appRole,
+      selectedGroupIds: groups,
+      allGroups,
+    })
+      ? undefined
+      : getWorkspaceRole(workspaceId, user.role, user.appRole)
     return {
       email: user.email,
       builder: user.role === Constants.BudibaseRoles.Developer,
@@ -88,6 +97,56 @@ export const getWorkspaceRole = (
     return appRole || Constants.Roles.BASIC
   }
   return Constants.Roles.BASIC
+}
+
+interface ShouldUseGroupWorkspaceRoleParams {
+  workspaceId: string
+  role?: string
+  appRole?: string
+  selectedGroupIds?: string[]
+  allGroups?: UserGroup[]
+}
+
+const getEffectiveGroupIds = (
+  selectedGroupIds: string[] = [],
+  allGroups: UserGroup[] = []
+) => {
+  if (selectedGroupIds.length) {
+    return selectedGroupIds
+  }
+  const defaultGroupId = allGroups.find(group => group.isDefault)?._id
+  return defaultGroupId ? [defaultGroupId] : []
+}
+
+export const shouldUseGroupWorkspaceRole = ({
+  workspaceId,
+  role,
+  appRole,
+  selectedGroupIds = [],
+  allGroups = [],
+}: ShouldUseGroupWorkspaceRoleParams) => {
+  if (role !== Constants.BudibaseRoles.AppUser) {
+    return false
+  }
+
+  if (!workspaceId) {
+    return false
+  }
+
+  if (appRole && appRole !== Constants.Roles.BASIC) {
+    return false
+  }
+
+  const effectiveGroupIds = getEffectiveGroupIds(selectedGroupIds, allGroups)
+  if (!effectiveGroupIds.length) {
+    return false
+  }
+
+  return effectiveGroupIds.some(groupId => {
+    return !!allGroups.find(group => {
+      return group._id === groupId && group.roles?.[workspaceId]
+    })
+  })
 }
 
 export const assignExistingUsersToWorkspace = async (
@@ -181,7 +240,9 @@ export const assignExistingUsersToWorkspace = async (
 export const assignCreatedUsersToWorkspace = async (
   createdUsers: WorkspaceCreatedUser[],
   sourceUsers: UserInfo[],
-  workspaceId: string
+  workspaceId: string,
+  selectedGroupIds: string[] = [],
+  allGroups: UserGroup[] = []
 ): Promise<WorkspaceCreatedUserResult> => {
   if (!workspaceId || !createdUsers.length) {
     return {
@@ -207,6 +268,16 @@ export const assignCreatedUsersToWorkspace = async (
         matchingUser?.role,
         matchingUser?.appRole
       )
+      const useGroupWorkspaceRole = shouldUseGroupWorkspaceRole({
+        workspaceId,
+        role: matchingUser?.role,
+        appRole: matchingUser?.appRole,
+        selectedGroupIds,
+        allGroups,
+      })
+      if (useGroupWorkspaceRole) {
+        return null
+      }
       if (!role) {
         return null
       }

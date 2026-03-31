@@ -41,6 +41,14 @@ class GroupStore extends BudiStore<UserGroup[]> {
     const response = await API.saveGroup(dataToSave)
     group._id = response._id
     group._rev = response._rev
+
+    // Setting a default group has side effects on other groups, so refresh all.
+    if (group.isDefault) {
+      const latestGroups = await API.getGroups()
+      this.set(latestGroups)
+      return latestGroups.find(g => g._id === group._id) || group
+    }
+
     this.updateStore(group)
     return group
   }

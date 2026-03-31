@@ -1,6 +1,7 @@
-import { BulkUserCreated, User, UserStatus } from "@budibase/types"
+import { BulkUserCreated, User, UserGroup, UserStatus } from "@budibase/types"
 import { DBTestConfiguration, generator, structures } from "../../../tests"
 import * as accounts from "../../accounts"
+import { getGlobalDB } from "../../context"
 import { withEnv } from "../../environment"
 import { UserDB } from "../db"
 import { searchExistingEmails } from "../lookup"
@@ -27,6 +28,7 @@ const groups = {
   addUsers: jest.fn(),
   getBulk: jest.fn(),
   getGroupBuilderAppIds: jest.fn(),
+  getDefaultGroup: jest.fn(),
 }
 const features = { isSSOEnforced: jest.fn() }
 
@@ -37,6 +39,7 @@ describe("UserDB", () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
+    groups.getDefaultGroup.mockResolvedValue(undefined)
   })
 
   describe("save", () => {
@@ -95,6 +98,51 @@ describe("UserDB", () => {
             `Email already in use: '${email}'`
           )
         )
+      })
+
+      it("auto-assigns the default group when none is provided", async () => {
+        const defaultGroupId = `group_${generator.guid()}`
+        groups.getDefaultGroup.mockResolvedValue({ _id: defaultGroupId })
+
+        const user: User = structures.users.user({
+          email: generator.email({}),
+          tenantId: config.getTenantId(),
+        })
+        delete user.userGroups
+
+        await config.doInTenant(async () => {
+          const saved = await db.save(user)
+
+          expect(groups.addUsers).toHaveBeenCalledWith(defaultGroupId, [
+            saved._id!,
+          ])
+          const persistedUser = await db.getUser(saved._id!)
+          expect(persistedUser?.userGroups).toEqual([defaultGroupId])
+        })
+      })
+
+      it("uses explicit groups over default assignment", async () => {
+        const defaultGroupId = `group_${generator.guid()}`
+        const explicitGroupId = `group_${generator.guid()}`
+        groups.getDefaultGroup.mockResolvedValue({ _id: defaultGroupId })
+
+        const user: User = structures.users.user({
+          email: generator.email({}),
+          tenantId: config.getTenantId(),
+          userGroups: [explicitGroupId],
+        })
+
+        await config.doInTenant(async () => {
+          const saved = await db.save(user)
+
+          expect(groups.getDefaultGroup).not.toHaveBeenCalled()
+          expect(groups.addUsers).toHaveBeenCalledWith(explicitGroupId, [
+            saved._id!,
+          ])
+          expect(groups.addUsers).not.toHaveBeenCalledWith(defaultGroupId, [
+            saved._id!,
+          ])
+        })
       })
     })
 
@@ -216,6 +264,45 @@ describe("UserDB", () => {
   })
 
   describe("bulkCreate", () => {
+    it("auto-assigns the default group during bulk create when no groups are provided", async () => {
+      features.isSSOEnforced.mockResolvedValue(false)
+      const defaultGroupId = `group_${generator.guid()}`
+      const defaultGroup: UserGroup = {
+        ...structures.userGroups.userGroup(),
+        _id: defaultGroupId,
+      }
+      groups.getDefaultGroup.mockResolvedValue(defaultGroup)
+
+      await config.doInTenant(async () => {
+        await getGlobalDB().put(defaultGroup)
+
+        const users: User[] = [
+          structures.users.user({
+            email: generator.email({}),
+            password: "validPassword123!",
+            tenantId: config.getTenantId(),
+          }),
+          structures.users.user({
+            email: generator.email({}),
+            password: "validPassword456!",
+            tenantId: config.getTenantId(),
+          }),
+        ]
+
+        const result = await db.bulkCreate(users)
+        const createdUserIds = result.successful.map(user => user._id!)
+        const createdUsers = await db.bulkGet(createdUserIds)
+
+        expect(groups.addUsers).toHaveBeenCalledWith(
+          defaultGroupId,
+          expect.arrayContaining(createdUserIds)
+        )
+        expect(
+          createdUsers.every(user => user.userGroups?.includes(defaultGroupId))
+        ).toBe(true)
+      })
+    })
+
     describe("when SSO is NOT enforced", () => {
       beforeEach(() => {
         features.isSSOEnforced.mockResolvedValue(false)
