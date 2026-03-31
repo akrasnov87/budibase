@@ -122,34 +122,6 @@ describe("Creators quotas by group assignment", () => {
     })
   })
 
-  it("preserves existing default flag when isDefault is omitted", async () => {
-    const tenantId = `test_tenant_${generator.guid()}`
-    const existingDefaultGroup = {
-      ...group,
-      isDefault: true,
-    }
-
-    const { context } = require("@budibase/backend-core")
-
-    await context.doInTenant(tenantId, async () => {
-      groups.get.mockResolvedValue(existingDefaultGroup)
-
-      await save({
-        ...group,
-        name: "updated-group-name",
-      })
-
-      expect(groups.save).toHaveBeenCalledWith(
-        expect.objectContaining({
-          _id: GROUP_ID,
-          isDefault: true,
-          name: "updated-group-name",
-        })
-      )
-      expect(groups.bulkSave).not.toHaveBeenCalled()
-    })
-  })
-
   it("shouldn't increment creators quotas if group doesn't have creator role", async () => {
     const tenantId = `test_tenant_${generator.guid()}`
 

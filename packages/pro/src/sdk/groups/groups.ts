@@ -235,14 +235,6 @@ function stripEnrichedFields(group: UserGroup | EnrichedUserGroup): UserGroup {
 }
 
 async function saveGroupWithDefaultUpdates(group: UserGroup) {
-  if (group._id && group.isDefault === undefined) {
-    const existingGroup = await db.groups.get(group._id)
-    group = {
-      ...group,
-      isDefault: existingGroup.isDefault,
-    }
-  }
-
   if (!group.isDefault) {
     return db.groups.save(group)
   }
