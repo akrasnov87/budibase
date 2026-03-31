@@ -56,6 +56,29 @@ describe("workspaceInviteUtils", () => {
     ).toBe(false)
   })
 
+  it("does not infer default-group workspace role when default fallback is disabled", () => {
+    expect(
+      shouldUseGroupWorkspaceRole({
+        workspaceId,
+        role: Constants.BudibaseRoles.AppUser,
+        appRole: Constants.Roles.BASIC,
+        allGroups: [
+          {
+            _id: "group_default",
+            isDefault: true,
+            name: "Default",
+            icon: "ri-user-line",
+            color: "#000000",
+            roles: {
+              [workspaceId]: Constants.Roles.ADMIN,
+            },
+          },
+        ],
+        useDefaultGroupFallback: false,
+      })
+    ).toBe(false)
+  })
+
   it("does not set workspace apps payload when group-managed workspace role applies", () => {
     const payload = buildWorkspaceInvitePayload(
       [

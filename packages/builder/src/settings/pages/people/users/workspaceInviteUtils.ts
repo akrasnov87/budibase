@@ -105,14 +105,19 @@ interface ShouldUseGroupWorkspaceRoleParams {
   appRole?: string
   selectedGroupIds?: string[]
   allGroups?: UserGroup[]
+  useDefaultGroupFallback?: boolean
 }
 
 const getEffectiveGroupIds = (
   selectedGroupIds: string[] = [],
-  allGroups: UserGroup[] = []
+  allGroups: UserGroup[] = [],
+  useDefaultGroupFallback = true
 ) => {
   if (selectedGroupIds.length) {
     return selectedGroupIds
+  }
+  if (!useDefaultGroupFallback) {
+    return []
   }
   const defaultGroupId = allGroups.find(group => group.isDefault)?._id
   return defaultGroupId ? [defaultGroupId] : []
@@ -124,6 +129,7 @@ export const shouldUseGroupWorkspaceRole = ({
   appRole,
   selectedGroupIds = [],
   allGroups = [],
+  useDefaultGroupFallback = true,
 }: ShouldUseGroupWorkspaceRoleParams) => {
   if (role !== Constants.BudibaseRoles.AppUser) {
     return false
@@ -137,7 +143,11 @@ export const shouldUseGroupWorkspaceRole = ({
     return false
   }
 
-  const effectiveGroupIds = getEffectiveGroupIds(selectedGroupIds, allGroups)
+  const effectiveGroupIds = getEffectiveGroupIds(
+    selectedGroupIds,
+    allGroups,
+    useDefaultGroupFallback
+  )
   if (!effectiveGroupIds.length) {
     return false
   }
@@ -151,7 +161,8 @@ export const shouldUseGroupWorkspaceRole = ({
 
 export const assignExistingUsersToWorkspace = async (
   userData: UserData,
-  workspaceId: string
+  workspaceId: string,
+  allGroups: UserGroup[] = []
 ): Promise<WorkspaceExistingUserResult> => {
   const dedupedUserData = dedupeUsersByEmail(userData)
   if (!workspaceId) {
@@ -168,6 +179,7 @@ export const assignExistingUsersToWorkspace = async (
     existingUsers.map(user => [user.email.toLowerCase(), user])
   )
   const usersToInvite: UserInfo[] = []
+  const groupManagedUsers: string[] = []
   const usersToAssign: {
     user: User
     role: string
@@ -179,6 +191,18 @@ export const assignExistingUsersToWorkspace = async (
     const existingUser = existingByEmail.get(user.email.toLowerCase())
     if (!existingUser) {
       usersToInvite.push(user)
+      continue
+    }
+    const useGroupWorkspaceRole = shouldUseGroupWorkspaceRole({
+      workspaceId,
+      role: user.role,
+      appRole: user.appRole,
+      selectedGroupIds: existingUser.userGroups,
+      allGroups,
+      useDefaultGroupFallback: false,
+    })
+    if (useGroupWorkspaceRole) {
+      groupManagedUsers.push(user.email)
       continue
     }
     const role = getWorkspaceRole(workspaceId, user.role, user.appRole)
@@ -220,12 +244,13 @@ export const assignExistingUsersToWorkspace = async (
     })
   )
 
-  const addedToWorkspaceEmails = assignmentResults
+  const assignedUsers = assignmentResults
     .filter(
       (result): result is PromiseFulfilledResult<string> =>
         result.status === "fulfilled"
     )
     .map(result => result.value)
+  const addedToWorkspaceEmails = [...groupManagedUsers, ...assignedUsers]
 
   return {
     usersToInvite,

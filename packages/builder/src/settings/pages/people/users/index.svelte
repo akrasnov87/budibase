@@ -311,7 +311,8 @@
     if (isWorkspaceOnly) {
       const result = await assignExistingUsersToWorkspace(
         userData,
-        currentWorkspaceId
+        currentWorkspaceId,
+        $groups
       )
       usersForInvite = result.usersToInvite
       const shouldShowInviteModal = usersForInvite.length > 0
@@ -411,7 +412,8 @@
       if (isWorkspaceOnly) {
         const result = await assignExistingUsersToWorkspace(
           usersForCreation,
-          currentWorkspaceId
+          currentWorkspaceId,
+          $groups
         )
         usersForCreation = { ...usersForCreation, users: result.usersToInvite }
         addedToWorkspaceEmails = result.addedToWorkspaceEmails
