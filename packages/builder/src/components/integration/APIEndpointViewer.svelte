@@ -260,7 +260,7 @@
         )
       : requestUrl
 
-  $: displayUrl = buildUrl(displayBaseUrl, queryParams, mergedBindings)
+  $: effectiveUrl = buildUrl(displayBaseUrl, queryParams, mergedBindings)
 
   // ── QUERY DATA & BINDINGS ─────────────────────────────────────────────────
   $: queryString = editableQuery?.fields.queryString
@@ -616,7 +616,7 @@
     if (!isCustomMode && !selectedEndpointOption) return
     try {
       validateQuery(
-        requestUrl,
+        effectiveUrl,
         editableQuery.fields.requestBody,
         requestBindings,
         editableQuery?.fields?.headers || {}
@@ -1069,7 +1069,7 @@
     <div class="request-bottom">
       <div class="endpoint">
         <CodeEditor
-          value={displayUrl}
+          value={effectiveUrl}
           mode={EditorModes.Handlebars}
           aiEnabled={false}
           readonly

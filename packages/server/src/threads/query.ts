@@ -127,7 +127,10 @@ class QueryRunner {
     // Swap the base URL before field enrichment. Enrich config.url first so
     // static variable bindings (e.g. {{host}}) are resolved to their actual
     // values before being passed to applyBaseUrl.
-    if (datasourceClone.restTemplateId && datasourceClone.config?.url) {
+    if (
+      (datasourceClone.restTemplateId || datasourceClone.restTemplate) &&
+      datasourceClone.config?.url
+    ) {
       const resolvedConfigUrl = processStringSync(
         datasourceClone.config.url,
         enrichedContext,
