@@ -108,7 +108,7 @@ interface ShouldUseGroupWorkspaceRoleParams {
   useDefaultGroupFallback?: boolean
 }
 
-const getEffectiveGroupIds = (
+export const getEffectiveGroupIds = (
   selectedGroupIds: string[] = [],
   allGroups: UserGroup[] = [],
   useDefaultGroupFallback = true

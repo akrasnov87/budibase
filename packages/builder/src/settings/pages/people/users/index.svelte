@@ -57,6 +57,7 @@
     assignExistingUsersToWorkspace,
     buildWorkspaceInvitePayload,
     dedupeUsersByEmail,
+    getEffectiveGroupIds,
     type UserData,
   } from "./workspaceInviteUtils"
 
@@ -331,9 +332,10 @@
     }
 
     const assignToWorkspace = userData.assignToWorkspace ?? isWorkspaceOnly
+    const effectiveGroupIds = getEffectiveGroupIds(userData.groups, $groups)
     const payload = buildWorkspaceInvitePayload(
       usersForInvite,
-      userData.groups,
+      effectiveGroupIds,
       currentWorkspaceId,
       assignToWorkspace,
       $groups
@@ -430,7 +432,14 @@
         }
       }
 
-      bulkSaveResponse = (await users.create(usersForCreation)) || {
+      const effectiveGroupIds = getEffectiveGroupIds(
+        usersForCreation.groups,
+        $groups
+      )
+      bulkSaveResponse = (await users.create({
+        ...usersForCreation,
+        groups: effectiveGroupIds,
+      })) || {
         successful: [],
         unsuccessful: [],
       }
@@ -444,7 +453,7 @@
           bulkSaveResponse.successful,
           usersForCreation.users,
           currentWorkspaceId,
-          usersForCreation.groups,
+          effectiveGroupIds,
           $groups
         )
         if (assignmentResult.failedCount) {

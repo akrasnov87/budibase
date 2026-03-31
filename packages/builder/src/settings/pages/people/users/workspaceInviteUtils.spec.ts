@@ -3,6 +3,7 @@ import { Constants } from "@budibase/frontend-core"
 import type { UserGroup } from "@budibase/types"
 import {
   buildWorkspaceInvitePayload,
+  getEffectiveGroupIds,
   shouldUseGroupWorkspaceRole,
 } from "./workspaceInviteUtils"
 
@@ -126,5 +127,19 @@ describe("workspaceInviteUtils", () => {
     )
 
     expect(payload[0].apps).toEqual({ [workspaceId]: Constants.Roles.BASIC })
+  })
+
+  it("resolves default group id when no groups are selected", () => {
+    expect(
+      getEffectiveGroupIds([], [
+        {
+          _id: "group_default",
+          isDefault: true,
+          name: "Default",
+          icon: "ri-user-line",
+          color: "#000000",
+        },
+      ])
+    ).toEqual(["group_default"])
   })
 })
