@@ -5,8 +5,10 @@ import {
   type KnowledgeBaseFile,
   KnowledgeBaseFileStatus,
   KnowledgeBaseType,
+  LockName,
+  LockType,
 } from "@budibase/types"
-import { HTTPError } from "@budibase/backend-core"
+import { HTTPError, locks } from "@budibase/backend-core"
 import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
 import { RetrievedContextChunk } from "./processors"
 import { GeminiRagProcessor } from "./processors/gemini"
@@ -50,23 +52,34 @@ const getAgentKnowledgeBase = async (
 export const ensureKnowledgeBaseForAgent = async (
   agentId: string
 ): Promise<KnowledgeBase> => {
-  const agent = await agentsSdk.getOrThrow(agentId)
-  const existing = await getAgentKnowledgeBase(agent.knowledgeBases)
-  if (existing) {
-    return existing
-  }
+  const { result } = await locks.doWithLock(
+    {
+      name: LockName.AGENT_RAG_KNOWLEDGE_BASE,
+      type: LockType.AUTO_EXTEND,
+      resource: agentId,
+    },
+    async () => {
+      const agent = await agentsSdk.getOrThrow(agentId)
+      const existing = await getAgentKnowledgeBase(agent.knowledgeBases)
+      if (existing) {
+        return existing
+      }
 
-  const created = await knowledgeBaseSdk.create({
-    name: `Agent files (${agent._id})`,
-    type: KnowledgeBaseType.GEMINI,
-  })
+      const created = await knowledgeBaseSdk.create({
+        name: `Agent files (${agent._id})`,
+        type: KnowledgeBaseType.GEMINI,
+      })
 
-  await agentsSdk.update({
-    ...agent,
-    knowledgeBases: created._id ? [created._id] : [],
-  })
+      await agentsSdk.update({
+        ...agent,
+        knowledgeBases: created._id ? [created._id] : [],
+      })
 
-  return created
+      return created
+    }
+  )
+
+  return result
 }
 
 const getKnowledgeBaseIdsForAgent = async (
