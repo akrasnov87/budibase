@@ -1,4 +1,5 @@
 import { users } from "@/stores/portal/users"
+import { groups as groupStore } from "@/stores/portal/groups"
 import type { UserInfo } from "@/types"
 import { Constants } from "@budibase/frontend-core"
 import type { User, UserGroup } from "@budibase/types"
@@ -178,13 +179,15 @@ export const assignExistingUsersToWorkspace = async (
   const existingByEmail = new Map(
     existingUsers.map(user => [user.email.toLowerCase(), user])
   )
+  const effectiveGroupIds = getEffectiveGroupIds(dedupedUserData.groups, allGroups)
   const usersToInvite: UserInfo[] = []
   const groupManagedUsers: string[] = []
   const usersToAssign: {
     user: User
-    role: string
+    role?: string
     selectedRole: string
     email: string
+    groupIdsToAdd: string[]
   }[] = []
 
   for (const user of dedupedUserData.users) {
@@ -193,34 +196,46 @@ export const assignExistingUsersToWorkspace = async (
       usersToInvite.push(user)
       continue
     }
+    const currentGroupIds = existingUser.userGroups || []
+    const groupIdsToAdd = effectiveGroupIds.filter(groupId => {
+      return !currentGroupIds.includes(groupId)
+    })
+    const resultingGroupIds = [...new Set([...currentGroupIds, ...effectiveGroupIds])]
     const useGroupWorkspaceRole = shouldUseGroupWorkspaceRole({
       workspaceId,
       role: user.role,
       appRole: user.appRole,
-      selectedGroupIds: existingUser.userGroups,
+      selectedGroupIds: resultingGroupIds,
       allGroups,
       useDefaultGroupFallback: false,
     })
-    if (useGroupWorkspaceRole) {
+    const role = useGroupWorkspaceRole
+      ? undefined
+      : getWorkspaceRole(workspaceId, user.role, user.appRole)
+
+    if (!role && !groupIdsToAdd.length) {
       groupManagedUsers.push(user.email)
       continue
     }
-    const role = getWorkspaceRole(workspaceId, user.role, user.appRole)
-    if (role && existingUser._id) {
+    if (existingUser._id) {
       usersToAssign.push({
         user: existingUser,
         role,
         selectedRole: user.role,
         email: user.email,
+        groupIdsToAdd,
       })
     }
   }
 
   const assignmentResults = await Promise.allSettled(
-    usersToAssign.map(async ({ user, role, selectedRole, email }) => {
+    usersToAssign.map(async ({ user, role, selectedRole, email, groupIdsToAdd }) => {
       let rev = user._rev
       let fullUser = user
-      if (user._id && (!rev || shouldSyncGlobalRole(selectedRole, user))) {
+      if (
+        user._id &&
+        (groupIdsToAdd.length || !rev || shouldSyncGlobalRole(selectedRole, user))
+      ) {
         const loaded = await users.get(user._id)
         if (loaded) {
           fullUser = loaded
@@ -235,6 +250,21 @@ export const assignExistingUsersToWorkspace = async (
         const roleUpdates = getRoleFlags(selectedRole, fullUser)
         const saved = await users.save({ ...fullUser, ...roleUpdates })
         rev = saved?._rev || rev
+      }
+      if (!user._id) {
+        throw new Error("User ID missing")
+      }
+      if (groupIdsToAdd.length) {
+        await Promise.all(
+          groupIdsToAdd.map(groupId => groupStore.addUser(groupId, user._id!))
+        )
+      }
+      if (!role) {
+        return email
+      }
+      if (groupIdsToAdd.length || !rev) {
+        const loaded = await users.get(user._id)
+        rev = loaded?._rev
       }
       if (!user._id || !rev) {
         throw new Error("User ID or revision missing")
