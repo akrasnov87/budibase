@@ -19,10 +19,6 @@ import {
   updateAIConfigValidator,
 } from "./utils/validators/aiConfig"
 import {
-  createVectorDbValidator,
-  updateVectorDbValidator,
-} from "./utils/validators/vectorDb"
-import {
   createKnowledgeBaseValidator,
   updateKnowledgeBaseValidator,
 } from "./utils/validators/knowledgeBase"
@@ -98,10 +94,6 @@ aiRagBuilderAdminRoutes
     "/api/knowledge-base/:knowledgeBaseId/files/:fileId",
     ai.deleteKnowledgeBaseFile
   )
-  .get("/api/vectordb", ai.fetchVectorDbConfigs)
-  .post("/api/vectordb", createVectorDbValidator(), ai.createVectorDbConfig)
-  .put("/api/vectordb", updateVectorDbValidator(), ai.updateVectorDbConfig)
-  .delete("/api/vectordb/:id", ai.deleteVectorDbConfig)
   .get("/api/knowledge-base", ai.fetchKnowledgeBases)
   .post(
     "/api/knowledge-base",
