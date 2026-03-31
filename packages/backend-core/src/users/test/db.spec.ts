@@ -121,6 +121,35 @@ describe("UserDB", () => {
         })
       })
 
+      it("counts new users as creators when creator status comes from default group", async () => {
+        const defaultGroupId = `group_${generator.guid()}`
+        const defaultGroup: UserGroup = {
+          ...structures.userGroups.userGroup(),
+          _id: defaultGroupId,
+          roles: { app: "CREATOR" },
+        }
+        groups.getDefaultGroup.mockResolvedValue(defaultGroup)
+
+        const user: User = structures.users.user({
+          email: generator.email({}),
+          tenantId: config.getTenantId(),
+        })
+        delete user.userGroups
+
+        await config.doInTenant(async () => {
+          await getGlobalDB().put(defaultGroup)
+
+          await db.save(user)
+
+          expect(quotas.addUsers).toHaveBeenCalledTimes(1)
+          expect(quotas.addUsers).toHaveBeenCalledWith(
+            1,
+            1,
+            expect.any(Function)
+          )
+        })
+      })
+
       it("uses explicit groups over default assignment", async () => {
         const defaultGroupId = `group_${generator.guid()}`
         const explicitGroupId = `group_${generator.guid()}`

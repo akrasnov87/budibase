@@ -272,6 +272,21 @@ export class UserDB {
       }
     }
 
+    const isNewUser = !dbUser
+    const isEmailChanging = !!dbUser && !!email && dbUser.email !== email
+    const shouldValidateUniqueUser =
+      !opts.isAccountHolder && !!email && (isNewUser || isEmailChanging)
+
+    // For new users, resolve effective group assignment before creator quota
+    // calculation so creator-by-group users are counted correctly.
+    let groupIdsToAssign = [...userGroups]
+    if (isNewUser && groupIdsToAssign.length === 0) {
+      const defaultGroup = await UserDB.groups.getDefaultGroup?.()
+      if (defaultGroup?._id) {
+        groupIdsToAssign = [defaultGroup._id]
+      }
+    }
+
     let change = 1
     let creatorsChange = 0
     if (opts.isAccountHolder || dbUser) {
@@ -285,12 +300,13 @@ export class UserDB {
         user,
       ])
       creatorsChange = isDbUserCreator !== isUserCreator ? 1 : 0
+    } else if (!opts.isAccountHolder) {
+      const userForCreatorCheck =
+        groupIdsToAssign.length > 0
+          ? { ...user, userGroups: groupIdsToAssign }
+          : user
+      creatorsChange = (await creatorsInList([userForCreatorCheck]))[0] ? 1 : 0
     }
-
-    const isNewUser = !dbUser
-    const isEmailChanging = !!dbUser && !!email && dbUser.email !== email
-    const shouldValidateUniqueUser =
-      !opts.isAccountHolder && !!email && (isNewUser || isEmailChanging)
 
     return UserDB.quotas.addUsers(change, creatorsChange, async () => {
       if (shouldValidateUniqueUser) {
@@ -309,14 +325,6 @@ export class UserDB {
 
       // make sure we set the _id field for a new user
       // Also if this is a new user, associate groups with them
-      let groupIdsToAssign = [...userGroups]
-      if (isNewUser && groupIdsToAssign.length === 0) {
-        const defaultGroup = await UserDB.groups.getDefaultGroup?.()
-        if (defaultGroup?._id) {
-          groupIdsToAssign = [defaultGroup._id]
-        }
-      }
-
       const groupPromises = []
       if (isNewUser) {
         if (groupIdsToAssign.length > 0) {
