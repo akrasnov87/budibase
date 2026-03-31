@@ -84,6 +84,7 @@ const SELF_FEATURES: PlanFeatures = {
     Feature.RECAPTCHA,
     Feature.PKCE_OIDC,
     Feature.TRANSLATIONS,
+    Feature.MICROFRONTEND,
   ],
   [PlanType.ENTERPRISE_BASIC_TRIAL]: [
     Feature.USER_GROUPS,
@@ -108,6 +109,7 @@ const SELF_FEATURES: PlanFeatures = {
     Feature.RECAPTCHA,
     Feature.PKCE_OIDC,
     Feature.TRANSLATIONS,
+    Feature.MICROFRONTEND,
   ],
   [PlanType.ENTERPRISE]: [
     Feature.USER_GROUPS,
@@ -132,6 +134,7 @@ const SELF_FEATURES: PlanFeatures = {
     Feature.RECAPTCHA,
     Feature.PKCE_OIDC,
     Feature.TRANSLATIONS,
+    Feature.MICROFRONTEND,
   ],
 }
 
