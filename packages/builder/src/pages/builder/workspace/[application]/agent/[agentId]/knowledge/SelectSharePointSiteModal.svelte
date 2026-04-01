@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Body, Button, Modal } from "@budibase/bbui"
+  import { Body, Modal, ModalContent, Select } from "@budibase/bbui"
   import type { SharePointSite } from "@budibase/types"
   import { createEventDispatcher } from "svelte"
 
@@ -31,68 +31,42 @@
 </script>
 
 <Modal bind:this={modal}>
-  <div class="add-knowledge-modal">
-    <Body size="M">Add from SharePoint</Body>
-    <div class="site-field">
-      <Body size="S">Select site</Body>
+  <ModalContent
+    custom
+    showCloseIcon={false}
+    showDivider={false}
+    confirmText="Add"
+    onConfirm={() => dispatch("save")}
+    onCancel={hide}
+  >
+    <div class="content">
+      <div class="title">
+        <Body size="S">Add from SharePoint</Body>
+      </div>
       {#if loadingSharePointSites}
         <Body size="S">Loading SharePoint sites...</Body>
       {:else if sharePointSites.length === 0}
         <Body size="S">No SharePoint sites found for this connection.</Body>
       {:else}
-        <select
-          class="site-select"
+        <Select
           bind:value={selectedSiteId}
-          aria-label="Select SharePoint site"
-        >
-          {#each sharePointSites as site}
-            <option value={site.id}
-              >{site.name || site.webUrl || site.id}</option
-            >
-          {/each}
-        </select>
+          label="Select site"
+          options={sharePointSites}
+          getOptionLabel={o => o.name || o.webUrl || o.id}
+          getOptionValue={o => o.id}
+        ></Select>
       {/if}
     </div>
-    <div class="modal-actions">
-      <Button size="S" quiet on:click={hide}>Cancel</Button>
-      <Button
-        size="S"
-        on:click={() => dispatch("save")}
-        disabled={!selectedSiteId}>Add</Button
-      >
-    </div>
-  </div>
+  </ModalContent>
 </Modal>
 
 <style>
-  .add-knowledge-modal {
-    padding: var(--spacing-m);
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-m);
-    min-width: 360px;
+  .content {
+    padding: var(--spacing-l);
+    width: 360px;
   }
 
-  .site-field {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-xs);
-  }
-
-  .site-select {
-    width: 100%;
-    background: var(--spectrum-global-color-gray-75);
-    border: 1px solid var(--spectrum-global-color-gray-300);
-    border-radius: 8px;
-    padding: 8px 12px;
-    color: var(--spectrum-global-color-gray-900);
-    font-size: 13px;
-  }
-
-  .modal-actions {
-    width: 100%;
-    display: flex;
-    justify-content: flex-end;
-    gap: var(--spacing-s);
+  .title {
+    padding-bottom: var(--spacing-s);
   }
 </style>

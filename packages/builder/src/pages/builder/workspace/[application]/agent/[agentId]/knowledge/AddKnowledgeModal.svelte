@@ -1,6 +1,6 @@
 <script lang="ts">
   import "@spectrum-css/dialog/dist/index-vars.css"
-  import { ActionButton, Body, Modal } from "@budibase/bbui"
+  import { ActionButton, Body, Modal, ModalContent } from "@budibase/bbui"
   import { createEventDispatcher } from "svelte"
   import MicrosoftSharepointLogo from "assets/rest-template-icons/microsoft-sharepoint.svg"
 
@@ -31,22 +31,31 @@
 </script>
 
 <Modal bind:this={modal}>
-  <div class="content">
-    <div class="title">
-      <Body size="M">Add knowledge to agent</Body>
+  <ModalContent
+    showConfirmButton={false}
+    showCancelButton={false}
+    showCloseIcon={false}
+    showDivider={false}
+    custom
+  >
+    <div class="content">
+      <div class="title">
+        <Body size="S">Add knowledge to agent</Body>
+      </div>
+
+      <ActionButton quiet icon="paperclip" fullWidth on:click={handleUpload}>
+        Add files
+      </ActionButton>
+      <ActionButton
+        quiet
+        icon={MicrosoftSharepointLogo}
+        fullWidth
+        on:click={handleSharePoint}
+      >
+        Add from SharePoint
+      </ActionButton>
     </div>
-    <ActionButton quiet icon="paperclip" fullWidth on:click={handleUpload}>
-      Add files
-    </ActionButton>
-    <ActionButton
-      quiet
-      icon={MicrosoftSharepointLogo}
-      fullWidth
-      on:click={handleSharePoint}
-    >
-      Add from SharePoint
-    </ActionButton>
-  </div>
+  </ModalContent>
 </Modal>
 
 <style>
@@ -56,6 +65,5 @@
   }
   .title {
     padding: var(--spacing-s);
-    width: 100%;
   }
 </style>

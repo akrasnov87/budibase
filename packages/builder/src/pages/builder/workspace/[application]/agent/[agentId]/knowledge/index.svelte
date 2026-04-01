@@ -47,6 +47,7 @@
   interface SharePointConnectionTableRow {
     kind: "sharepoint_connection"
     _id: string
+    siteId: string
     filename: string
     subtitle: string
     displayStatus: string
@@ -78,7 +79,7 @@
   let sharePointSites = $state<SharePointSite[]>([])
   let selectedSiteIds = $state<string[]>([])
   let loadingSharePointSites = $state(false)
-  let syncingSharePoint = $state(false)
+  let syncingSharePointSiteId = $state<string | undefined>()
   let sharePointSitesLoadedForAgent = $state<string | undefined>()
   let sharePointSiteModal = $state<ModalHandle>()
   let selectedSharePointSiteId = $state("")
@@ -134,7 +135,9 @@
     await agentsStore.fetchAgentFiles(agentId)
   }
 
-  const toFileTableRows = (list: KnowledgeBaseFile[]): FileKnowledgeTableRow[] =>
+  const toFileTableRows = (
+    list: KnowledgeBaseFile[]
+  ): FileKnowledgeTableRow[] =>
     list
       .map(file => ({
         kind: "file" as const,
@@ -157,30 +160,31 @@
       files.filter(file => !file.externalSourceId?.startsWith("sharepoint:"))
     )
   )
-  let sharePointConnectionRow: SharePointConnectionTableRow | null = $derived.by(() => {
-    if (!sharePointSource && !hasSharePointConnection) {
-      return null
+  let sharePointConnectionRows: SharePointConnectionTableRow[] = $derived.by(
+    () => {
+      if (!hasSharePointConnection) {
+        return []
+      }
+      return selectedSiteIds
+        .map(siteId => {
+          const site = sharePointSites.find(entry => entry.id === siteId)
+          return {
+            kind: "sharepoint_connection" as const,
+            _id: `sharepoint-site-${siteId}`,
+            siteId,
+            filename: site?.name || site?.webUrl || siteId,
+            subtitle: lastSharePointSyncLabel,
+            displayStatus: "Connected",
+            onDelete: () => removeSharePointSite(siteId),
+            onSync: () => syncSharePointNow([siteId]),
+            syncing: syncingSharePointSiteId === siteId,
+          }
+        })
+        .sort((a, b) => a.filename.localeCompare(b.filename))
     }
-    const selectedSiteName =
-      sharePointSites.find(site => site.id === selectedSiteIds[0])?.name ||
-      "SharePoint"
-    return {
-      kind: "sharepoint_connection" as const,
-      _id: "sharepoint-connection",
-      filename: selectedSiteName,
-      subtitle: lastSharePointSyncLabel,
-      displayStatus: hasSharePointConnection ? "Connected" : "Disconnected",
-      onDelete: disconnectSharePoint,
-      onSync: syncSharePointNow,
-      syncing: syncingSharePoint,
-    }
-  })
+  )
   let knowledgeTableRows: KnowledgeTableRow[] = $derived.by(() => {
-    const rows: KnowledgeTableRow[] = [...fileTableRows]
-    if (sharePointConnectionRow) {
-      rows.unshift(sharePointConnectionRow)
-    }
-    return rows
+    return [...sharePointConnectionRows, ...fileTableRows]
   })
   let lastSharePointSyncLabel = $derived.by(() => {
     const sourceLastSyncedAt = sharePointSource?.config.lastSyncedAt
@@ -339,37 +343,16 @@
     window.location.href = oauthUrl
   }
 
-  async function disconnectSharePoint() {
-    const agent = currentAgent
-    if (!agent?._id || !agent?._rev) {
-      return
-    }
-    try {
-      const nextSources = (agent.knowledgeSources || []).filter(
-        source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
-      )
-      await agentsStore.updateAgent({
-        ...agent,
-        knowledgeSources: nextSources,
-      })
-      sharePointSites = []
-      selectedSiteIds = []
-      selectedSharePointSiteId = ""
-      notifications.success("SharePoint disconnected")
-    } catch (error) {
-      console.error(error)
-      notifications.error("Failed to disconnect SharePoint")
-    }
-  }
-
   async function openSharePointSiteModal() {
     const agentId = currentAgent?._id
     if (!agentId || !hasSharePointConnection) {
       return
     }
     await loadSharePointSites(agentId)
-    selectedSharePointSiteId =
-      selectedSiteIds[0] || sharePointSites[0]?.id || selectedSharePointSiteId
+    const availableSites = sharePointSites.filter(
+      site => !selectedSiteIds.includes(site.id)
+    )
+    selectedSharePointSiteId = availableSites[0]?.id || ""
     sharePointSiteModal?.show()
   }
 
@@ -383,10 +366,13 @@
       return
     }
     try {
-      selectedSiteIds = [selectedSharePointSiteId]
+      const nextSiteIds = Array.from(
+        new Set([...selectedSiteIds, selectedSharePointSiteId])
+      )
       const result = await agentsStore.syncAgentSharePoint(agentId, {
-        siteIds: [selectedSharePointSiteId],
+        siteIds: nextSiteIds,
       })
+      selectedSiteIds = nextSiteIds
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
       sharePointSiteModal?.hide()
@@ -397,15 +383,19 @@
     }
   }
 
-  async function syncSharePointNow() {
+  async function syncSharePointNow(siteIds: string[]) {
     const agentId = currentAgent?._id
     if (!agentId) {
       return
     }
-    syncingSharePoint = true
+    if (siteIds.length === 0) {
+      notifications.error("Please select at least one SharePoint site")
+      return
+    }
+    syncingSharePointSiteId = siteIds.length === 1 ? siteIds[0] : "__multiple__"
     try {
       const result = await agentsStore.syncAgentSharePoint(agentId, {
-        siteIds: selectedSiteIds,
+        siteIds,
       })
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
@@ -414,7 +404,40 @@
       console.error(error)
       notifications.error("Failed to sync SharePoint")
     } finally {
-      syncingSharePoint = false
+      syncingSharePointSiteId = undefined
+    }
+  }
+
+  async function removeSharePointSite(siteId: string) {
+    const agent = currentAgent
+    if (!agent?._id || !agent?._rev || !sharePointSource) {
+      return
+    }
+    const nextSiteIds = (sharePointSource.config.siteIds || []).filter(
+      id => id !== siteId
+    )
+    try {
+      const nextSources = (agent.knowledgeSources || []).map(source => {
+        if (source.type !== AgentKnowledgeSourceType.SHAREPOINT) {
+          return source
+        }
+        return {
+          ...source,
+          config: {
+            ...source.config,
+            siteIds: nextSiteIds,
+          },
+        }
+      })
+      await agentsStore.updateAgent({
+        ...agent,
+        knowledgeSources: nextSources,
+      })
+      selectedSiteIds = nextSiteIds
+      notifications.success("SharePoint site removed")
+    } catch (error) {
+      console.error(error)
+      notifications.error("Failed to remove SharePoint site")
     }
   }
 
