@@ -31,6 +31,7 @@
   const password = generatePassword(12)
   let userGroups = []
   let emailsInput = []
+  let pendingEmailInput = ""
   let emailError = null
   const maxItems = 15
   let selectedRole = Constants.BudibaseRoles.Creator
@@ -80,7 +81,12 @@
     },
   ]
   $: hasError = userData.find(x => x.error != null)
-  $: parsedEmails = useWorkspaceInviteModal ? emailsInput : []
+  $: parsedEmails = useWorkspaceInviteModal
+    ? emailsInput.length === 0 &&
+      emailValidator(pendingEmailInput.trim()) === true
+      ? [pendingEmailInput.trim()]
+      : emailsInput
+    : []
   $: userCount =
     $licensing.userCount +
     (useWorkspaceInviteModal ? parsedEmails.length : userData.length)
@@ -262,6 +268,7 @@
         <PillInput
           label="Type or paste emails below, separated by commas"
           bind:value={emailsInput}
+          bind:inputValue={pendingEmailInput}
           error={emailError}
           splitOnSpace={true}
           maxItems={maxItems + 1}
