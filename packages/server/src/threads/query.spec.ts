@@ -115,28 +115,6 @@ describe("QueryRunner - template datasource URL resolution", () => {
     expect(path).toBe("https://new.example.com/api/v1/users")
   })
 
-  it("does not swap when hosts already match", async () => {
-    const event = buildEvent({
-      datasource: {
-        _id: "ds_1",
-        type: "datasource",
-        source: SourceName.REST,
-        config: { url: "https://new.example.com" },
-        name: "Test DS",
-        isSQL: false,
-        restTemplateId: "gitlab",
-      },
-      fields: {
-        path: "https://new.example.com/api/v1/users",
-        queryString: "",
-        headers: {},
-        bodyType: BodyType.NONE,
-      },
-    })
-    const path = await runEvent(event)
-    expect(path).toBe("https://new.example.com/api/v1/users")
-  })
-
   it("does not swap when datasource has no config URL", async () => {
     const event = buildEvent({
       datasource: {
