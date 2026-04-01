@@ -3,33 +3,109 @@ import { BudiStore } from "../BudiStore"
 import {
   Agent,
   AgentFileUploadResponse,
+  CompleteAgentSharePointConnectionRequest,
+  CompleteAgentSharePointConnectionResponse,
   CreateAgentRequest,
   FetchAgentFilesResponse,
+  FetchAgentSharePointSitesResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  SyncAgentSharePointRequest,
+  SyncAgentSharePointResponse,
   UpdateAgentRequest,
+  KnowledgeBaseFileStatus,
+  type KnowledgeBaseFile,
   ToolMetadata,
 } from "@budibase/types"
-import { derived } from "svelte/store"
+import { derived, get } from "svelte/store"
 
 interface AgentStoreState {
   agents: Agent[]
   currentAgentId?: string
   tools: ToolMetadata[]
   agentsLoaded: boolean
+  filesByAgentId: Record<string, KnowledgeBaseFile[]>
 }
 
 export class AgentsStore extends BudiStore<AgentStoreState> {
+  private agentFilePolling?: {
+    agentId: string
+    interval: ReturnType<typeof setInterval>
+    inFlight: boolean
+  }
+
   constructor() {
     super({
       agents: [],
       tools: [],
       agentsLoaded: false,
+      filesByAgentId: {},
     })
+  }
+
+  private setAgentFiles = (agentId: string, files: KnowledgeBaseFile[]) => {
+    this.update(state => {
+      state.filesByAgentId[agentId] = files
+      return state
+    })
+  }
+
+  private shouldPollAgentFiles = (agentId: string) => {
+    const state = get(this.store)
+    const files = state.filesByAgentId[agentId] || []
+    return files.some(file => file.status === KnowledgeBaseFileStatus.PROCESSING)
+  }
+
+  private pollAgentFilesOnce = async (agentId: string) => {
+    if (!this.agentFilePolling || this.agentFilePolling.agentId !== agentId) {
+      return
+    }
+    if (this.agentFilePolling.inFlight || !this.shouldPollAgentFiles(agentId)) {
+      return
+    }
+
+    this.agentFilePolling.inFlight = true
+    try {
+      await this.fetchAgentFiles(agentId)
+    } finally {
+      if (this.agentFilePolling) {
+        this.agentFilePolling.inFlight = false
+      }
+    }
+  }
+
+  startAgentFilePolling = (agentId: string, intervalMs = 1000) => {
+    if (!agentId) {
+      return
+    }
+    if (this.agentFilePolling?.agentId === agentId) {
+      return
+    }
+    this.stopAgentFilePolling()
+
+    const interval = setInterval(() => {
+      this.pollAgentFilesOnce(agentId).catch(error => {
+        console.error("Failed to poll agent files", error)
+      })
+    }, intervalMs)
+
+    this.agentFilePolling = {
+      agentId,
+      interval,
+      inFlight: false,
+    }
+  }
+
+  stopAgentFilePolling = () => {
+    if (!this.agentFilePolling) {
+      return
+    }
+    clearInterval(this.agentFilePolling.interval)
+    this.agentFilePolling = undefined
   }
 
   init = async () => {
@@ -152,8 +228,11 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       API.toggleAgentSlackDeployment(agentId, enabled)
     )
 
-  fetchAgentFiles = async (agentId: string): Promise<FetchAgentFilesResponse> =>
-    await API.fetchAgentFiles(agentId)
+  fetchAgentFiles = async (agentId: string): Promise<FetchAgentFilesResponse> => {
+    const response = await API.fetchAgentFiles(agentId)
+    this.setAgentFiles(agentId, response.files)
+    return response
+  }
 
   uploadAgentFile = async (
     agentId: string,
@@ -163,6 +242,23 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
   deleteAgentFile = async (agentId: string, fileId: string) =>
     await API.deleteAgentFile(agentId, fileId)
+
+  completeAgentSharePointConnection = async (
+    agentId: string,
+    body: CompleteAgentSharePointConnectionRequest
+  ): Promise<CompleteAgentSharePointConnectionResponse> =>
+    await API.completeAgentSharePointConnection(agentId, body)
+
+  fetchAgentSharePointSites = async (
+    agentId: string
+  ): Promise<FetchAgentSharePointSitesResponse> =>
+    await API.fetchAgentSharePointSites(agentId)
+
+  syncAgentSharePoint = async (
+    agentId: string,
+    body?: SyncAgentSharePointRequest
+  ): Promise<SyncAgentSharePointResponse> =>
+    await API.syncAgentSharePoint(agentId, body)
 }
 export const agentsStore = new AgentsStore()
 export const selectedAgent = derived(agentsStore, state =>

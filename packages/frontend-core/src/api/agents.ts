@@ -1,9 +1,12 @@
 import {
   AgentFileUploadResponse,
+  CompleteAgentSharePointConnectionRequest,
+  CompleteAgentSharePointConnectionResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   DuplicateAgentResponse,
   FetchAgentFilesResponse,
+  FetchAgentSharePointSitesResponse,
   FetchAgentsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
@@ -11,9 +14,11 @@ import {
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  SyncAgentSharePointRequest,
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
   ToolMetadata,
+  SyncAgentSharePointResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
 } from "@budibase/types"
@@ -60,6 +65,17 @@ export interface AgentEndpoints {
     agentId: string,
     fileId: string
   ) => Promise<{ deleted: true }>
+  completeAgentSharePointConnection: (
+    agentId: string,
+    body: CompleteAgentSharePointConnectionRequest
+  ) => Promise<CompleteAgentSharePointConnectionResponse>
+  fetchAgentSharePointSites: (
+    agentId: string
+  ) => Promise<FetchAgentSharePointSitesResponse>
+  syncAgentSharePoint: (
+    agentId: string,
+    body?: SyncAgentSharePointRequest
+  ) => Promise<SyncAgentSharePointResponse>
 }
 
 export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
@@ -182,6 +198,29 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
   deleteAgentFile: async (agentId: string, fileId: string) => {
     return await API.delete({
       url: `/api/agent/${agentId}/files/${fileId}`,
+    })
+  },
+
+  completeAgentSharePointConnection: async (agentId: string, body) => {
+    return await API.post<
+      CompleteAgentSharePointConnectionRequest,
+      CompleteAgentSharePointConnectionResponse
+    >({
+      url: `/api/agent/${agentId}/sharepoint/connect/complete`,
+      body,
+    })
+  },
+
+  fetchAgentSharePointSites: async (agentId: string) => {
+    return await API.get<FetchAgentSharePointSitesResponse>({
+      url: `/api/agent/${agentId}/sharepoint/sites`,
+    })
+  },
+
+  syncAgentSharePoint: async (agentId: string, body?: SyncAgentSharePointRequest) => {
+    return await API.post<SyncAgentSharePointRequest | undefined, SyncAgentSharePointResponse>({
+      url: `/api/agent/${agentId}/sharepoint/sync`,
+      body,
     })
   },
 })

@@ -2,12 +2,17 @@
   import { StatusLight } from "@budibase/bbui"
   import { KnowledgeBaseFileStatus } from "@budibase/types"
 
-  export let row: {
-    displayStatus: string
-    status: KnowledgeBaseFileStatus
+  interface Props {
+    row: {
+      kind?: "sharepoint_connection" | "file"
+      displayStatus: string
+      status?: KnowledgeBaseFileStatus
+    }
   }
 
-  const getStatusProps = (status: KnowledgeBaseFileStatus) => {
+  let { row }: Props = $props()
+
+  const getStatusProps = (status?: KnowledgeBaseFileStatus) => {
     switch (status) {
       case KnowledgeBaseFileStatus.READY:
         return { positive: true }
@@ -19,6 +24,11 @@
   }
 </script>
 
-<StatusLight size="S" {...getStatusProps(row.status)}>
+<StatusLight
+  size="S"
+  {...row.kind === "sharepoint_connection"
+    ? { positive: true }
+    : getStatusProps(row.status)}
+>
   {row.displayStatus}
 </StatusLight>
