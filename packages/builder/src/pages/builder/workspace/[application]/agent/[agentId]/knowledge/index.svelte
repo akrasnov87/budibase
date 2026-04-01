@@ -103,6 +103,33 @@
     }
   }
 
+  const showSharePointSyncResult = (result: {
+    synced: number
+    failed: number
+    skipped?: number
+    totalDiscovered?: number
+  }) => {
+    const skipped = result.skipped ?? 0
+    const discovered = result.totalDiscovered ?? result.synced + skipped
+
+    if (result.synced === 0 && result.failed === 0) {
+      if (discovered === 0) {
+        notifications.info("No files found in selected SharePoint site(s)")
+        return
+      }
+      if (skipped > 0) {
+        notifications.info(
+          `SharePoint sync complete (0 new files, ${skipped} already synced)`
+        )
+        return
+      }
+    }
+
+    notifications.success(
+      `SharePoint sync complete (${result.synced} synced, ${result.failed} failed${skipped > 0 ? `, ${skipped} skipped` : ""})`
+    )
+  }
+
   const fetchFiles = async (agentId: string) => {
     await agentsStore.fetchAgentFiles(agentId)
   }
@@ -156,22 +183,11 @@
     return rows
   })
   let lastSharePointSyncLabel = $derived.by(() => {
-    const sharePointFiles = files.filter(file =>
-      file.externalSourceId?.startsWith("sharepoint:")
-    )
-    if (sharePointFiles.length === 0) {
-      return "SharePoint"
+    const sourceLastSyncedAt = sharePointSource?.config.lastSyncedAt
+    if (sourceLastSyncedAt) {
+      return `Last sync at ${formatTimestamp(sourceLastSyncedAt)} - SharePoint`
     }
-    const timestamps = sharePointFiles
-      .map(file => file.processedAt || file.updatedAt || file.createdAt)
-      .filter(Boolean)
-      .map(value => new Date(value as string).getTime())
-      .filter(value => !Number.isNaN(value))
-    if (timestamps.length === 0) {
-      return "SharePoint"
-    }
-    const latest = new Date(Math.max(...timestamps))
-    return `Last sync at ${latest.toLocaleString()} - SharePoint`
+    return "SharePoint"
   })
 
   const customRenderers = [
@@ -374,9 +390,7 @@
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
       sharePointSiteModal?.hide()
-      notifications.success(
-        `SharePoint sync complete (${result.synced} synced, ${result.failed} failed)`
-      )
+      showSharePointSyncResult(result)
     } catch (error) {
       console.error(error)
       notifications.error("Failed to sync SharePoint")
@@ -395,9 +409,7 @@
       })
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
-      notifications.success(
-        `SharePoint sync complete (${result.synced} synced, ${result.failed} failed)`
-      )
+      showSharePointSyncResult(result)
     } catch (error) {
       console.error(error)
       notifications.error("Failed to sync SharePoint")

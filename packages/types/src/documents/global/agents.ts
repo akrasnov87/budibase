@@ -56,6 +56,7 @@ export interface AgentSharePointKnowledgeSource {
   config: {
     connectionId?: string
     siteIds: string[]
+    lastSyncedAt?: string
   }
 }
 

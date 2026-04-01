@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { AbsTooltip, ActionButton } from "@budibase/bbui"
+  import { AbsTooltip, ActionButton, ProgressCircle } from "@budibase/bbui"
 
   export let row: {
     kind?: "sharepoint_connection" | "file"
@@ -18,16 +18,20 @@
   }
 </script>
 
-<div class="file-actions">
+<div class="file-actions" class:loading={row.syncing}>
   {#if row.kind === "sharepoint_connection"}
     <AbsTooltip text="Sync SharePoint">
       <ActionButton
-        icon="arrows-clockwise"
+        icon={row.syncing ? "" : "arrows-clockwise"}
         size="M"
         quiet
         on:click={sync}
         disabled={row.syncing}
-      />
+      >
+        {#if row.syncing}
+          <ProgressCircle size="S" />
+        {/if}
+      </ActionButton>
     </AbsTooltip>
     <AbsTooltip text="Disconnect SharePoint">
       <ActionButton icon="trash" size="M" quiet on:click={remove} />
@@ -44,5 +48,9 @@
     display: flex;
     justify-content: flex-end;
     margin-left: auto;
+  }
+
+  .file-actions.loading :global(.spectrum-ActionButton-label) {
+    display: contents;
   }
 </style>

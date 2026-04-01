@@ -60,6 +60,7 @@ const updateAgentSharePoint = async (
   update: {
     connectionId?: string
     siteIds?: string[]
+    lastSyncedAt?: string
     remove?: boolean
   }
 ) => {
@@ -80,6 +81,8 @@ const updateAgentSharePoint = async (
           config: {
             connectionId: update.connectionId ?? source?.config.connectionId,
             siteIds: update.siteIds ?? source?.config.siteIds ?? [],
+            lastSyncedAt:
+              update.lastSyncedAt ?? source?.config.lastSyncedAt ?? undefined,
           },
         } satisfies AgentSharePointKnowledgeSource,
       ]
@@ -292,6 +295,8 @@ export const syncSharePointForAgent = async (
       agentId: trimmedAgentId,
       synced: 0,
       failed: 0,
+      skipped: 0,
+      totalDiscovered: 0,
     }
   }
 
@@ -315,15 +320,19 @@ export const syncSharePointForAgent = async (
 
   let synced = 0
   let failed = 0
+  let skipped = 0
+  let totalDiscovered = 0
 
   for (const siteId of siteIds) {
     try {
       const driveIds = await listDrives(bearerToken, siteId)
       for (const driveId of driveIds) {
         const files = await collectFilesRecursive(bearerToken, driveId)
+        totalDiscovered += files.length
         for (const file of files) {
           const externalSourceId = `sharepoint:${siteId}:${driveId}:${file.itemId}`
           if (existingExternalIds.has(externalSourceId)) {
+            skipped++
             continue
           }
 
@@ -368,9 +377,18 @@ export const syncSharePointForAgent = async (
     }
   }
 
+  const latestAgent = await agentsSdk.getOrThrow(trimmedAgentId)
+  await updateAgentSharePoint(latestAgent, {
+    connectionId,
+    siteIds,
+    lastSyncedAt: new Date().toISOString(),
+  })
+
   return {
     agentId: trimmedAgentId,
     synced,
     failed,
+    skipped,
+    totalDiscovered,
   }
 }

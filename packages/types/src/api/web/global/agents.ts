@@ -60,6 +60,8 @@ export interface SyncAgentSharePointResponse {
   agentId: string
   synced: number
   failed: number
+  skipped: number
+  totalDiscovered: number
 }
 
 export interface FetchChatAppAgentsResponse {
