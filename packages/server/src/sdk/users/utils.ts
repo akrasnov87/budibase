@@ -15,21 +15,7 @@ import {
   InternalTables,
 } from "../../db/utils"
 import { getGlobalUsers } from "../../utilities/global"
-
-const getFullName = (user: {
-  firstName?: string
-  lastName?: string
-  email?: string
-}) => {
-  const firstName = user.firstName?.trim()
-  const lastName = user.lastName?.trim()
-
-  if (firstName && lastName) {
-    return `${firstName} ${lastName}`
-  }
-
-  return firstName || lastName || user.email
-}
+import { getUserFullName } from "../../utilities/users"
 
 export function combineMetadataAndUser(
   user: ContextUser,
@@ -53,7 +39,7 @@ export function combineMetadataAndUser(
   delete user._rev
   const newDoc = {
     ...user,
-    fullName: getFullName(user),
+    fullName: getUserFullName(user),
     _id: metadataId,
     tableId: InternalTables.USER_METADATA,
   }
@@ -108,7 +94,7 @@ export async function fetchMetadata(): Promise<ContextUserMetadata[]> {
     }
     users.push({
       ...mergedUser,
-      fullName: getFullName(mergedUser),
+      fullName: getUserFullName(mergedUser),
     })
   }
   return users
@@ -161,7 +147,7 @@ export function getUserContextBindings(user: ContextUser): UserBindings {
     _rev: user._rev,
     firstName: user.firstName,
     lastName: user.lastName,
-    fullName: getFullName(user),
+    fullName: getUserFullName(user),
     email: user.email,
     status: user.status,
     roleId: user.roleId,

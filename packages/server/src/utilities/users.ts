@@ -3,11 +3,11 @@ import { ContextUserMetadata, UserCtx, UserMetadata } from "@budibase/types"
 import { InternalTables } from "../db/utils"
 import { getGlobalUser } from "./global"
 
-const getFullName = (user: {
+export function getUserFullName(user: {
   firstName?: string
   lastName?: string
   email?: string
-}) => {
+}) {
   const firstName = user.firstName?.trim()
   const lastName = user.lastName?.trim()
 
@@ -47,7 +47,7 @@ export async function getFullUser(
 
   return {
     ...mergedUser,
-    fullName: getFullName(mergedUser),
+    fullName: getUserFullName(mergedUser),
   }
 }
 
