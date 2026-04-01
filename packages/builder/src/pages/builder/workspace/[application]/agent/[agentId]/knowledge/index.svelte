@@ -468,6 +468,7 @@
         ...agent,
         knowledgeSources: nextSources,
       })
+      await fetchFiles(agent._id)
       selectedSiteIds = nextSiteIds
       notifications.success("SharePoint site removed")
     } catch (error) {

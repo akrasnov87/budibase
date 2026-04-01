@@ -1,6 +1,7 @@
 import { db, features, HTTPError } from "@budibase/backend-core"
 import {
   Agent,
+  AgentKnowledgeSourceType,
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentsResponse,
@@ -60,6 +61,20 @@ const parseOptionalChatAppId = (value: unknown) => {
   }
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
+}
+
+const getSharePointSiteIds = (agent?: Agent): Set<string> => {
+  const source = (agent?.knowledgeSources || []).find(
+    item => item.type === AgentKnowledgeSourceType.SHAREPOINT
+  )
+  if (!source) {
+    return new Set<string>()
+  }
+
+  const ids = (source.config.sites || [])
+    .map(site => site.id?.trim())
+    .filter((id): id is string => !!id)
+  return new Set(ids)
 }
 
 interface ConfiguredDeployment<TValidatedIntegration> {
@@ -260,6 +275,8 @@ export async function updateAgent(
 ) {
   const body = ctx.request.body
   const ragEnabled = await features.isEnabled(FeatureFlag.AI_RAG)
+  const existingAgent = await sdk.ai.agents.getOrThrow(body._id)
+  const previousSharePointSiteIds = getSharePointSiteIds(existingAgent)
 
   const updateRequest: RequiredKeys<UpdateAgentRequest> = {
     _id: body._id,
@@ -282,6 +299,40 @@ export async function updateAgent(
   }
 
   const agent = await sdk.ai.agents.update(updateRequest)
+  const nextSharePointSiteIds = getSharePointSiteIds(agent)
+  const removedSharePointSiteIds = [...previousSharePointSiteIds].filter(
+    id => !nextSharePointSiteIds.has(id)
+  )
+
+  if (removedSharePointSiteIds.length > 0 && agent._id) {
+    const files = await sdk.ai.rag.listFilesForAgent(agent._id)
+    const filesToDelete = files.filter(file => {
+      const externalSourceId = file.externalSourceId
+      if (!externalSourceId) {
+        return false
+      }
+      return removedSharePointSiteIds.some(siteId =>
+        externalSourceId.startsWith(`sharepoint:${siteId}:`)
+      )
+    })
+
+    const results = await Promise.allSettled(
+      filesToDelete
+        .map(file => file._id)
+        .filter((fileId): fileId is string => !!fileId)
+        .map(fileId => sdk.ai.rag.deleteFileForAgent(agent._id!, fileId))
+    )
+    const failedDeletes = results.filter(
+      result => result.status === "rejected"
+    ).length
+    if (failedDeletes > 0) {
+      console.log("Failed to delete some SharePoint files after site removal", {
+        agentId: agent._id,
+        removedSharePointSiteIds,
+        failedDeletes,
+      })
+    }
+  }
 
   ctx.body = obfuscateAgentSecrets(agent)
   ctx.status = 200
