@@ -1080,8 +1080,7 @@ if (descriptions.length) {
               InternalTables.USER_METADATA,
               config.userMetadataId!
             )
-            const { roles, ...userWithoutRoles } = config.getUser()
-            void roles
+            const { roles: _roles, ...userWithoutRoles } = config.getUser()
 
             expect(res).toEqual({
               ...userWithoutRoles,
