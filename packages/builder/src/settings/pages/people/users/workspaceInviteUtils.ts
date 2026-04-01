@@ -110,8 +110,8 @@ interface ShouldUseGroupWorkspaceRoleParams {
 }
 
 export const getEffectiveGroupIds = (
-  selectedGroupIds: string[] = [],
-  allGroups: UserGroup[] = [],
+  selectedGroupIds: string[],
+  allGroups: UserGroup[],
   useDefaultGroupFallback = true
 ) => {
   if (selectedGroupIds.length) {

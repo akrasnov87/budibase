@@ -332,6 +332,50 @@ describe("UserDB", () => {
       })
     })
 
+    it("uses explicit groups and skips default-group fallback during bulk create", async () => {
+      features.isSSOEnforced.mockResolvedValue(false)
+      const defaultGroupId = `group_${generator.guid()}`
+      const explicitGroupId = `group_${generator.guid()}`
+      groups.getDefaultGroup.mockResolvedValue({ _id: defaultGroupId })
+
+      await config.doInTenant(async () => {
+        const explicitGroup: UserGroup = {
+          ...structures.userGroups.userGroup(),
+          _id: explicitGroupId,
+        }
+        await getGlobalDB().put(explicitGroup)
+
+        const users: User[] = [
+          structures.users.user({
+            email: generator.email({}),
+            password: "validPassword123!",
+            tenantId: config.getTenantId(),
+          }),
+          structures.users.user({
+            email: generator.email({}),
+            password: "validPassword456!",
+            tenantId: config.getTenantId(),
+          }),
+        ]
+
+        const result = await db.bulkCreate(users, [explicitGroupId])
+        const createdUserIds = result.successful.map(user => user._id!)
+        const createdUsers = await db.bulkGet(createdUserIds)
+
+        expect(groups.getDefaultGroup).not.toHaveBeenCalled()
+        expect(groups.addUsers).toHaveBeenCalledWith(
+          explicitGroupId,
+          expect.arrayContaining(createdUserIds)
+        )
+        expect(
+          createdUsers.every(user => user.userGroups?.includes(explicitGroupId))
+        ).toBe(true)
+        expect(
+          createdUsers.every(user => !user.userGroups?.includes(defaultGroupId))
+        ).toBe(true)
+      })
+    })
+
     describe("when SSO is NOT enforced", () => {
       beforeEach(() => {
         features.isSSOEnforced.mockResolvedValue(false)

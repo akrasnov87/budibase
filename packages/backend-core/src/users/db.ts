@@ -381,8 +381,9 @@ export class UserDB {
     const emails = newUsersRequested.map((user: User) => user.email)
     const existingEmails = await searchExistingEmails(emails)
     const unsuccessful: { email: string; reason: string }[] = []
-    let groupIdsToAssign = groups && groups.length ? [...groups] : []
-    if (!groupIdsToAssign.length) {
+    const hasExplicitGroups = !!groups?.length
+    let groupIdsToAssign = hasExplicitGroups ? [...groups] : []
+    if (!hasExplicitGroups) {
       const defaultGroup = await UserDB.groups.getDefaultGroup?.()
       if (defaultGroup?._id) {
         groupIdsToAssign = [defaultGroup._id]

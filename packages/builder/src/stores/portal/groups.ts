@@ -46,7 +46,11 @@ class GroupStore extends BudiStore<UserGroup[]> {
     if (group.isDefault) {
       const latestGroups = await API.getGroups()
       this.set(latestGroups)
-      return latestGroups.find(g => g._id === group._id) || group
+      const savedGroup = latestGroups.find(g => g._id === group._id)
+      if (!savedGroup) {
+        throw new Error("Failed to refresh saved group")
+      }
+      return savedGroup
     }
 
     this.updateStore(group)
