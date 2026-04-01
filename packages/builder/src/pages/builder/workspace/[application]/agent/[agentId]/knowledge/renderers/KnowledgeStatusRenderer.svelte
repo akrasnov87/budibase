@@ -34,7 +34,7 @@
     if (failed > 0) {
       return { negative: true }
     }
-    if (total > 0 && synced === total) {
+    if (synced === total) {
       return { positive: true }
     }
     return { notice: true }
