@@ -3048,6 +3048,9 @@ if (descriptions.length) {
             email: row.email,
             firstName: row.firstName,
             lastName: row.lastName,
+            fullName:
+              [row.firstName, row.lastName].filter(part => !!part).join(" ") ||
+              row.email,
           }),
         ],
       ])("links - %s", (__, relSchema, dataGenerator, resultMapper) => {
