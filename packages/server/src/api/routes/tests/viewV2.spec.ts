@@ -3747,6 +3747,10 @@ if (descriptions.length) {
               })
 
               const response = await config.api.viewV2.search(view.id)
+              const expectedFullName =
+                [user.firstName, user.lastName]
+                  .filter(part => !!part)
+                  .join(" ") || user.email
 
               expect(response.rows).toEqual([
                 expect.objectContaining({
@@ -3759,10 +3763,7 @@ if (descriptions.length) {
                         _id: user._id,
                         email: user.email,
                         firstName: user.firstName,
-                        fullName:
-                          [user.firstName, user.lastName]
-                            .filter(part => !!part)
-                            .join(" ") || user.email,
+                        fullName: expectedFullName,
                         lastName: user.lastName,
                         primaryDisplay: user.email,
                       },

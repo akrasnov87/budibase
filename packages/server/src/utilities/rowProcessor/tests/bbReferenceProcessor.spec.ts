@@ -33,17 +33,6 @@ jest.mock("@budibase/backend-core", (): typeof backendCore => {
 
 const config = new DBTestConfiguration()
 
-const getFullName = (user: Pick<User, "firstName" | "lastName" | "email">) => {
-  const firstName = user.firstName?.trim()
-  const lastName = user.lastName?.trim()
-
-  if (firstName && lastName) {
-    return `${firstName} ${lastName}`
-  }
-
-  return firstName || lastName || user.email
-}
-
 describe("bbReferenceProcessor", () => {
   const cacheGetUserSpy = backendCore.cache.user.getUser as jest.MockedFunction<
     typeof backendCore.cache.user.getUser
@@ -61,8 +50,13 @@ describe("bbReferenceProcessor", () => {
 
     await config.doInTenant(async () => {
       const db = backendCore.context.getGlobalDB()
-      for (const userId of userIds) {
-        const user = structures.users.user({ _id: userId })
+      for (const [index, userId] of userIds.entries()) {
+        const user = structures.users.user({
+          _id: userId,
+          firstName: `First${index}`,
+          lastName: `Last${index}`,
+          email: `user${index}@example.com`,
+        })
         await db.put(user)
         users.push(user)
       }
@@ -256,7 +250,7 @@ describe("bbReferenceProcessor", () => {
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          fullName: getFullName(user),
+          fullName: `${user.firstName} ${user.lastName}`,
         })
         expect(cacheGetUserSpy).toHaveBeenCalledTimes(1)
         expect(cacheGetUserSpy).toHaveBeenCalledWith({
@@ -297,7 +291,7 @@ describe("bbReferenceProcessor", () => {
             email: user.email,
             firstName: user.firstName,
             lastName: user.lastName,
-            fullName: getFullName(user),
+            fullName: `${user.firstName} ${user.lastName}`,
           },
         ])
         expect(cacheGetUsersSpy).toHaveBeenCalledTimes(1)
@@ -325,7 +319,7 @@ describe("bbReferenceProcessor", () => {
               email: u.email,
               firstName: u.firstName,
               lastName: u.lastName,
-              fullName: getFullName(u),
+              fullName: `${u.firstName} ${u.lastName}`,
             }))
           )
         )
@@ -361,7 +355,7 @@ describe("bbReferenceProcessor", () => {
               email: u.email,
               firstName: u.firstName,
               lastName: u.lastName,
-              fullName: getFullName(u),
+              fullName: `${u.firstName} ${u.lastName}`,
             }))
           )
         )
