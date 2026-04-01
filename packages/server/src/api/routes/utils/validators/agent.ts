@@ -50,7 +50,7 @@ const KNOWLEDGE_SOURCE_SCHEMA = Joi.object({
           id: Joi.string().required().trim().disallow(""),
           name: OPTIONAL_STRING,
           webUrl: OPTIONAL_STRING,
-        }).required()
+        })
       )
       .required(),
     lastSyncedAt: OPTIONAL_STRING,
