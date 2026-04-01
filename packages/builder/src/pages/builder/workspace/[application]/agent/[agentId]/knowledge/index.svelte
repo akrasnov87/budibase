@@ -51,6 +51,9 @@
     filename: string
     subtitle: string
     displayStatus: string
+    syncedCount: number
+    totalCount: number
+    failedCount: number
     onDelete: () => Promise<void>
     onSync: () => Promise<void>
     syncing: boolean
@@ -156,6 +159,20 @@
       }))
       .sort((a, b) => a.filename.localeCompare(b.filename))
 
+  const getSharePointSyncCounts = (siteId: string) => {
+    const siteFiles = files.filter(file =>
+      file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
+    )
+    const total = siteFiles.length
+    const synced = siteFiles.filter(
+      file => file.status === KnowledgeBaseFileStatus.READY
+    ).length
+    const failed = siteFiles.filter(
+      file => file.status === KnowledgeBaseFileStatus.FAILED
+    ).length
+    return { synced, total, failed }
+  }
+
   let fileTableRows: FileKnowledgeTableRow[] = $derived.by(() =>
     toFileTableRows(
       files.filter(file => !file.externalSourceId?.startsWith("sharepoint:"))
@@ -171,6 +188,7 @@
           const site =
             storedSharePointSites.find(entry => entry.id === siteId) ||
             sharePointSites.find(entry => entry.id === siteId)
+          const { synced, total, failed } = getSharePointSyncCounts(siteId)
           const siteDisplayName =
             site?.name ||
             site?.webUrl ||
@@ -183,7 +201,10 @@
             siteId,
             filename: siteDisplayName,
             subtitle: lastSharePointSyncLabel,
-            displayStatus: "Connected",
+            displayStatus: `${synced}/${total} files`,
+            syncedCount: synced,
+            totalCount: total,
+            failedCount: failed,
             onDelete: () => removeSharePointSite(siteId),
             onSync: () => syncSharePointNow([siteId]),
             syncing: syncingSharePointSiteId === siteId,

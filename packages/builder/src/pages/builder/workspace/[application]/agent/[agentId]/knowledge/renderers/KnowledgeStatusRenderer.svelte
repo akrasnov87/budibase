@@ -7,6 +7,9 @@
       kind?: "sharepoint_connection" | "file"
       displayStatus: string
       status?: KnowledgeBaseFileStatus
+      syncedCount?: number
+      totalCount?: number
+      failedCount?: number
     }
   }
 
@@ -22,12 +25,26 @@
         return { notice: true }
     }
   }
+
+  const getSharePointStatusProps = (row: Props["row"]) => {
+    const failed = row.failedCount || 0
+    const total = row.totalCount || 0
+    const synced = row.syncedCount || 0
+
+    if (failed > 0) {
+      return { negative: true }
+    }
+    if (total > 0 && synced === total) {
+      return { positive: true }
+    }
+    return { notice: true }
+  }
 </script>
 
 <StatusLight
   size="S"
   {...row.kind === "sharepoint_connection"
-    ? { positive: true }
+    ? getSharePointStatusProps(row)
     : getStatusProps(row.status)}
 >
   {row.displayStatus}
