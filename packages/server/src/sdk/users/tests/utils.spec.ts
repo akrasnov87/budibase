@@ -172,6 +172,30 @@ describe("syncGlobalUsers", () => {
     })
   })
 
+  it("uses single-name fullName fallback when only last name exists", async () => {
+    const user = await config.createUser({
+      firstName: "",
+      lastName: "SurnameOnly",
+      admin: { global: false },
+      builder: { global: false },
+      roles: {
+        [config.getProdWorkspaceId()]: roles.BUILTIN_ROLE_IDS.BASIC,
+      },
+    })
+
+    await config.doInContext(config.devWorkspaceId, async () => {
+      await syncGlobalUsers()
+
+      const metadata = await rawUserMetadata()
+      expect(metadata).toContainEqual(
+        expect.objectContaining({
+          _id: db.generateUserMetadataID(user._id!),
+          fullName: "SurnameOnly",
+        })
+      )
+    })
+  })
+
   it("workspace users audit data is updated", async () => {
     tk.freeze(new Date())
     const user1 = await config.createUser({
