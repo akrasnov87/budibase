@@ -1080,12 +1080,17 @@ if (descriptions.length) {
               InternalTables.USER_METADATA,
               config.userMetadataId!
             )
+            const { roles, ...userWithoutRoles } = config.getUser()
+            void roles
 
             expect(res).toEqual({
-              ...config.getUser(),
+              ...userWithoutRoles,
+              fullName:
+                [userWithoutRoles.firstName, userWithoutRoles.lastName]
+                  .filter(part => !!part)
+                  .join(" ") || userWithoutRoles.email,
               _id: config.userMetadataId!,
               _rev: expect.any(String),
-              roles: undefined,
               roleId: "ADMIN",
               tableId: InternalTables.USER_METADATA,
             })
