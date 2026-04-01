@@ -3759,6 +3759,10 @@ if (descriptions.length) {
                         _id: user._id,
                         email: user.email,
                         firstName: user.firstName,
+                        fullName:
+                          [user.firstName, user.lastName]
+                            .filter(part => !!part)
+                            .join(" ") || user.email,
                         lastName: user.lastName,
                         primaryDisplay: user.email,
                       },
