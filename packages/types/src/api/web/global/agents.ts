@@ -32,6 +32,36 @@ export interface AgentFileUploadResponse {
   file: KnowledgeBaseFile
 }
 
+export interface SharePointSite {
+  id: string
+  name?: string
+  webUrl?: string
+}
+
+export interface FetchAgentSharePointSitesResponse {
+  sites: SharePointSite[]
+}
+
+export interface CompleteAgentSharePointConnectionRequest {
+  appId: string
+  continueSetupId: string
+}
+
+export interface CompleteAgentSharePointConnectionResponse {
+  agentId: string
+  connected: true
+}
+
+export interface SyncAgentSharePointRequest {
+  siteIds?: string[]
+}
+
+export interface SyncAgentSharePointResponse {
+  agentId: string
+  synced: number
+  failed: number
+}
+
 export interface FetchChatAppAgentsResponse {
   agents: Pick<Agent, "_id" | "name" | "icon" | "iconColor" | "live">[]
 }

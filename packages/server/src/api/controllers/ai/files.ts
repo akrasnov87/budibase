@@ -2,7 +2,12 @@ import { readFile, unlink } from "node:fs/promises"
 import { HTTPError } from "@budibase/backend-core"
 import {
   AgentFileUploadResponse,
+  CompleteAgentSharePointConnectionRequest,
+  CompleteAgentSharePointConnectionResponse,
+  FetchAgentSharePointSitesResponse,
   FetchAgentFilesResponse,
+  SyncAgentSharePointRequest,
+  SyncAgentSharePointResponse,
   UserCtx,
 } from "@budibase/types"
 import sdk from "../../../sdk"
@@ -91,5 +96,45 @@ export async function deleteAgentFile(
   const { agentId, fileId } = ctx.params
   await sdk.ai.rag.deleteFileForAgent(agentId, fileId)
   ctx.body = { deleted: true }
+  ctx.status = 200
+}
+
+export async function completeAgentSharePointConnection(
+  ctx: UserCtx<
+    CompleteAgentSharePointConnectionRequest,
+    CompleteAgentSharePointConnectionResponse,
+    { agentId: string }
+  >
+) {
+  const { agentId } = ctx.params
+  const { appId, continueSetupId } = ctx.request.body
+  ctx.body = await sdk.ai.rag.completeSharePointConnectionForAgent({
+    agentId,
+    appId,
+    continueSetupId,
+  })
+  ctx.status = 200
+}
+
+export async function fetchAgentSharePointSites(
+  ctx: UserCtx<void, FetchAgentSharePointSitesResponse, { agentId: string }>
+) {
+  const { agentId } = ctx.params
+  ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+  ctx.status = 200
+}
+
+export async function syncAgentSharePoint(
+  ctx: UserCtx<
+    SyncAgentSharePointRequest,
+    SyncAgentSharePointResponse,
+    { agentId: string }
+  >
+) {
+  const { agentId } = ctx.params
+  const siteIds = Array.isArray(ctx.request.body?.siteIds)
+    ? ctx.request.body.siteIds
+    : undefined
+  ctx.body = await sdk.ai.rag.syncSharePointForAgent(agentId, siteIds)
   ctx.status = 200
 }

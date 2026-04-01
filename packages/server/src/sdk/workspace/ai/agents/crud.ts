@@ -245,6 +245,7 @@ export async function create(request: CreateAgentRequest): Promise<Agent> {
     createdBy: request.createdBy,
     enabledTools: request.enabledTools || [],
     knowledgeBases: request.knowledgeBases || [],
+    knowledgeSources: request.knowledgeSources,
     discordIntegration: request.discordIntegration,
     MSTeamsIntegration: request.MSTeamsIntegration,
     slackIntegration: request.slackIntegration,

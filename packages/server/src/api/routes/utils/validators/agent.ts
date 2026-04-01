@@ -38,6 +38,16 @@ const SLACK_INTEGRATION_SCHEMA = Joi.object({
   .optional()
   .allow(null)
 
+const KNOWLEDGE_SOURCE_SCHEMA = Joi.object({
+  id: Joi.string().required().trim().disallow(""),
+  type: Joi.string().valid("sharepoint").required(),
+  name: OPTIONAL_STRING,
+  config: Joi.object({
+    connectionId: OPTIONAL_STRING,
+    siteIds: Joi.array().items(Joi.string().trim().disallow("")).required(),
+  }).required(),
+})
+
 export function createAgentValidator() {
   return auth.joiValidator.body(
     Joi.object({
@@ -50,6 +60,7 @@ export function createAgentValidator() {
       icon: OPTIONAL_STRING,
       iconColor: OPTIONAL_STRING,
       knowledgeBases: Joi.array().items(Joi.string()).optional(),
+      knowledgeSources: Joi.array().items(KNOWLEDGE_SOURCE_SCHEMA).optional(),
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
       MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
       slackIntegration: SLACK_INTEGRATION_SCHEMA,
@@ -71,6 +82,7 @@ export function updateAgentValidator() {
       icon: OPTIONAL_STRING,
       iconColor: OPTIONAL_STRING,
       knowledgeBases: Joi.array().items(Joi.string()).optional(),
+      knowledgeSources: Joi.array().items(KNOWLEDGE_SOURCE_SCHEMA).optional(),
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
       MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
       slackIntegration: SLACK_INTEGRATION_SCHEMA,
@@ -131,6 +143,23 @@ export function generateAgentInstructionsValidator() {
       agentName: OPTIONAL_STRING,
       goal: OPTIONAL_STRING,
       toolReferences: Joi.array().items(Joi.string()).optional(),
+    }).required()
+  )
+}
+
+export function completeAgentSharePointConnectionValidator() {
+  return auth.joiValidator.body(
+    Joi.object({
+      appId: Joi.string().required().trim().disallow(""),
+      continueSetupId: Joi.string().required().trim().disallow(""),
+    }).required()
+  )
+}
+
+export function syncAgentSharePointValidator() {
+  return auth.joiValidator.body(
+    Joi.object({
+      siteIds: Joi.array().items(Joi.string().trim().disallow("")).optional(),
     }).required()
   )
 }
