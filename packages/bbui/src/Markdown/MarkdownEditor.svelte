@@ -63,7 +63,6 @@
       blurBoundTo.codemirror.off("blur", update)
     }
   })
-
 </script>
 
 {#key height}

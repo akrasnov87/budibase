@@ -231,7 +231,11 @@
   style={`left:${colorPickerX}px;top:${colorPickerY}px;`}
 >
   {#key colorPickerKey}
-    <ColorPicker value={selectedColors[activeMode]} size="S" on:change={onColorChange} />
+    <ColorPicker
+      value={selectedColors[activeMode]}
+      size="S"
+      on:change={onColorChange}
+    />
   {/key}
 </div>
 
