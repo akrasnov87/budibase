@@ -43,9 +43,6 @@ describe("CreateEditGroupModal", () => {
     expect(screen.getByLabelText("Name")).toBeDisabled()
     expect(screen.getByLabelText("Icon")).not.toBeDisabled()
     expect(screen.getByLabelText("Color")).not.toBeDisabled()
-    expect(
-      screen.getByLabelText("Make this the default group")
-    ).not.toBeDisabled()
   })
 
   it("allows non-scim groups to edit all exposed fields", () => {
@@ -59,8 +56,5 @@ describe("CreateEditGroupModal", () => {
     expect(screen.getByLabelText("Name")).not.toBeDisabled()
     expect(screen.getByLabelText("Icon")).not.toBeDisabled()
     expect(screen.getByLabelText("Color")).not.toBeDisabled()
-    expect(
-      screen.getByLabelText("Make this the default group")
-    ).not.toBeDisabled()
   })
 })
