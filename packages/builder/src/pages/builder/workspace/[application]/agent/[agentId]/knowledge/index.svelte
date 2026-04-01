@@ -78,6 +78,7 @@
   let loadedAgentId = $state<string | undefined>()
   let sharePointSites = $state<SharePointSite[]>([])
   let selectedSiteIds = $state<string[]>([])
+  let storedSharePointSites = $state<SharePointSite[]>([])
   let loadingSharePointSites = $state(false)
   let syncingSharePointSiteId = $state<string | undefined>()
   let sharePointSitesLoadedForAgent = $state<string | undefined>()
@@ -167,12 +168,20 @@
       }
       return selectedSiteIds
         .map(siteId => {
-          const site = sharePointSites.find(entry => entry.id === siteId)
+          const site =
+            storedSharePointSites.find(entry => entry.id === siteId) ||
+            sharePointSites.find(entry => entry.id === siteId)
+          const siteDisplayName =
+            site?.name ||
+            site?.webUrl ||
+            (loadingSharePointSites
+              ? "Loading SharePoint site..."
+              : "SharePoint site")
           return {
             kind: "sharepoint_connection" as const,
             _id: `sharepoint-site-${siteId}`,
             siteId,
-            filename: site?.name || site?.webUrl || siteId,
+            filename: siteDisplayName,
             subtitle: lastSharePointSyncLabel,
             displayStatus: "Connected",
             onDelete: () => removeSharePointSite(siteId),
@@ -247,9 +256,12 @@
     const agentId = currentAgent?._id
     if (!agentId) {
       selectedSiteIds = []
+      storedSharePointSites = []
       return
     }
-    selectedSiteIds = [...(sharePointSource?.config.siteIds || [])]
+    const sites = [...(sharePointSource?.config.sites || [])]
+    storedSharePointSites = sites
+    selectedSiteIds = sites.map(site => site.id)
   })
 
   $effect(() => {
@@ -349,8 +361,9 @@
       return
     }
     await loadSharePointSites(agentId)
+    const selectedSiteIdSet = new Set(selectedSiteIds)
     const availableSites = sharePointSites.filter(
-      site => !selectedSiteIds.includes(site.id)
+      site => !selectedSiteIdSet.has(site.id)
     )
     selectedSharePointSiteId = availableSites[0]?.id || ""
     sharePointSiteModal?.show()
@@ -413,9 +426,10 @@
     if (!agent?._id || !agent?._rev || !sharePointSource) {
       return
     }
-    const nextSiteIds = (sharePointSource.config.siteIds || []).filter(
-      id => id !== siteId
+    const nextSites = (sharePointSource.config.sites || []).filter(
+      site => site.id !== siteId
     )
+    const nextSiteIds = nextSites.map(site => site.id)
     try {
       const nextSources = (agent.knowledgeSources || []).map(source => {
         if (source.type !== AgentKnowledgeSourceType.SHAREPOINT) {
@@ -425,7 +439,7 @@
           ...source,
           config: {
             ...source.config,
-            siteIds: nextSiteIds,
+            sites: nextSites,
           },
         }
       })

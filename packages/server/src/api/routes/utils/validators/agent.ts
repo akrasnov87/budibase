@@ -44,7 +44,15 @@ const KNOWLEDGE_SOURCE_SCHEMA = Joi.object({
   name: OPTIONAL_STRING,
   config: Joi.object({
     connectionId: OPTIONAL_STRING,
-    siteIds: Joi.array().items(Joi.string().trim().disallow("")).required(),
+    sites: Joi.array()
+      .items(
+        Joi.object({
+          id: Joi.string().required().trim().disallow(""),
+          name: OPTIONAL_STRING,
+          webUrl: OPTIONAL_STRING,
+        }).required()
+      )
+      .required(),
     lastSyncedAt: OPTIONAL_STRING,
   }).required(),
 })
