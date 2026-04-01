@@ -31,6 +31,7 @@
   const password = generatePassword(12)
   let userGroups = []
   let emailsInput = []
+  let parsedEmails = []
   let pendingEmailInput = ""
   let emailError = null
   const maxItems = 15
@@ -81,12 +82,17 @@
     },
   ]
   $: hasError = userData.find(x => x.error != null)
-  $: parsedEmails = useWorkspaceInviteModal
-    ? emailsInput.length === 0 &&
-      emailValidator(pendingEmailInput.trim()) === true
-      ? [pendingEmailInput.trim()]
-      : emailsInput
-    : []
+  $: {
+    if (!useWorkspaceInviteModal) {
+      parsedEmails = []
+    } else {
+      const pendingEmail = pendingEmailInput.trim()
+      parsedEmails =
+        emailsInput.length === 0 && emailValidator(pendingEmail) === true
+          ? [pendingEmail]
+          : emailsInput
+    }
+  }
   $: userCount =
     $licensing.userCount +
     (useWorkspaceInviteModal ? parsedEmails.length : userData.length)
