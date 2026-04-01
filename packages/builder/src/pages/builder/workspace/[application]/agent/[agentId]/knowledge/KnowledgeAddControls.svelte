@@ -20,6 +20,9 @@
     selectsharepoint: void
   }>()
 
+  const ACCEPTED_KNOWLEDGE_FILE_TYPES =
+    ".txt,.md,.markdown,.json,.yaml,.yml,.csv,.tsv,.pdf,.html,.htm,.xml,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf"
+
   let fileInput = $state<HTMLInputElement>()
   let addKnowledgeModal = $state<ModalHandle>()
 
@@ -56,7 +59,7 @@
 
 <input
   type="file"
-  accept=".txt,.md,.markdown,.json,.yaml,.yml,.csv,.tsv,.pdf"
+  accept={ACCEPTED_KNOWLEDGE_FILE_TYPES}
   hidden
   bind:this={fileInput}
   onchange={handleFileUpload}
