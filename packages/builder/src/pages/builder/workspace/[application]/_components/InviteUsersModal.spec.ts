@@ -79,14 +79,14 @@ const {
   }
 })
 
-vi.mock("@budibase/bbui", async () => {
+vi.mock("@budibase/bbui", async importOriginal => {
+  const actual = await importOriginal<typeof import("@budibase/bbui")>()
   const [
     { default: MockBody },
     { default: MockInput },
     { default: MockLayout },
     { default: MockModal },
     { default: MockModalContent },
-    { default: MockPillInput },
     { default: MockSelect },
   ] = await Promise.all([
     import("@/test/mocks/MockBody.svelte"),
@@ -94,7 +94,6 @@ vi.mock("@budibase/bbui", async () => {
     import("@/test/mocks/MockLayout.svelte"),
     import("@/test/mocks/MockModal.svelte"),
     import("@/test/mocks/MockModalContent.svelte"),
-    import("@/test/mocks/MockPillInput.svelte"),
     import("@/test/mocks/MockSelect.svelte"),
   ])
 
@@ -108,7 +107,7 @@ vi.mock("@budibase/bbui", async () => {
     Modal: MockModal,
     ModalContent: MockModalContent,
     Multiselect: MockSelect,
-    PillInput: MockPillInput,
+    PillInput: actual.PillInput,
     RadioGroup: MockSelect,
     Select: MockSelect,
     Helpers: {
@@ -205,6 +204,8 @@ vi.mock("@/settings/pages/people/users/workspaceInviteUtils", () => ({
 import InviteUsersModal from "./InviteUsersModal.svelte"
 
 describe("InviteUsersModal", () => {
+  const getEmailInput = () => screen.getByRole("textbox")
+
   beforeEach(() => {
     vi.clearAllMocks()
     appStore.set({ appId: "app_dev_123" })
@@ -234,10 +235,9 @@ describe("InviteUsersModal", () => {
   it("enables invite action when a valid first email is typed", async () => {
     render(InviteUsersModal, { props: { onHide: vi.fn() } })
 
-    await fireEvent.input(
-      screen.getByLabelText("Type or paste emails below, separated by commas"),
-      { target: { value: "test@example.com" } }
-    )
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "test@example.com" },
+    })
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Invite users" })).toBeEnabled()
@@ -247,10 +247,9 @@ describe("InviteUsersModal", () => {
   it("does not enable invite action when the first email is typed is invalid", async () => {
     render(InviteUsersModal, { props: { onHide: vi.fn() } })
 
-    await fireEvent.input(
-      screen.getByLabelText("Type or paste emails below, separated by commas"),
-      { target: { value: "inprogress@example." } }
-    )
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "inprogress@example." },
+    })
 
     await waitFor(() => {
       expect(
@@ -259,13 +258,15 @@ describe("InviteUsersModal", () => {
     })
   })
 
-  it("keeps the invite action button enabled when a second invalid email is typed if the first email is valid", async () => {
+  it("keeps the invite action button enabled when a second invalid email is typed, if the first email is valid", async () => {
     render(InviteUsersModal, { props: { onHide: vi.fn() } })
 
-    await fireEvent.input(
-      screen.getByLabelText("Type or paste emails below, separated by commas"),
-      { target: { value: "test@example.com, inprogress@" } }
-    )
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "test@example.com," },
+    })
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "inprogress@" },
+    })
 
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Invite users" })).toBeEnabled()
