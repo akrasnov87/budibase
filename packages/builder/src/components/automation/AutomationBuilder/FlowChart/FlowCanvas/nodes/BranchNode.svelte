@@ -46,6 +46,9 @@
   ) => void = () => {}
 
   const view = getContext<Writable<DragView>>("draggableView")
+  const focusNodeRequest = getContext<
+    Writable<{ nodeId: string; direction?: -1 | 1; zoom?: number } | null>
+  >("focusNodeRequest")
   const memoContext = memo({})
   const memoEnvVariables = memo($environment.variables)
 
@@ -125,6 +128,10 @@
   $: unexecuted =
     viewMode === ViewMode.LOGS && Boolean(executedBranchId) && !executed
 
+  const createBranchNodeId = (idx: number, branchId: string) => {
+    return `branch-${step.id}-${idx}-${branchId}`
+  }
+
   const getContextMenuItems = () => {
     return [
       {
@@ -152,12 +159,18 @@
         visible: true,
         disabled: branchIdx == 0,
         callback: async () => {
-          if ($selectedAutomation.data) {
-            automationStore.actions.branchLeft(
+          const movedBranch = step.inputs?.branches?.[branchIdx]
+          const targetIdx = branchIdx - 1
+          if ($selectedAutomation.data && movedBranch && targetIdx >= 0) {
+            await automationStore.actions.branchLeft(
               branchBlockRef.pathTo,
               $selectedAutomation.data,
               step
             )
+            focusNodeRequest.set({
+              nodeId: createBranchNodeId(targetIdx, movedBranch.id),
+              direction: -1,
+            })
           }
         },
       },
@@ -168,12 +181,23 @@
         visible: true,
         disabled: isLast,
         callback: async () => {
-          if ($selectedAutomation.data) {
-            automationStore.actions.branchRight(
+          const movedBranch = step.inputs?.branches?.[branchIdx]
+          const targetIdx = branchIdx + 1
+          const branchCount = step.inputs?.branches?.length || 0
+          if (
+            $selectedAutomation.data &&
+            movedBranch &&
+            targetIdx < branchCount
+          ) {
+            await automationStore.actions.branchRight(
               branchBlockRef.pathTo,
               $selectedAutomation.data,
               step
             )
+            focusNodeRequest.set({
+              nodeId: createBranchNodeId(targetIdx, movedBranch.id),
+              direction: 1,
+            })
           }
         },
       },

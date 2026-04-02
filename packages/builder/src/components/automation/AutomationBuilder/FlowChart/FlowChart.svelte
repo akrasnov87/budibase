@@ -34,6 +34,7 @@
     dagreLayoutAutomation,
     type GraphBuildDeps,
   } from "./AutomationStepHelpers"
+  import { NODE_SPACING } from "./FlowCanvas/FlowGeometry"
 
   import ConfirmDialog from "@/components/common/ConfirmDialog.svelte"
   import { createFlowChartDnD } from "./FlowCanvas/FlowChartDnD"
@@ -84,6 +85,11 @@
 
   let nodes = writable<FlowNode[]>([])
   let edges = writable<FlowEdge[]>([])
+  let focusNodeRequest = writable<{
+    nodeId: string
+    direction?: -1 | 1
+    zoom?: number
+  } | null>(null)
 
   const { getViewport, setViewport } = useSvelteFlow()
 
@@ -99,6 +105,7 @@
   setContext("draggableView", view)
   setContext("viewPos", viewPos)
   setContext("contentPos", contentPos)
+  setContext("focusNodeRequest", focusNodeRequest)
 
   $: updateGraph(blocks, layoutDirection)
 
@@ -149,7 +156,12 @@
     // Run Dagre layout with selected direction
     const laidOut = dagreLayoutAutomation(
       { nodes: newNodes, edges: newEdges },
-      { rankdir: direction, ranksep: 100, nodesep: 100, compactLoops: true }
+      {
+        rankdir: direction,
+        ranksep: NODE_SPACING,
+        nodesep: NODE_SPACING,
+        compactLoops: true,
+      }
     )
 
     nodes.set(laidOut.nodes)
@@ -159,6 +171,20 @@
   $: if ($nodes?.length && !initialViewportApplied && paneEl) {
     focusOnTrigger()
     initialViewportApplied = true
+  }
+
+  $: if ($focusNodeRequest && paneEl && $nodes?.length) {
+    const targetNode = $nodes.find(
+      node => node.id === $focusNodeRequest?.nodeId
+    )
+    if (targetNode) {
+      focusOnNode(
+        targetNode,
+        $focusNodeRequest.direction,
+        $focusNodeRequest.zoom
+      )
+      focusNodeRequest.set(null)
+    }
   }
 
   // Check if automation has unpublished changes
@@ -177,7 +203,7 @@
     const paneRect = paneEl.getBoundingClientRect()
     const nodeWidth = 320
     const nodeHeight = 150
-    const nodeOffset = 100
+    const nodeOffset = NODE_SPACING
 
     let x, y
 
@@ -195,6 +221,52 @@
     }
 
     setViewport({ x, y, zoom: 1 }, { duration: 0 })
+  }
+
+  const focusOnNode = (
+    targetNode: FlowNode,
+    direction?: -1 | 1,
+    zoom?: number
+  ) => {
+    if (!paneEl) {
+      return
+    }
+
+    const currentViewport = getViewport()
+    if (!currentViewport) {
+      return
+    }
+
+    const nodeWidth = targetNode.width || 320
+    const nodeHeight = targetNode.height || 150
+    const desiredZoom = zoom ?? currentViewport.zoom ?? 1
+    const safeZoom = Math.min(Math.max(desiredZoom, 0.4), 1)
+
+    if (direction === -1 || direction === 1) {
+      if (layoutDirection === "LR") {
+        const yStride = nodeHeight + NODE_SPACING
+        const y = currentViewport.y - direction * yStride
+        setViewport(
+          { x: currentViewport.x, y, zoom: safeZoom },
+          { duration: 180 }
+        )
+        return
+      }
+
+      const xStride = nodeWidth + NODE_SPACING
+      const x = currentViewport.x - direction * xStride
+      setViewport(
+        { x, y: currentViewport.y, zoom: safeZoom },
+        { duration: 180 }
+      )
+      return
+    }
+
+    const paneRect = paneEl.getBoundingClientRect()
+    const x = paneRect.width / 2 - targetNode.position.x - nodeWidth / 2
+    const y = paneRect.height / 2 - targetNode.position.y - nodeHeight / 2
+
+    setViewport({ x, y, zoom: safeZoom }, { duration: 180 })
   }
 
   const refresh = () => {

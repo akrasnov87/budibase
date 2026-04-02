@@ -1,5 +1,7 @@
 import type { LayoutDirection } from "@budibase/types"
 
+export const NODE_SPACING = 100
+
 export const STEP = {
   width: 320,
   height: 100,
