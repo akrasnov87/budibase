@@ -123,8 +123,10 @@ const getResizeActions = ({
 
     const handleDoubleClick = () => {
       if (element) {
-        element.style.removeProperty(elementDimension)
-        setValue(initialValue || 0)
+        const resetValue = initialValue || 0
+        element.style.removeProperty("transition")
+        element.style[elementDimension] = `${resetValue}px`
+        setValue(resetValue)
       }
     }
 
