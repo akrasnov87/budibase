@@ -24,6 +24,7 @@
     selectedAutomation,
     workspaceDeploymentStore,
     deploymentStore,
+    contextMenuStore,
   } from "@/stores/builder"
   import { environment } from "@/stores/portal"
   import { type AutomationBlock, ViewMode } from "@/types/automations"
@@ -334,6 +335,19 @@
     }
   }
 
+  const closeContextMenuOnCanvasInteraction = () => {
+    if (get(contextMenuStore).visible) {
+      contextMenuStore.close()
+    }
+  }
+
+  const handleCanvasPointerMove = (e: PointerEvent) => {
+    dnd.handlePointerMove(e)
+    if (e.buttons > 0) {
+      closeContextMenuOnCanvasInteraction()
+    }
+  }
+
   onMount(async () => {
     try {
       await automationStore.actions.initAppSelf()
@@ -424,11 +438,14 @@
 <div class="main-flow">
   <div class="root">
     <!-- svelte-ignore a11y-no-static-element-interactions -->
+    <!-- svelte-ignore a11y-click-events-have-key-events -->
     <div
       class="wrapper"
       bind:this={paneEl}
-      on:mousemove={dnd.handlePointerMove}
-      on:mousedown={dnd.updatePaneRect}
+      on:pointermove={handleCanvasPointerMove}
+      on:mousedown={() => {
+        dnd.updatePaneRect()
+      }}
     >
       <SvelteFlow
         {nodes}
@@ -441,6 +458,9 @@
         maxZoom={1}
         deleteKey={null}
         proOptions={{ hideAttribution: true }}
+        onMoveStart={closeContextMenuOnCanvasInteraction}
+        onMove={closeContextMenuOnCanvasInteraction}
+        on:paneclick={closeContextMenuOnCanvasInteraction}
       >
         <FlowControls
           historyStore={automationHistoryStore}

@@ -327,6 +327,7 @@
     class:unexecuted
     on:click={e => {
       e.stopPropagation()
+      contextMenuStore.close()
       if (viewMode === ViewMode.LOGS && logStepData) {
         onStepSelect(logStepData)
       }
@@ -378,7 +379,10 @@
           <Button
             disabled={viewMode === ViewMode.LOGS}
             secondary
-            on:click={drawer.show}
+            on:click={() => {
+              contextMenuStore.close()
+              drawer?.show()
+            }}
           >
             {editableConditionUI?.groups?.length
               ? "Update condition"
