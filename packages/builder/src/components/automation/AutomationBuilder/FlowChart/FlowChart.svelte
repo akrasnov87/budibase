@@ -245,7 +245,7 @@
 
     if (direction === -1 || direction === 1) {
       if (layoutDirection === "LR") {
-        const yStride = nodeHeight + NODE_SPACING
+        const yStride = (nodeHeight + NODE_SPACING) * safeZoom
         const y = currentViewport.y - direction * yStride
         setViewport(
           { x: currentViewport.x, y, zoom: safeZoom },
@@ -254,7 +254,7 @@
         return
       }
 
-      const xStride = nodeWidth + NODE_SPACING
+      const xStride = (nodeWidth + NODE_SPACING) * safeZoom
       const x = currentViewport.x - direction * xStride
       setViewport(
         { x, y: currentViewport.y, zoom: safeZoom },
