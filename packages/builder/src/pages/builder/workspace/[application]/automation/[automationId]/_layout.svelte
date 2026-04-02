@@ -59,7 +59,7 @@
           storageKey="automation-side-panel-width"
           defaultWidth={480}
           minWidth={360}
-          maxWidthRatio={0.6}
+          maxWidthViewportOffset={510}
           direction="right"
         >
           <div class="step-panel">

@@ -9,6 +9,7 @@
   export let minWidth = 260
   export let maxWidth: number | undefined = undefined
   export let maxWidthRatio: number | undefined = undefined
+  export let maxWidthViewportOffset: number | undefined = undefined
   export let direction: "left" | "right" = "left"
   export let onResizeStart: () => void = () => {}
   export let usePanel = false
@@ -46,6 +47,9 @@
     }
     if (Number.isFinite(maxWidthRatio)) {
       maxValues.push(Math.floor(window.innerWidth * (maxWidthRatio as number)))
+    }
+    if (Number.isFinite(maxWidthViewportOffset)) {
+      maxValues.push(window.innerWidth - (maxWidthViewportOffset as number))
     }
 
     const candidateMax = maxValues.length
