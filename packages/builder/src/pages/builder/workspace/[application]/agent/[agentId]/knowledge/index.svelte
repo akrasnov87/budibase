@@ -64,14 +64,7 @@
   const getUploadErrorMessage = (error: any) => {
     const status = error?.status
     const message = error?.message || "Failed to upload file"
-    const normalisedMessage =
-      typeof message === "string" ? message.toLowerCase() : ""
-    const isFileTooLargeError =
-      status === 413 ||
-      normalisedMessage.includes("maxfilesize") ||
-      normalisedMessage.includes("max file size") ||
-      normalisedMessage.includes("too large") ||
-      normalisedMessage.includes("payload too large")
+    const isFileTooLargeError = status === 413
 
     if (isFileTooLargeError) {
       return `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
@@ -248,9 +241,9 @@
     />
   </div>
 
-  <Body size="S" class="file-limit-note"
-    >Max file size: {MAX_FILE_SIZE_LABEL} per file.</Body
-  >
+  <div class="file-limit-note">
+    <Body size="S">Max file size: {MAX_FILE_SIZE_LABEL} per file.</Body>
+  </div>
 
   {#if loading}
     <div class="loading-state">
