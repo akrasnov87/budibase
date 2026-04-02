@@ -15,6 +15,7 @@
     head: { line: number; ch: number }
   }
   type ColorMode = "text" | "highlight"
+  type ActiveColors = Record<ColorMode, string | null>
 
   export let mde: EditorInstance | null = null
   export let id: string | null = null
@@ -66,6 +67,121 @@
       editor.codemirror.listSelections() as EditorSelectionRange[]
     )
 
+  const getValidatedColor = (color: string, mode: ColorMode) => {
+    const trimmedColor = color.trim()
+    if (!trimmedColor) {
+      return null
+    }
+
+    const cssProperty = modeConfig[mode].stylePrefix
+    if (typeof CSS === "undefined" || typeof CSS.supports !== "function") {
+      return null
+    }
+    if (!CSS.supports(cssProperty, trimmedColor)) {
+      return null
+    }
+    return trimmedColor
+  }
+
+  const getColorFromTag = (tagText: string, mode: ColorMode) => {
+    const styleRegex = new RegExp(
+      `${modeConfig[mode].stylePrefix}\\s*:\\s*([^;\"']+)`,
+      "i"
+    )
+    const styleMatch = tagText.match(styleRegex)
+    if (!styleMatch?.[1]) {
+      return null
+    }
+    return getValidatedColor(styleMatch[1], mode)
+  }
+
+  const getActiveColorsBeforeCursor = (textBeforeCursor: string): ActiveColors => {
+    const stacks: Record<ColorMode, string[]> = {
+      text: [],
+      highlight: [],
+    }
+    const tokenRegex = /<(\/?)(span|mark)\b[^>]*>/gi
+    for (const token of textBeforeCursor.matchAll(tokenRegex)) {
+      const tokenValue = token[0]
+      const isClosing = token[1] === "/"
+      const mode: ColorMode = token[2].toLowerCase() === "mark" ? "highlight" : "text"
+      if (isClosing) {
+        stacks[mode].pop()
+        continue
+      }
+      const color = getColorFromTag(tokenValue, mode)
+      if (color) {
+        stacks[mode].push(color)
+      }
+    }
+    return {
+      text: stacks.text.length ? stacks.text[stacks.text.length - 1] : null,
+      highlight: stacks.highlight.length
+        ? stacks.highlight[stacks.highlight.length - 1]
+        : null,
+    }
+  }
+
+  const getColorsAtCursor = (
+    content: string,
+    cursorIndex: number
+  ): ActiveColors => {
+    const result: ActiveColors = {
+      text: null,
+      highlight: null,
+    }
+    const openIndex = content.lastIndexOf("<", cursorIndex)
+    if (openIndex < 0) {
+      return result
+    }
+    const closeBeforeIndex = content.lastIndexOf(">", cursorIndex - 1)
+    if (closeBeforeIndex > openIndex) {
+      return result
+    }
+    const closeAfterIndex = content.indexOf(">", openIndex)
+    if (closeAfterIndex < 0) {
+      return result
+    }
+    const tagText = content.slice(openIndex, closeAfterIndex + 1)
+    if (/^<span\b/i.test(tagText)) {
+      result.text = getColorFromTag(tagText, "text")
+    }
+    if (/^<mark\b/i.test(tagText)) {
+      result.highlight = getColorFromTag(tagText, "highlight")
+    }
+    return result
+  }
+
+  const setToolbarIconColor = (
+    editor: EditorInstance,
+    mode: ColorMode,
+    color: string | null
+  ) => {
+    const button = editor.toolbarElements?.[modeConfig[mode].toolbarButtonName]
+    const icon = button?.querySelector("i") as HTMLElement | null
+    if (!icon) {
+      return
+    }
+    if (!color) {
+      icon.style.removeProperty("color")
+      return
+    }
+    icon.style.color = color
+  }
+
+  const syncToolbarIconColors = (editor: EditorInstance) => {
+    const cursor = editor.codemirror.getCursor("head")
+    const cursorIndex = editor.codemirror.indexFromPos(cursor)
+    const content = editor.codemirror.getValue()
+    const contentBeforeCursor = content.slice(0, cursorIndex)
+    const activeColors = getActiveColorsBeforeCursor(contentBeforeCursor)
+    const cursorColors = getColorsAtCursor(content, cursorIndex)
+    const textColor = cursorColors.text || activeColors.text
+    const highlightColor = cursorColors.highlight || activeColors.highlight
+    setToolbarIconColor(editor, "text", textColor)
+    setToolbarIconColor(editor, "highlight", highlightColor)
+  }
+
   const cacheSelection = () => {
     if (!mde || !hasSelectedText(mde)) {
       return
@@ -73,14 +189,22 @@
     lastNonEmptySelections = getSelections(mde)
   }
 
+  const onCursorActivity = () => {
+    if (!mde) {
+      return
+    }
+    cacheSelection()
+    syncToolbarIconColors(mde)
+  }
+
   const bindCursorListener = (editor: EditorInstance) => {
     if (cursorBoundTo === editor) {
       return
     }
     if (cursorBoundTo) {
-      cursorBoundTo.codemirror.off("cursorActivity", cacheSelection)
+      cursorBoundTo.codemirror.off("cursorActivity", onCursorActivity)
     }
-    editor.codemirror.on("cursorActivity", cacheSelection)
+    editor.codemirror.on("cursorActivity", onCursorActivity)
     cursorBoundTo = editor
   }
 
@@ -111,7 +235,7 @@
     if (!pendingSelections || !mde) {
       return
     }
-    const safeColor = color.replace(/[<>"']/g, "")
+    const safeColor = getValidatedColor(color, mode)
     if (!safeColor) {
       return
     }
@@ -143,6 +267,9 @@
       [activeMode]: color,
     }
     applyStyledSelections(color, activeMode)
+    if (mde) {
+      syncToolbarIconColors(mde)
+    }
   }
 
   const textColorToolbarButton = {
@@ -202,11 +329,12 @@
       toolbar: getToolbar(easyMDEOptions),
     })
     bindCursorListener(mde)
+    syncToolbarIconColors(mde)
   })
 
   onDestroy(() => {
     if (cursorBoundTo) {
-      cursorBoundTo.codemirror.off("cursorActivity", cacheSelection)
+      cursorBoundTo.codemirror.off("cursorActivity", onCursorActivity)
     }
     mde?.toTextArea()
   })
