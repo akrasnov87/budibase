@@ -85,7 +85,7 @@
 
   const getColorFromTag = (tagText: string, mode: ColorMode) => {
     const styleRegex = new RegExp(
-      `${modeConfig[mode].stylePrefix}\\s*:\\s*([^;\"']+)`,
+      `${modeConfig[mode].stylePrefix}\\s*:\\s*([^;"']+)`,
       "i"
     )
     const styleMatch = tagText.match(styleRegex)
