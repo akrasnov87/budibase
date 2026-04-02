@@ -3755,13 +3755,14 @@ if (descriptions.length) {
                       _id: auxRow._id,
                       primaryDisplay: auxRow.name,
                       name: auxRow.name,
-                      user: expect.objectContaining({
+                      user: {
                         _id: user._id,
                         email: user.email,
                         firstName: user.firstName,
+                        fullName: expect.any(String),
                         lastName: user.lastName,
                         primaryDisplay: user.email,
-                      }),
+                      },
                     },
                   ],
                 }),
