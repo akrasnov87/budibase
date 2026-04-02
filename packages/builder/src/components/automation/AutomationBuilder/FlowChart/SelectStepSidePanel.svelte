@@ -8,7 +8,6 @@
     Tag,
     Search,
   } from "@budibase/bbui"
-  import Panel from "@/components/design/Panel.svelte"
   import {
     AutomationActionStepId,
     BlockDefinitionTypes,
@@ -23,9 +22,12 @@
   import { fly } from "svelte/transition"
   import NewPill from "@/components/common/NewPill.svelte"
   import type { BranchFlowContext, FlowBlockPath } from "@/types/automations"
+  import ResizablePanel from "@/components/common/ResizablePanel.svelte"
 
   export let block
   export let onClose = () => {}
+
+  const SIDE_PANEL_STORAGE_KEY = "automation-side-panel-width"
 
   let searchString: string = ""
   let searchRef: HTMLInputElement | undefined = undefined
@@ -332,12 +334,16 @@
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
 <div class="container" transition:fly|local={{ x: 260, duration: 300 }}>
-  <Panel
+  <ResizablePanel
+    storageKey={SIDE_PANEL_STORAGE_KEY}
+    defaultWidth={480}
+    minWidth={360}
+    maxWidthRatio={0.6}
+    direction="right"
+    usePanel
     title="Automation Step"
     showCloseButton
     onClickCloseButton={onClose}
-    customWidth={400}
-    borderLeft
   >
     <div class="step-panel-content">
       <div class="search-container">
@@ -437,7 +443,7 @@
         </div>
       {/if}
     </div>
-  </Panel>
+  </ResizablePanel>
 </div>
 
 <style>
