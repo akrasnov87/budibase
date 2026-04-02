@@ -852,8 +852,9 @@ describe("API Endpoint Viewer", () => {
       const getBodyTextInputs = () =>
         Array.from(
           container.querySelectorAll(".spectrum-Tabs-content input")
-        ).filter(input => (input as HTMLInputElement).type !== "radio") as
-          | HTMLInputElement[]
+        ).filter(
+          input => (input as HTMLInputElement).type !== "radio"
+        ) as HTMLInputElement[]
 
       await waitFor(() => expect(getTab(container, "Body")).not.toBeUndefined())
       await fireEvent.click(getTab(container, "Body")!)
