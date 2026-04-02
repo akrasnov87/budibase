@@ -363,9 +363,7 @@
         actionSelectionLocked = false
       }
     } finally {
-      if (!actionSelectionLocked) {
-        isSelectingAction = false
-      }
+      isSelectingAction = false
     }
   }
 
