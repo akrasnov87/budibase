@@ -46,9 +46,10 @@
   ) => void = () => {}
 
   const view = getContext<Writable<DragView>>("draggableView")
-  const focusNodeRequest = getContext<
-    Writable<{ nodeId: string; direction?: -1 | 1; zoom?: number } | null>
-  >("focusNodeRequest")
+  const focusNodeRequest =
+    getContext<
+      Writable<{ nodeId: string; direction?: -1 | 1; zoom?: number } | null>
+    >("focusNodeRequest")
   const memoContext = memo({})
   const memoEnvVariables = memo($environment.variables)
 

@@ -313,7 +313,10 @@
       selectedIndex = null
     } else if (searchString && selectedIndex == null) {
       selectedIndex = 0
-    } else if (selectedIndex != null && selectedIndex >= navigableActions.length) {
+    } else if (
+      selectedIndex != null &&
+      selectedIndex >= navigableActions.length
+    ) {
       selectedIndex = 0
     }
   }
