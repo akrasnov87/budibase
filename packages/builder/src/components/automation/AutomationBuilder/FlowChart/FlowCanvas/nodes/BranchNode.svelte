@@ -319,7 +319,11 @@
           itemName={branch.name}
           on:update={branchUpdate}
         />
-        <div class="actions">
+        <div
+          class="actions nodrag nopan"
+          on:mousedown|stopPropagation
+          on:click|stopPropagation
+        >
           <Icon
             name="info"
             tooltip="Branch sequencing checks each option in order and follows the first one that matches the rules."
@@ -341,7 +345,12 @@
     <Divider noMargin />
     <div class="blockSection filter-button">
       <PropField label="Only run when:" fullWidth>
-        <div style="width: 100%">
+        <div
+          class="nodrag nopan"
+          style="width: 100%"
+          on:mousedown|stopPropagation
+          on:click|stopPropagation
+        >
           <Button
             disabled={viewMode === ViewMode.LOGS}
             secondary
