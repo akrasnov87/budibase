@@ -29,9 +29,12 @@
 
   let searchString: string = ""
   let searchRef: HTMLInputElement | undefined = undefined
+  let panelContainerRef: HTMLDivElement | undefined = undefined
   let selectedIndex: number | null = null
   let navigableActions: AutomationStepDefinition[] = []
   let actionOrderMap: Record<string, number> = {}
+  let isSelectingAction = false
+  let actionSelectionLocked = false
 
   $: syncAutomationsEnabled = $licensing.syncAutomationsEnabled
   $: triggerAutomationRunEnabled = $licensing.triggerAutomationRunEnabled
@@ -322,6 +325,13 @@
   }
 
   const selectAction = async (action: AutomationStepDefinition) => {
+    if (isSelectingAction || actionSelectionLocked) {
+      return
+    }
+
+    actionSelectionLocked = true
+    isSelectingAction = true
+    let stepInserted = false
     try {
       const newBlock = automationStore.actions.constructBlock(
         BlockDefinitionTypes.ACTION,
@@ -337,6 +347,7 @@
       } else {
         await automationStore.actions.addBlockToAutomation(newBlock, targetPath)
       }
+      stepInserted = true
 
       // Determine presence of the block before focusing
       const createdBlock = $selectedAutomation.blockRefs[newBlock.id]
@@ -348,6 +359,13 @@
     } catch (error) {
       console.error(error)
       notifications.error("Error saving automation")
+      if (!stepInserted) {
+        actionSelectionLocked = false
+      }
+    } finally {
+      if (!actionSelectionLocked) {
+        isSelectingAction = false
+      }
     }
   }
 
@@ -360,7 +378,7 @@
     action: AutomationStepDefinition,
     disabled = false
   ) => {
-    if (disabled) {
+    if (disabled || isSelectingAction || actionSelectionLocked) {
       return
     }
     if (e.key === "Enter") {
@@ -369,8 +387,17 @@
     }
   }
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = async (e: KeyboardEvent) => {
+    const target = e.target
+    if (!(target instanceof Node) || !panelContainerRef?.contains(target)) {
+      return
+    }
+
     if (!navigableActions.length) {
+      return
+    }
+
+    if (isSelectingAction || actionSelectionLocked) {
       return
     }
 
@@ -392,7 +419,7 @@
     if (e.key === "Enter" && selectedIndex != null) {
       const action = navigableActions[selectedIndex]
       if (action) {
-        selectAction(action)
+        await selectAction(action)
       }
       e.preventDefault()
       e.stopPropagation()
@@ -410,7 +437,11 @@
 
 <!-- svelte-ignore a11y-click-events-have-key-events -->
 <!-- svelte-ignore a11y-no-static-element-interactions -->
-<div class="container" transition:fly|local={{ x: 260, duration: 300 }}>
+<div
+  class="container"
+  bind:this={panelContainerRef}
+  transition:fly|local={{ x: 260, duration: 300 }}
+>
   <Panel
     title="Automation Step"
     showCloseButton
