@@ -95,7 +95,9 @@
     return getValidatedColor(styleMatch[1], mode)
   }
 
-  const getActiveColorsBeforeCursor = (textBeforeCursor: string): ActiveColors => {
+  const getActiveColorsBeforeCursor = (
+    textBeforeCursor: string
+  ): ActiveColors => {
     const stacks: Record<ColorMode, string[]> = {
       text: [],
       highlight: [],
@@ -104,7 +106,8 @@
     for (const token of textBeforeCursor.matchAll(tokenRegex)) {
       const tokenValue = token[0]
       const isClosing = token[1] === "/"
-      const mode: ColorMode = token[2].toLowerCase() === "mark" ? "highlight" : "text"
+      const mode: ColorMode =
+        token[2].toLowerCase() === "mark" ? "highlight" : "text"
       if (isClosing) {
         stacks[mode].pop()
         continue
