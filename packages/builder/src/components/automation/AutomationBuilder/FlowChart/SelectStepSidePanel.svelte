@@ -338,7 +338,7 @@
     storageKey={SIDE_PANEL_STORAGE_KEY}
     defaultWidth={480}
     minWidth={360}
-    maxWidthViewportOffset={510}
+    maxWidthRatio={0.6}
     direction="right"
     usePanel
     title="Automation Step"
