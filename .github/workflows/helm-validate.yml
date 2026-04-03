@@ -58,6 +58,9 @@ jobs:
       - name: Set up chart-testing
         uses: helm/chart-testing-action@v2
 
+      - name: Add helm repositories
+        run: helm repo add couchdb https://apache.github.io/couchdb-helm
+
       - name: List changed charts
         id: list-changed
         run: |
