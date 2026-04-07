@@ -10,6 +10,7 @@
       syncedCount?: number
       totalCount?: number
       failedCount?: number
+      hasSynced?: boolean
     }
   }
 
@@ -27,6 +28,10 @@
   }
 
   const getSharePointStatusProps = (row: Props["row"]) => {
+    if (!row.hasSynced) {
+      return { notice: true }
+    }
+
     const failed = row.failedCount || 0
     const total = row.totalCount || 0
     const synced = row.syncedCount || 0

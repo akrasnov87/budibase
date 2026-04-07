@@ -58,6 +58,7 @@
     syncedCount: number
     totalCount: number
     failedCount: number
+    hasSynced: boolean
     onDelete: () => Promise<void>
     onSync: () => Promise<void>
     syncing: boolean
@@ -259,6 +260,8 @@
           const site =
             storedSharePointSites.find(entry => entry.id === siteId) ||
             sharePointSites.find(entry => entry.id === siteId)
+          const run = sharePointSyncRunsBySiteId[siteId]
+          const hasSynced = !!run?.lastRunAt
           const { synced, total, failed } = getSharePointSyncCounts(siteId)
           const siteDisplayName =
             site?.name ||
@@ -273,10 +276,11 @@
             siteId,
             filename: siteDisplayName,
             subtitle: getSharePointLastSyncLabel(siteId),
-            displayStatus: `${synced}/${total} files`,
+            displayStatus: hasSynced ? `${synced}/${total} files` : "Syncing",
             syncedCount: synced,
             totalCount: total,
             failedCount: failed,
+            hasSynced,
             onDelete: () => removeSharePointSite(siteId),
             onSync: () => syncSharePointNow([siteId]),
             syncing: syncingSharePointSiteId === siteId,
