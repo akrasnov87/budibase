@@ -14,8 +14,18 @@
 
   let deleting = $state(false)
   let syncing = $state(false)
+  let renderedRowId = $state<string | undefined>(row._id)
 
   let processing = $derived(deleting || syncing)
+
+  $effect(() => {
+    if (renderedRowId === row._id) {
+      return
+    }
+    renderedRowId = row._id
+    deleting = false
+    syncing = false
+  })
 
   const remove = async () => {
     try {

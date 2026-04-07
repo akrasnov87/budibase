@@ -58,6 +58,7 @@
     syncedCount: number
     totalCount: number
     failedCount: number
+    processingCount: number
     hasSynced: boolean
     runStatus?: AgentSharePointSyncRunStatus
     onDelete: () => Promise<void>
@@ -199,6 +200,20 @@
       file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
     )
 
+  const getSharePointFileProcessingCounts = (siteId: string) => {
+    const siteFiles = getSharePointFilesForSite(siteId)
+    const ready = siteFiles.filter(
+      file => file.status === KnowledgeBaseFileStatus.READY
+    ).length
+    const failed = siteFiles.filter(
+      file => file.status === KnowledgeBaseFileStatus.FAILED
+    ).length
+    const processing = siteFiles.filter(
+      file => file.status === KnowledgeBaseFileStatus.PROCESSING
+    ).length
+    return { ready, failed, processing }
+  }
+
   const getSharePointLastSyncLabel = (siteId: string) => {
     const run = sharePointSyncRunsBySiteId[siteId]
     if (!run?.lastRunAt) {
@@ -247,10 +262,10 @@
             sharePointSites.find(entry => entry.id === siteId)
           const run = sharePointSyncRunsBySiteId[siteId]
           const hasSynced = !!run?.lastRunAt
-          const synced = run?.synced || 0
-          const skipped = run?.skipped || 0
+          const { ready, failed, processing } =
+            getSharePointFileProcessingCounts(siteId)
           const total = run?.totalDiscovered || 0
-          const failed = run?.failed || 0
+          const completed = Math.min(ready + failed, total)
           const siteDisplayName =
             site?.name ||
             site?.webUrl ||
@@ -258,10 +273,10 @@
               ? "Loading SharePoint site..."
               : "SharePoint site")
           const displayStatus = !hasSynced
-            ? "Not synced"
+            ? "Syncing"
             : total === 0
               ? "No files found"
-              : `${synced + skipped}/${total} files`
+              : `${completed}/${total} files`
           return {
             kind: "sharepoint_connection" as const,
             __clickable: true,
@@ -270,9 +285,10 @@
             filename: siteDisplayName,
             subtitle: getSharePointLastSyncLabel(siteId),
             displayStatus,
-            syncedCount: synced,
+            syncedCount: ready,
             totalCount: total,
             failedCount: failed,
+            processingCount: processing,
             hasSynced,
             runStatus: run?.status,
             onDelete: () => removeSharePointSite(siteId),

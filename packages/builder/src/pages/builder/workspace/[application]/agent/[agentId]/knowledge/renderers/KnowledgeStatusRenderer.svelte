@@ -13,6 +13,7 @@
       syncedCount?: number
       totalCount?: number
       failedCount?: number
+      processingCount?: number
       hasSynced?: boolean
       runStatus?: AgentSharePointSyncRunStatus
     }
@@ -35,6 +36,24 @@
     if (!row.hasSynced) {
       return { notice: true }
     }
+    const total = row.totalCount || 0
+    const processing = row.processingCount || 0
+    const failed = row.failedCount || 0
+    const synced = row.syncedCount || 0
+
+    if (total === 0) {
+      return { positive: true }
+    }
+    if (processing > 0) {
+      return { notice: true }
+    }
+    if (failed > 0) {
+      return { negative: true }
+    }
+    if (synced >= total) {
+      return { positive: true }
+    }
+
     switch (row.runStatus) {
       case AgentSharePointSyncRunStatus.SUCCESS:
         return { positive: true }
