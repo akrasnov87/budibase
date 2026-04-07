@@ -8,28 +8,21 @@
 
   let { row }: Props = $props()
 
-  let deleting = $state(false)
   let syncing = $state(false)
   let renderedRowId = $state<string | undefined>(row._id)
 
-  let processing = $derived(deleting || syncing)
+  let processing = $derived(syncing)
 
   $effect(() => {
     if (renderedRowId === row._id) {
       return
     }
     renderedRowId = row._id
-    deleting = false
     syncing = false
   })
 
   const remove = async () => {
-    try {
-      deleting = true
-      await row.onDelete?.()
-    } finally {
-      deleting = false
-    }
+    await row.onDelete?.()
   }
 
   const sync = async (row: SharePointConnectionTableRow) => {
@@ -61,7 +54,6 @@
         quiet
         on:click={remove}
         disabled={processing}
-        loading={deleting}
       />
     </AbsTooltip>
   {:else}
@@ -72,7 +64,6 @@
         quiet
         on:click={remove}
         disabled={processing}
-        loading={deleting}
       />
     </AbsTooltip>
   {/if}
