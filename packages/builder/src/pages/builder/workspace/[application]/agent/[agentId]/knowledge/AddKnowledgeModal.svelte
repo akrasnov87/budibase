@@ -1,32 +1,42 @@
 <script lang="ts">
   import "@spectrum-css/dialog/dist/index-vars.css"
   import { ActionButton, Body, Modal, ModalContent } from "@budibase/bbui"
-  import { createEventDispatcher } from "svelte"
   import MicrosoftSharepointLogo from "assets/rest-template-icons/microsoft-sharepoint.svg"
 
-  const dispatch = createEventDispatcher<{
-    upload: void
-    sharepoint: void
-  }>()
+  interface Props {
+    onUpload?: () => void
+    onSharePoint?: () => Promise<void>
+  }
+
+  let { onUpload, onSharePoint }: Props = $props()
 
   let modal = $state<Modal>()
+  let loading = $state(false)
 
   export function show() {
     modal?.show()
   }
 
-  export function hide() {
+  function hide() {
     modal?.hide()
   }
 
   const handleUpload = () => {
+    onUpload?.()
     hide()
-    dispatch("upload")
   }
 
-  const handleSharePoint = () => {
-    hide()
-    dispatch("sharepoint")
+  const handleSharePoint = async () => {
+    if (loading) {
+      return
+    }
+    loading = true
+    try {
+      await onSharePoint?.()
+      hide()
+    } finally {
+      loading = false
+    }
   }
 </script>
 
@@ -43,16 +53,23 @@
         <Body size="S">Add knowledge to agent</Body>
       </div>
 
-      <ActionButton quiet icon="paperclip" fullWidth on:click={handleUpload}>
+      <ActionButton
+        quiet
+        icon="paperclip"
+        fullWidth
+        disabled={loading}
+        on:click={handleUpload}
+      >
         Add files
       </ActionButton>
       <ActionButton
         quiet
         icon={MicrosoftSharepointLogo}
         fullWidth
+        disabled={loading}
         on:click={handleSharePoint}
       >
-        Add from SharePoint
+        {loading ? "Loading SharePoint..." : "Add from SharePoint"}
       </ActionButton>
     </div>
   </ModalContent>

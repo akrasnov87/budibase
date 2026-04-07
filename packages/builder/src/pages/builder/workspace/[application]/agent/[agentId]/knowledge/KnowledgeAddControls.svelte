@@ -1,30 +1,26 @@
 <script lang="ts">
   import { Button } from "@budibase/bbui"
   import AddKnowledgeModal from "./AddKnowledgeModal.svelte"
-  import { createEventDispatcher } from "svelte"
-
-  interface ModalHandle {
-    show: () => void
-    hide: () => void
-  }
 
   interface Props {
     hasSharePointConnection: boolean
+    onUpload?: (_file: File) => void
+    onConnectSharePoint?: () => void
+    onSelectSharePoint?: () => Promise<void>
   }
 
-  let { hasSharePointConnection }: Props = $props()
-
-  const dispatch = createEventDispatcher<{
-    upload: File
-    connectsharepoint: void
-    selectsharepoint: void
-  }>()
+  let {
+    hasSharePointConnection,
+    onUpload,
+    onConnectSharePoint,
+    onSelectSharePoint,
+  }: Props = $props()
 
   const ACCEPTED_KNOWLEDGE_FILE_TYPES =
     ".txt,.md,.markdown,.json,.yaml,.yml,.csv,.tsv,.pdf,.html,.htm,.xml,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf"
 
   let fileInput = $state<HTMLInputElement>()
-  let addKnowledgeModal = $state<ModalHandle>()
+  let addKnowledgeModal = $state<AddKnowledgeModal>()
 
   const openAddKnowledgeModal = () => {
     addKnowledgeModal?.show()
@@ -40,16 +36,16 @@
     if (!file) {
       return
     }
-    dispatch("upload", file)
+    onUpload?.(file)
     target.value = ""
   }
 
-  const handleSharePoint = () => {
+  const handleSharePoint = async () => {
     if (hasSharePointConnection) {
-      dispatch("selectsharepoint")
+      await onSelectSharePoint?.()
       return
     }
-    dispatch("connectsharepoint")
+    onConnectSharePoint?.()
   }
 </script>
 
@@ -67,6 +63,6 @@
 
 <AddKnowledgeModal
   bind:this={addKnowledgeModal}
-  on:upload={handleUploadClick}
-  on:sharepoint={handleSharePoint}
+  onUpload={handleUploadClick}
+  onSharePoint={handleSharePoint}
 />

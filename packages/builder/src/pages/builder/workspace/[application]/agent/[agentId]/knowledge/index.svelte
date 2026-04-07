@@ -442,9 +442,6 @@
       notifications.error(
         `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
       )
-      if (target) {
-        target.value = ""
-      }
       return
     }
 
@@ -627,9 +624,9 @@
     <Body size="S">Knowledge</Body>
     <KnowledgeAddControls
       {hasSharePointConnection}
-      on:upload={event => uploadFile(event.detail)}
-      on:connectsharepoint={connectSharePoint}
-      on:selectsharepoint={() =>
+      onUpload={file => uploadFile(file)}
+      onConnectSharePoint={connectSharePoint}
+      onSelectSharePoint={() =>
         openSharePointSiteModal().catch(error => {
           console.error(error)
           notifications.error("Failed to fetch SharePoint sites")
