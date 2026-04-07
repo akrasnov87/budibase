@@ -502,6 +502,8 @@
         }
       )
       applySharePointSitesResponse(agentId, setSitesResponse)
+      sharePointSiteModal?.hide()
+
       selectedSiteIds = nextSiteIds
       storedSharePointSites = nextSiteIds
         .map(siteId =>
@@ -514,7 +516,6 @@
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
-      sharePointSiteModal?.hide()
       showSharePointSyncResult(result)
     } catch (error) {
       console.error(error)
@@ -681,7 +682,7 @@
   {loadingSharePointSites}
   {sharePointSites}
   bind:selectedSiteId={selectedSharePointSiteId}
-  on:save={saveSharePointSites}
+  onSave={saveSharePointSites}
 />
 
 <SharePointFilesStatusModal

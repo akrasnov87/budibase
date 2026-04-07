@@ -1,23 +1,20 @@
 <script lang="ts">
   import { Body, Modal, ModalContent, Select } from "@budibase/bbui"
   import type { KnowledgeSourceOption } from "@budibase/types"
-  import { createEventDispatcher } from "svelte"
 
   interface Props {
     loadingSharePointSites: boolean
     sharePointSites?: KnowledgeSourceOption[]
     selectedSiteId?: string
+    onSave?: () => void
   }
 
   let {
     loadingSharePointSites,
     sharePointSites = [],
     selectedSiteId = $bindable(""),
+    onSave,
   }: Props = $props()
-
-  const dispatch = createEventDispatcher<{
-    save: void
-  }>()
 
   let modal = $state<Modal>()
 
@@ -36,7 +33,7 @@
     showCloseIcon={false}
     showDivider={false}
     confirmText="Add"
-    onConfirm={() => dispatch("save")}
+    onConfirm={onSave}
     onCancel={hide}
   >
     <div class="content">
