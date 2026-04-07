@@ -89,7 +89,7 @@ Integrate with databases, AI models, and business apps so agents and automations
 
 ### Deploy with confidence and security
 
-Budibase is open-source and is made to scale. With Budibase, you can self-host on your own infrastructure and globally manage users, onboarding, SMTP, apps, groups, theming and more. You can also provide users/groups with an portal and disseminate user management to the group manager.
+Budibase is open-source and is made to scale. With Budibase, you can self-host on your own infrastructure and globally manage users, onboarding, SMTP, apps, groups, theming and more. You can also provide users/groups with a portal and disseminate user management to the group manager.
 
 <br />
 
