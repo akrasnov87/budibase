@@ -46,6 +46,8 @@ describe("agentsStore sharepoint and file syncing", () => {
       tools: [],
       agentsLoaded: false,
       filesByAgentId: {},
+      knowledgeSourceOptionsByAgentId: {},
+      knowledgeSourceRunsByAgentId: {},
       currentAgentId: undefined,
     })
   })
@@ -129,6 +131,12 @@ describe("agentsStore sharepoint and file syncing", () => {
 
     expect(fetchAgentKnowledgeSourceOptions).toHaveBeenCalledWith("agent_1")
     expect(result.options).toHaveLength(1)
+    expect(get(store.store).knowledgeSourceOptionsByAgentId["agent_1"]).toEqual(
+      result.options
+    )
+    expect(get(store.store).knowledgeSourceRunsByAgentId["agent_1"]).toEqual(
+      result.runs
+    )
   })
 
   it("startAgentFilePolling fetches while files are processing", async () => {
@@ -149,6 +157,8 @@ describe("agentsStore sharepoint and file syncing", () => {
           },
         ],
       },
+      knowledgeSourceOptionsByAgentId: {},
+      knowledgeSourceRunsByAgentId: {},
       currentAgentId: undefined,
     })
 
@@ -192,6 +202,8 @@ describe("agentsStore sharepoint and file syncing", () => {
           },
         ],
       },
+      knowledgeSourceOptionsByAgentId: {},
+      knowledgeSourceRunsByAgentId: {},
       currentAgentId: undefined,
     })
 

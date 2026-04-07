@@ -38,12 +38,12 @@
     fileInput?.click()
   }
 
-  const handleFileUpload = (event: Event) => {
+  const handleFileUpload = async (event: Event) => {
     const target = event.currentTarget as HTMLInputElement
     const file = target?.files?.[0]
     target.value = ""
     if (!file) return
-    void uploadFile(file)
+    await uploadFile(file)
   }
 
   const uploadFile = async (file: File) => {

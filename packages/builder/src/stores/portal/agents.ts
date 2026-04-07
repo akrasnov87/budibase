@@ -9,6 +9,8 @@ import {
   DisconnectAgentKnowledgeSourcesResponse,
   FetchAgentFilesResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
+  KnowledgeSourceOption,
+  KnowledgeSourceSyncRun,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
@@ -32,6 +34,8 @@ interface AgentStoreState {
   tools: ToolMetadata[]
   agentsLoaded: boolean
   filesByAgentId: Record<string, KnowledgeBaseFile[]>
+  knowledgeSourceOptionsByAgentId: Record<string, KnowledgeSourceOption[]>
+  knowledgeSourceRunsByAgentId: Record<string, KnowledgeSourceSyncRun[]>
 }
 
 export class AgentsStore extends BudiStore<AgentStoreState> {
@@ -47,12 +51,26 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       tools: [],
       agentsLoaded: false,
       filesByAgentId: {},
+      knowledgeSourceOptionsByAgentId: {},
+      knowledgeSourceRunsByAgentId: {},
     })
   }
 
   private setAgentFiles = (agentId: string, files: KnowledgeBaseFile[]) => {
     this.update(state => {
       state.filesByAgentId[agentId] = files
+      return state
+    })
+  }
+
+  private setAgentKnowledgeSourceOptions = (
+    agentId: string,
+    options: KnowledgeSourceOption[],
+    runs: KnowledgeSourceSyncRun[]
+  ) => {
+    this.update(state => {
+      state.knowledgeSourceOptionsByAgentId[agentId] = options
+      state.knowledgeSourceRunsByAgentId[agentId] = runs
       return state
     })
   }
@@ -258,8 +276,11 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
   fetchAgentKnowledgeSourceOptions = async (
     agentId: string
-  ): Promise<FetchAgentKnowledgeSourceOptionsResponse> =>
-    await API.fetchAgentKnowledgeSourceOptions(agentId)
+  ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
+    const response = await API.fetchAgentKnowledgeSourceOptions(agentId)
+    this.setAgentKnowledgeSourceOptions(agentId, response.options, response.runs)
+    return response
+  }
 
   setAgentKnowledgeSources = async (
     agentId: string,

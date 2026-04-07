@@ -13,9 +13,9 @@
     AgentKnowledgeSourceType,
     KnowledgeBaseFileStatus,
     type Agent,
-    type FetchAgentKnowledgeSourceOptionsResponse,
     type KnowledgeSourceOption,
     type KnowledgeBaseFile,
+    type KnowledgeSourceSyncRun,
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
   import { agentsStore, auth, selectedAgent } from "@/stores/portal"
@@ -85,24 +85,28 @@
     return $agentsStore.filesByAgentId[agentId] || []
   })
   let initialKnowledgeLoadedForAgent = $state<string | undefined>()
-  interface KnowledgeSourceSyncRun {
-    sourceId: string
-    lastRunAt: string
-    synced: number
-    failed: number
-    skipped: number
-    totalDiscovered: number
-    status: AgentSharePointSyncRunStatus
-  }
-
-  let sharePointSites = $state<KnowledgeSourceOption[]>([])
-  let sharePointSyncRunsBySiteId = $state<
-    Record<string, KnowledgeSourceSyncRun>
-  >({})
+  let sharePointSites = $derived.by(() => {
+    const agentId = currentAgent?._id
+    if (!agentId) {
+      return [] as KnowledgeSourceOption[]
+    }
+    return $agentsStore.knowledgeSourceOptionsByAgentId[agentId] || []
+  })
+  let sharePointSyncRunsBySiteId = $derived.by(() => {
+    const agentId = currentAgent?._id
+    if (!agentId) {
+      return {} as Record<string, KnowledgeSourceSyncRun>
+    }
+    return Object.fromEntries(
+      ($agentsStore.knowledgeSourceRunsByAgentId[agentId] || []).map(run => [
+        run.sourceId,
+        run,
+      ])
+    ) as Record<string, KnowledgeSourceSyncRun>
+  })
   let selectedSiteIds = $state<string[]>([])
   let storedSharePointSites = $state<KnowledgeSourceOption[]>([])
   let loadingSharePointSites = $state(false)
-  let sharePointSitesLoadedForAgent = $state<string | undefined>()
   let sharePointSiteModal = $state<ModalHandle>()
   let sharePointFilesStatusModal = $state<ModalHandle>()
   let selectedSharePointSiteId = $state("")
@@ -296,13 +300,9 @@
   const loadInitialKnowledge = async (agentId: string) => {
     loading = true
     try {
-      await fetchFiles(agentId)
+      await agentsStore.fetchAgentFiles(agentId)
       if (hasSharePointConnection) {
-        await loadSharePointSites(agentId)
-      } else {
-        sharePointSites = []
-        sharePointSyncRunsBySiteId = {}
-        sharePointSitesLoadedForAgent = undefined
+        await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
       }
       initialKnowledgeLoadedForAgent = agentId
     } finally {
@@ -311,33 +311,14 @@
   }
 
   const loadSharePointSites = async (agentId: string) => {
-    if (!hasSharePointConnection) {
-      sharePointSites = []
-      sharePointSyncRunsBySiteId = {}
-      sharePointSitesLoadedForAgent = undefined
-      return
-    }
+    if (!hasSharePointConnection) return
     loadingSharePointSites = true
     try {
-      const response =
-        await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
-      applySharePointSitesResponse(agentId, response)
+      await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
     } finally {
       loadingSharePointSites = false
     }
   }
-
-  const applySharePointSitesResponse = (
-    agentId: string,
-    response: FetchAgentKnowledgeSourceOptionsResponse
-  ) => {
-    sharePointSites = response.options
-    sharePointSyncRunsBySiteId = Object.fromEntries(
-      response.runs.map(run => [run.sourceId, run])
-    )
-    sharePointSitesLoadedForAgent = agentId
-  }
-
   $effect(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
@@ -358,7 +339,6 @@
     const agentId = currentAgent?._id
     if (!agentId) {
       selectedSiteIds = []
-      sharePointSyncRunsBySiteId = {}
       storedSharePointSites = []
       return
     }
@@ -370,21 +350,6 @@
       )
     storedSharePointSites = sites
     selectedSiteIds = sites.map(site => site.id)
-  })
-
-  $effect(() => {
-    const agentId = currentAgent?._id
-    if (
-      !agentId ||
-      !hasSharePointConnection ||
-      sharePointSitesLoadedForAgent === agentId
-    ) {
-      return
-    }
-    loadSharePointSites(agentId).catch(error => {
-      console.error(error)
-      notifications.error("Failed to fetch SharePoint data")
-    })
   })
 
   $effect(() => {
@@ -485,7 +450,6 @@
           sourceIds: nextSiteIds,
         }
       )
-      applySharePointSitesResponse(agentId, setSitesResponse)
       sharePointSiteModal?.hide()
 
       selectedSiteIds = nextSiteIds
@@ -553,7 +517,6 @@
             sourceIds: nextSiteIds,
           }
         )
-        applySharePointSitesResponse(agent._id, setSitesResponse)
         selectedSiteIds = nextSiteIds
         storedSharePointSites = nextSiteIds
           .map(siteId =>
