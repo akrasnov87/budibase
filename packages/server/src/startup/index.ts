@@ -173,6 +173,8 @@ export async function startup(
     )
   )
   queuePromises.push(rag.queue.init())
+  queuePromises.push(rag.sharepointSyncQueue.init())
+  queuePromises.push(rag.sharepointSyncQueue.rehydrateScheduledJobs())
   // app migrations and automations on other service
   if (automationsEnabled()) {
     queuePromises.push(automations.init())

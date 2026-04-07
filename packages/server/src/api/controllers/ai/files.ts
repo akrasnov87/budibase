@@ -108,11 +108,14 @@ export async function completeAgentSharePointConnection(
 ) {
   const { agentId } = ctx.params
   const { appId, continueSetupId } = ctx.request.body
-  ctx.body = await sdk.ai.rag.completeSharePointConnectionForAgent({
+  const response = await sdk.ai.rag.completeSharePointConnectionForAgent({
     agentId,
     appId,
     continueSetupId,
   })
+  const agent = await sdk.ai.agents.getOrThrow(agentId)
+  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
+  ctx.body = response
   ctx.status = 200
 }
 
@@ -135,6 +138,9 @@ export async function syncAgentSharePoint(
   const siteIds = Array.isArray(ctx.request.body?.siteIds)
     ? ctx.request.body.siteIds
     : undefined
-  ctx.body = await sdk.ai.rag.syncSharePointForAgent(agentId, siteIds)
+  const response = await sdk.ai.rag.syncSharePointForAgent(agentId, siteIds)
+  const agent = await sdk.ai.agents.getOrThrow(agentId)
+  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
+  ctx.body = response
   ctx.status = 200
 }
