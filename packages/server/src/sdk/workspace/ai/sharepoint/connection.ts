@@ -1,4 +1,4 @@
-import { cache, HTTPError } from "@budibase/backend-core"
+import { cache, HTTPError, utils } from "@budibase/backend-core"
 import type { KnowledgeSourceOption } from "@budibase/types"
 
 interface SharePointConnectionCacheRecord {
@@ -21,7 +21,7 @@ const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
 
 export const sharePointSetupCacheKey = (appId: string, setupId: string) =>
-  `datasource:creation:${appId}:microsoft:${setupId}`
+  utils.microsoftDatasourceCreationCacheKey(appId, setupId)
 
 export const sharePointConnectionCacheKey = (scope: string, scopeId: string) =>
   `sharepoint:${scope}:${scopeId}:connection`

@@ -32,6 +32,9 @@ const appendQueryParam = (path: string, key: string, value: string) => {
   return `${url.pathname}${qs ? `?${qs}` : ""}`
 }
 
+const microsoftCreationCacheKey = (appId: string, setupId: string) =>
+  utils.microsoftDatasourceCreationCacheKey(appId, setupId)
+
 export async function preAuth(
   _passport: Passport,
   ctx: UserCtx,
@@ -142,17 +145,21 @@ export async function postAuth(
 
   const id = utils.newid()
   const expiresIn = Number(tokenPayload?.expires_in || 0)
-  await cache.store(`datasource:creation:${appId}:microsoft:${id}`, {
-    tenantId,
-    tokenEndpoint,
-    scope: tokenPayload?.scope || DEFAULT_SCOPE,
-    accessToken: tokenPayload?.access_token,
-    refreshToken,
-    tokenType: tokenPayload?.token_type || "Bearer",
-    expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
-    clientId,
-    clientSecret,
-  }, CREATION_CACHE_TTL_SECONDS)
+  await cache.store(
+    microsoftCreationCacheKey(appId, id),
+    {
+      tenantId,
+      tokenEndpoint,
+      scope: tokenPayload?.scope || DEFAULT_SCOPE,
+      accessToken: tokenPayload?.access_token,
+      refreshToken,
+      tokenType: tokenPayload?.token_type || "Bearer",
+      expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
+      clientId,
+      clientSecret,
+    },
+    CREATION_CACHE_TTL_SECONDS
+  )
 
   utils.clearCookie(ctx, Cookie.DatasourceAuth)
 
