@@ -30,6 +30,8 @@
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let loading = $state(true)
   let files = $state<KnowledgeBaseFile[]>([])
+  let uploadingFiles = $state(false)
+  let uploadProgress = $state("")
   let fileInput = $state<HTMLInputElement>()
   let loadedAgentId = $state<string | undefined>()
 
@@ -60,18 +62,6 @@
 
   const shouldPoll = () =>
     files.some(file => file.status === KnowledgeBaseFileStatus.PROCESSING)
-
-  const getUploadErrorMessage = (error: any) => {
-    const status = error?.status
-    const message = error?.message || "Failed to upload file"
-    const isFileTooLargeError = status === 413
-
-    if (isFileTooLargeError) {
-      return `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
-    }
-
-    return message
-  }
 
   const poller = createPolling({
     intervalMs: FILE_STATUS_POLL_MS,
@@ -161,29 +151,76 @@
       return
     }
     const target = event.currentTarget as HTMLInputElement
-    const file = target?.files?.[0]
-    if (!file) {
+    const selectedFiles = Array.from(target?.files || [])
+    if (selectedFiles.length === 0) {
       return
     }
 
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      notifications.error(
-        `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
-      )
-      if (target) {
-        target.value = ""
-      }
-      return
-    }
+    uploadingFiles = true
+    uploadProgress = ""
+    let successfulUploads = 0
+    const failedUploads: string[] = []
+    const oversizedUploads: string[] = []
 
     try {
-      await agentsStore.uploadAgentFile(agentId, file)
+      for (const [index, file] of selectedFiles.entries()) {
+        uploadProgress = `Uploading ${index + 1}/${selectedFiles.length}...`
+
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          oversizedUploads.push(file.name)
+          continue
+        }
+
+        try {
+          await agentsStore.uploadAgentFile(agentId, file)
+          successfulUploads += 1
+        } catch (error) {
+          console.error(error)
+          failedUploads.push(file.name)
+        }
+      }
+
       await fetchFiles(agentId)
-      notifications.success("File uploaded")
-    } catch (error: any) {
-      console.error(error)
-      notifications.error(getUploadErrorMessage(error))
+
+      if (failedUploads.length === 0 && oversizedUploads.length === 0) {
+        notifications.success(
+          successfulUploads === 1
+            ? "File uploaded"
+            : `Uploaded ${successfulUploads} files`
+        )
+        return
+      }
+
+      if (successfulUploads > 0) {
+        notifications.info(
+          `Uploaded ${successfulUploads}/${selectedFiles.length} files`
+        )
+      }
+
+      const issueMessages: string[] = []
+      if (failedUploads.length > 0) {
+        issueMessages.push(
+          failedUploads.length === 1
+            ? "1 file failed"
+            : `${failedUploads.length} files failed`
+        )
+      }
+      if (oversizedUploads.length > 0) {
+        issueMessages.push(
+          oversizedUploads.length === 1
+            ? `1 file exceeded ${MAX_FILE_SIZE_LABEL}`
+            : `${oversizedUploads.length} files exceeded ${MAX_FILE_SIZE_LABEL}`
+        )
+      }
+
+      notifications.error(
+        issueMessages.length > 0
+          ? `Some files were not uploaded: ${issueMessages.join(", ")}.`
+          : "Failed to upload files"
+      )
     } finally {
+      uploadingFiles = false
+      uploadProgress = ""
       if (target) {
         target.value = ""
       }
@@ -191,6 +228,9 @@
   }
 
   function handleUploadClick() {
+    if (uploadingFiles) {
+      return
+    }
     fileInput?.click()
   }
 
@@ -228,13 +268,21 @@
   <div class="knowledge-header">
     <Body size="S">Knowledge bases</Body>
 
-    <Button icon="plus" size="S" secondary on:click={handleUploadClick}
-      >Add knowledge</Button
+    <Button
+      icon="plus"
+      size="S"
+      secondary
+      disabled={uploadingFiles}
+      on:click={handleUploadClick}
+      >{uploadingFiles
+        ? uploadProgress || "Uploading..."
+        : "Add knowledge"}</Button
     >
 
     <input
       type="file"
       accept=".txt,.md,.markdown,.json,.yaml,.yml,.csv,.tsv,.pdf"
+      multiple
       hidden
       bind:this={fileInput}
       onchange={handleFileUpload}
