@@ -46,6 +46,7 @@ export type RestTemplateId =
   | "clickup"
   | "deel"
   | "dixa"
+  | "dodo-payments"
   | "dots"
   | "factorial"
   | "fastspring"

@@ -13,6 +13,22 @@ import {
   type UIInternalDatasource,
 } from "@budibase/types"
 
+// ! These could be moved to vitest.setup.js to apply globally across all specs.
+if (!Element.prototype.animate) {
+  Element.prototype.animate = () =>
+    ({ onfinish: null, cancel: () => {}, finished: Promise.resolve() }) as any
+}
+
+// bbui Popover mounts its content into .spectrum via svelte-portal.
+// Ensure the element exists before each test so portal renders don't throw.
+beforeEach(() => {
+  if (!document.querySelector(".spectrum")) {
+    const el = document.createElement("div")
+    el.classList.add("spectrum")
+    document.body.appendChild(el)
+  }
+})
+
 // ---- Notification spies (initialised here so vi.mock hoisting sees them) ----
 vi.spyOn(notifications, "error").mockImplementation(() => {})
 vi.spyOn(notifications, "success").mockImplementation(() => {})
@@ -163,7 +179,6 @@ vi.mock("@/stores/builder", async () => {
   }
 })
 
-// ---- Imports: use sub-module mocks directly so tests share the same instances ----
 import {
   datasources,
   hasRestTemplate,
@@ -174,7 +189,6 @@ import { queries } from "@/stores/builder/queries"
 import { oauth2 } from "@/stores/builder/oauth2"
 import { screenStore } from "@/stores/builder"
 
-// ---- Constants ----
 const REST_DS_ID = "datasource_c190e3055ae643b4b3bb66ee15ad12c9"
 const REST_DS_ID_2 = "datasource_aaaabbbbccccdddd1111222233334444"
 const QUERY_ID = "query_abc123"
@@ -289,6 +303,12 @@ const setupDOM = (props: Record<string, any> = {}) => {
   const modalContainer = document.createElement("div")
   modalContainer.classList.add("modal-container")
   instance.baseElement.appendChild(modalContainer)
+  // bbui Popover mounts into .spectrum via svelte-portal
+  if (!document.querySelector(".spectrum")) {
+    const spectrumContainer = document.createElement("div")
+    spectrumContainer.classList.add("spectrum")
+    instance.baseElement.appendChild(spectrumContainer)
+  }
   return instance
 }
 
@@ -316,15 +336,12 @@ beforeEach(async () => {
   await setupDatasources()
 })
 
-// ---- Tests ----
 describe("API Endpoint Viewer", () => {
-  describe("Basic rendering", () => {
-    it("renders without errors", async () => {
-      const { container } = setupDOM()
-      await waitFor(() => {
-        expect(container.querySelector(".request-heading")).not.toBeNull()
-        expect(notifications.error).not.toBeCalled()
-      })
+  it("renders without errors", async () => {
+    const { container } = setupDOM()
+    await waitFor(() => {
+      expect(container.querySelector(".request-heading")).not.toBeNull()
+      expect(notifications.error).not.toBeCalled()
     })
   })
 
@@ -367,6 +384,61 @@ describe("API Endpoint Viewer", () => {
         expect(
           container.querySelector(".picker-button")?.textContent
         ).toContain("My Bearer")
+      })
+    })
+
+    it("saves with authConfigId set when connection is changed on a new query", async () => {
+      await setupDatasources(REST_DS_WITH_AUTH)
+      vi.mocked(API).saveQuery.mockResolvedValue({
+        _id: "new_query_id",
+        _rev: "1-new",
+        datasourceId: REST_DS_ID,
+        name: "Untitled request",
+        queryVerb: "read",
+        parameters: [],
+        fields: { path: "https://example.com/api" },
+        transformer: "return data",
+        schema: {},
+        readable: true,
+      })
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+
+      await waitFor(() =>
+        expect(container.querySelector(".url-input")).not.toBeNull()
+      )
+
+      // Simulate the ConnectionSelect dispatching a change event with auth
+      const pickerRoot = container.querySelector(".picker-button")
+        ?.parentElement as HTMLElement
+      await fireEvent(
+        pickerRoot,
+        new CustomEvent("change", {
+          detail: {
+            authConfigId: BEARER_AUTH_CONFIG._id,
+            authConfigType: RestAuthType.BEARER,
+            datasourceId: REST_DS_ID,
+          },
+          bubbles: true,
+        })
+      )
+
+      // Enter a URL to make the query saveable
+      const urlInput = container.querySelector(".url-input") as HTMLInputElement
+      await fireEvent.input(urlInput, {
+        target: { value: "https://example.com/api" },
+      })
+
+      const saveBtn = await waitFor(() => {
+        const btn = getSaveButton(container)
+        expect(btn?.classList.contains("is-disabled")).toBe(false)
+        return btn!
+      })
+      await fireEvent.click(saveBtn)
+
+      await waitFor(() => {
+        const saved = vi.mocked(API).saveQuery.mock.calls[0]?.[0] as Query
+        expect(saved.fields.authConfigId).toBe(BEARER_AUTH_CONFIG._id)
+        expect(saved.fields.authConfigType).toBe(RestAuthType.BEARER)
       })
     })
   })
@@ -461,6 +533,72 @@ describe("API Endpoint Viewer", () => {
         const label = container.querySelector(".picker-button")?.textContent
         expect(label).toContain("My Legacy OAuth")
         expect(label).toContain("OAuth2")
+      })
+    })
+
+    it("loads the stored path into the URL input (queryString is separate from path)", async () => {
+      // When an existing query has a queryString field, the URL input only shows
+      // the path — the queryString is stored separately and populates the Params tab.
+      const QUERY_WITH_QS: Query = {
+        _id: QUERY_ID,
+        _rev: "1-abc",
+        datasourceId: REST_DS_ID,
+        name: "Request with params",
+        queryVerb: "read",
+        parameters: [],
+        fields: {
+          path: "https://api.example.com/search",
+          headers: {},
+          disabledHeaders: {},
+          queryString: "q=hello&lang=en",
+          bodyType: "none" as any,
+        },
+        transformer: "return data",
+        schema: {},
+        readable: true,
+      }
+
+      queries.store.update(s => ({ ...s, list: [QUERY_WITH_QS] }))
+      const { container } = setupDOM({ queryId: QUERY_ID })
+
+      // The URL input should show only the path, not the queryString
+      await waitFor(() => {
+        const urlInput = container.querySelector(
+          ".url-input"
+        ) as HTMLInputElement | null
+        expect(urlInput?.value).toBe("https://api.example.com/search")
+      })
+    })
+
+    it("saves with authConfigId set when datasource has a default auth and saved query had none", async () => {
+      await setupDatasources(REST_DS_WITH_AUTH)
+      queries.store.update(s => ({ ...s, list: [SAVED_QUERY] }))
+      vi.mocked(API).saveQuery.mockResolvedValue({
+        ...SAVED_QUERY,
+        _rev: "2-updated",
+      })
+      const { container } = setupDOM({ queryId: QUERY_ID })
+
+      await waitFor(() =>
+        expect(container.querySelector(".query-name-input")).not.toBeNull()
+      )
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "Updated" } })
+      await fireEvent.blur(nameEl)
+
+      const saveBtn = await waitFor(() => {
+        const btn = getSaveButton(container)
+        expect(btn?.classList.contains("is-disabled")).toBe(false)
+        return btn!
+      })
+      await fireEvent.click(saveBtn)
+
+      await waitFor(() => {
+        const saved = vi.mocked(API).saveQuery.mock.calls[0]?.[0] as Query
+        expect(saved.fields.authConfigId).toBe(BEARER_AUTH_CONFIG._id)
+        expect(saved.fields.authConfigType).toBe(RestAuthType.BEARER)
       })
     })
   })
@@ -851,6 +989,61 @@ describe("API Endpoint Viewer", () => {
       })
     })
 
+    it("persists form-data body parameters when switching tabs", async () => {
+      queries.store.update(s => ({
+        ...s,
+        list: [
+          {
+            ...SAVED_QUERY,
+            queryVerb: "create",
+            fields: {
+              ...SAVED_QUERY.fields,
+              bodyType: "form" as any,
+              requestBody: {},
+            },
+          },
+        ],
+      }))
+      const { container } = setupDOM({ queryId: QUERY_ID })
+      const getBodyTextInputs = () =>
+        Array.from(
+          container.querySelectorAll(".spectrum-Tabs-content input")
+        ).filter(
+          input => (input as HTMLInputElement).type !== "radio"
+        ) as HTMLInputElement[]
+
+      await waitFor(() => expect(getTab(container, "Body")).not.toBeUndefined())
+      await fireEvent.click(getTab(container, "Body")!)
+
+      const addParamButton = await waitFor(() => {
+        const button = Array.from(container.querySelectorAll("button")).find(
+          btn => btn.textContent?.trim().includes("Add param")
+        )
+        expect(button).not.toBeUndefined()
+        return button as HTMLButtonElement
+      })
+      await fireEvent.click(addParamButton)
+
+      await waitFor(() => {
+        expect(getBodyTextInputs().length).toBeGreaterThanOrEqual(2)
+      })
+      const [keyInput, valueInput] = getBodyTextInputs()
+
+      await fireEvent.input(keyInput, { target: { value: "username" } })
+      await fireEvent.blur(keyInput)
+      await fireEvent.input(valueInput, { target: { value: "alice" } })
+      await fireEvent.blur(valueInput)
+
+      await fireEvent.click(getTab(container, "Bindings")!)
+      await fireEvent.click(getTab(container, "Body")!)
+
+      await waitFor(() => {
+        const values = getBodyTextInputs().map(input => input.value)
+        expect(values).toContain("username")
+        expect(values).toContain("alice")
+      })
+    })
+
     it("clicking the Transformer tab shows a code editor", async () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() =>
@@ -861,15 +1054,13 @@ describe("API Endpoint Viewer", () => {
         expect(container.querySelector(".embed")).not.toBeNull()
       })
     })
-  })
 
-  describe("Bindings tab add button", () => {
     const getAddBindingButton = (container: HTMLElement) =>
       Array.from(container.querySelectorAll("button")).find(b =>
         b.textContent?.trim().includes("Add binding")
       )
 
-    it("is disabled in custom mode when no datasource is selected", async () => {
+    it("Add binding button is disabled in custom mode when no datasource is selected", async () => {
       const { container } = setupDOM()
       await waitFor(() =>
         expect(getAddBindingButton(container)).not.toBeUndefined()
@@ -877,7 +1068,7 @@ describe("API Endpoint Viewer", () => {
       expect(getAddBindingButton(container)).toBeDisabled()
     })
 
-    it("is enabled in custom mode when a datasource is selected", async () => {
+    it("Add binding button is enabled in custom mode when a datasource is selected", async () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() => {
         expect(getAddBindingButton(container)).not.toBeDisabled()
@@ -1294,6 +1485,126 @@ describe("API Endpoint Viewer", () => {
         ).toBe(false)
       })
     })
+
+    it("renders TemplateEndpointInput (not CustomEndpointInput) in template mode", async () => {
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() => {
+        // CustomEndpointInput has .url-input; template mode should not
+        expect(container.querySelector(".url-input")).toBeNull()
+        // TemplateEndpointInput wraps the endpoint Select in .input-wrap
+        expect(container.querySelector(".input-wrap")).not.toBeNull()
+      })
+    })
+
+    it("TemplateEndpointInput is disabled when no datasource is selected", async () => {
+      const { container } = setupDOM()
+      await waitFor(() => {
+        expect(
+          container
+            .querySelector(".input-wrap")
+            ?.classList.contains("is-disabled")
+        ).toBe(true)
+      })
+    })
+
+    it("TemplateEndpointInput is enabled when a datasource is selected", async () => {
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() => {
+        expect(
+          container
+            .querySelector(".input-wrap")
+            ?.classList.contains("is-disabled")
+        ).toBe(false)
+      })
+    })
+
+    it("saves edited binding default value in query parameters for a new template query", async () => {
+      vi.mocked(restTemplates.get).mockReturnValue({
+        id: "my-api",
+        name: "My API",
+        connectionMode: undefined,
+        specs: [{ version: "1.0.0", url: "https://example.com/spec.yaml" }],
+      } as any)
+
+      const endpoint = {
+        id: "getUser",
+        operationId: "getUser",
+        name: "Get User",
+        method: "GET",
+        path: "/users/{userId}",
+        queryVerb: "read" as const,
+        description: "Get a user by ID",
+        defaultBindings: { userId: "123" },
+      }
+
+      vi.spyOn(queries, "fetchImportInfo").mockResolvedValue({
+        endpoints: [endpoint],
+        url: "https://api.example.com",
+      } as any)
+
+      // Need this for the redirect "on save" or it'll barf
+      vi.mocked(API).saveQuery.mockResolvedValue({ _id: "new_query_id" } as any)
+
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+
+      const getTabLocal = (title: string) =>
+        Array.from(container.querySelectorAll(".spectrum-Tabs-item")).find(t =>
+          t.textContent?.trim().includes(title)
+        ) as HTMLElement | undefined
+
+      // Wait for loadEndpoints to finish — the Picker trigger appears once endpointOptions loads
+      const pickerTrigger = await waitFor(() => {
+        const el = container.querySelector(
+          ".input-wrap .spectrum-Picker"
+        ) as HTMLElement | null
+        expect(el).not.toBeNull()
+        return el!
+      })
+
+      // Open the endpoint Select dropdown and click the "Get User" menu item
+      await fireEvent.click(pickerTrigger)
+      const menuItem = await waitFor(() => {
+        const item = Array.from(
+          document.querySelectorAll(".spectrum-Menu-item")
+        ).find(el => el.textContent?.includes("Get User")) as
+          | HTMLElement
+          | undefined
+        expect(item).not.toBeUndefined()
+        return item!
+      })
+      await fireEvent.click(menuItem)
+
+      // applyEndpointDefaults runs after endpoint selection — Bindings tab gets populated
+      await waitFor(() => expect(getTabLocal("Bindings")).not.toBeUndefined())
+      await fireEvent.click(getTabLocal("Bindings")!)
+
+      const valueInput = await waitFor(() => {
+        const inputs = Array.from(
+          container.querySelectorAll(".spectrum-Tabs-content input")
+        ) as HTMLInputElement[]
+        const el = inputs.find(i => i.value === "123")
+        expect(el).not.toBeUndefined()
+        return el!
+      })
+
+      await fireEvent.input(valueInput, { target: { value: "999" } })
+      await fireEvent.blur(valueInput)
+
+      const saveBtn = await waitFor(() => {
+        const btn = getSaveButton(container)
+        expect(btn?.classList.contains("is-disabled")).toBe(false)
+        return btn!
+      })
+      await fireEvent.click(saveBtn)
+
+      await waitFor(() => {
+        const saved = vi.mocked(API).saveQuery.mock.calls[0]?.[0] as Query
+        const param = saved?.parameters?.find(p => p.name === "userId")
+        expect(param?.default).toBe("999")
+      })
+
+      vi.mocked(restTemplates.get).mockReturnValue(undefined)
+    })
   })
 
   describe("URL commit / query param parsing", () => {
@@ -1423,114 +1734,6 @@ describe("API Endpoint Viewer", () => {
     })
   })
 
-  describe("Existing query with queryString pre-population", () => {
-    it("loads the stored path into the URL input (queryString is separate from path)", async () => {
-      // When an existing query has a queryString field, the URL input only shows
-      // the path — the queryString is stored separately and populates the Params tab.
-      const QUERY_WITH_QS: Query = {
-        _id: QUERY_ID,
-        _rev: "1-abc",
-        datasourceId: REST_DS_ID,
-        name: "Request with params",
-        queryVerb: "read",
-        parameters: [],
-        fields: {
-          path: "https://api.example.com/search",
-          headers: {},
-          disabledHeaders: {},
-          queryString: "q=hello&lang=en",
-          bodyType: "none" as any,
-        },
-        transformer: "return data",
-        schema: {},
-        readable: true,
-      }
-
-      queries.store.update(s => ({ ...s, list: [QUERY_WITH_QS] }))
-      const { container } = setupDOM({ queryId: QUERY_ID })
-
-      // The URL input should show only the path, not the queryString
-      await waitFor(() => {
-        const urlInput = container.querySelector(
-          ".url-input"
-        ) as HTMLInputElement | null
-        expect(urlInput?.value).toBe("https://api.example.com/search")
-      })
-    })
-  })
-
-  describe("Template mode — shared collection (child picker)", () => {
-    const COLLECTION_QUERY: Query = {
-      ...SAVED_QUERY,
-      restTemplateMetadata: {
-        operationId: "getContacts",
-        originalPath: "/crm/v3/objects/contacts",
-        restTemplateId: "hubspot-associations",
-      },
-    }
-
-    beforeEach(() => {
-      vi.mocked(hasRestTemplate).mockReturnValue(true)
-      queries.store.update(s => ({ ...s, list: [COLLECTION_QUERY] }))
-    })
-
-    afterEach(() => {
-      vi.mocked(hasRestTemplate).mockReturnValue(false)
-    })
-
-    it("restores selectedChildTemplateId from saved query restTemplateMetadata", async () => {
-      // The child template id is persisted on restTemplateMetadata.restTemplateId
-      // and restored when loading an existing query. We verify the component
-      // renders without error (the TemplateEndpointInput receives the child id).
-      const { container } = setupDOM({ queryId: QUERY_ID })
-      await waitFor(() => {
-        expect(container.querySelector(".picker-button")).not.toBeNull()
-      })
-    })
-  })
-
-  describe("Template mode — TemplateEndpointInput rendering", () => {
-    beforeEach(() => {
-      vi.mocked(hasRestTemplate).mockReturnValue(true)
-    })
-
-    afterEach(() => {
-      vi.mocked(hasRestTemplate).mockReturnValue(false)
-    })
-
-    it("renders TemplateEndpointInput (not CustomEndpointInput) in template mode", async () => {
-      const { container } = setupDOM({ datasourceId: REST_DS_ID })
-      await waitFor(() => {
-        // CustomEndpointInput has .url-input; template mode should not
-        expect(container.querySelector(".url-input")).toBeNull()
-        // TemplateEndpointInput wraps the endpoint Select in .input-wrap
-        expect(container.querySelector(".input-wrap")).not.toBeNull()
-      })
-    })
-
-    it("TemplateEndpointInput is disabled when no datasource is selected", async () => {
-      const { container } = setupDOM()
-      await waitFor(() => {
-        expect(
-          container
-            .querySelector(".input-wrap")
-            ?.classList.contains("is-disabled")
-        ).toBe(true)
-      })
-    })
-
-    it("TemplateEndpointInput is enabled when a datasource is selected", async () => {
-      const { container } = setupDOM({ datasourceId: REST_DS_ID })
-      await waitFor(() => {
-        expect(
-          container
-            .querySelector(".input-wrap")
-            ?.classList.contains("is-disabled")
-        ).toBe(false)
-      })
-    })
-  })
-
   // A shared collection (e.g. HubSpot) stores one datasource for all its child
   // APIs — the user picks the child in the TemplateEndpointInput child picker.
   describe("Template mode — shared collection", () => {
@@ -1564,9 +1767,7 @@ describe("API Endpoint Viewer", () => {
       vi.mocked(restTemplates.get).mockReturnValue(undefined)
     })
 
-    it("Send button is disabled when no child template is selected", async () => {
-      // No selectedChildTemplateId => activeChildTemplate is undefined => spec is
-      // undefined => endpoints never load => Send stays disabled.
+    it("Send and Save buttons are disabled when no child template is selected", async () => {
       const { container } = setupDOM({ datasourceId: REST_DS_ID })
       await waitFor(() =>
         expect(container.querySelector(".input-wrap")).not.toBeNull()
@@ -1574,19 +1775,12 @@ describe("API Endpoint Viewer", () => {
       expect(getSendButton(container)?.classList.contains("is-disabled")).toBe(
         true
       )
-    })
-
-    it("Save is blocked by newQueryIncomplete when no child template is selected", async () => {
-      const { container } = setupDOM({ datasourceId: REST_DS_ID })
-      await waitFor(() =>
-        expect(container.querySelector(".input-wrap")).not.toBeNull()
-      )
       expect(getSaveButton(container)?.classList.contains("is-disabled")).toBe(
         true
       )
     })
 
-    it("restores selectedChildTemplateId from saved query metadata", async () => {
+    it("saves with restTemplateId preserved from query metadata", async () => {
       const QUERY_WITH_CHILD: Query = {
         ...SAVED_QUERY,
         restTemplateMetadata: {
@@ -1596,11 +1790,33 @@ describe("API Endpoint Viewer", () => {
         },
       }
       queries.store.update(s => ({ ...s, list: [QUERY_WITH_CHILD] }))
+      vi.mocked(API).saveQuery.mockResolvedValue({
+        ...QUERY_WITH_CHILD,
+        _rev: "2-updated",
+      })
       const { container } = setupDOM({ queryId: QUERY_ID })
-      // Component renders without crashing — the stored child id is restored and
-      // TemplateEndpointInput receives it as selectedChildId.
+
+      await waitFor(() =>
+        expect(container.querySelector(".query-name-input")).not.toBeNull()
+      )
+      const nameEl = container.querySelector(
+        ".query-name-input"
+      ) as HTMLInputElement
+      await fireEvent.input(nameEl, { target: { value: "Updated" } })
+      await fireEvent.blur(nameEl)
+
+      const saveBtn = await waitFor(() => {
+        const btn = getSaveButton(container)
+        expect(btn?.classList.contains("is-disabled")).toBe(false)
+        return btn!
+      })
+      await fireEvent.click(saveBtn)
+
       await waitFor(() => {
-        expect(container.querySelector(".picker-button")).not.toBeNull()
+        const saved = vi.mocked(API).saveQuery.mock.calls[0]?.[0] as Query
+        expect(saved.restTemplateMetadata?.restTemplateId).toBe(
+          "hubspot-contacts"
+        )
       })
     })
   })
@@ -1652,16 +1868,6 @@ describe("API Endpoint Viewer", () => {
       )
       // .child-trigger is only rendered when templates.length > 1
       expect(container.querySelector(".child-trigger")).toBeNull()
-    })
-
-    it("falls back to the first child when getRestTemplateIdentifier returns nothing", async () => {
-      vi.mocked(getRestTemplateIdentifier).mockReturnValue(undefined)
-      // With no child identifier the component falls back to templates[0].
-      // We just verify it renders without crashing and the endpoint Select appears.
-      const { container } = setupDOM({ datasourceId: REST_DS_ID })
-      await waitFor(() => {
-        expect(container.querySelector(".input-wrap")).not.toBeNull()
-      })
     })
   })
 

@@ -73,6 +73,7 @@
     getDefaultRestAuthConfig,
     isValidEndpointUrl,
   } from "./query"
+  import { applyBaseUrl } from "@budibase/shared-core"
   import restUtils from "@/helpers/data/utils"
   import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
   import ConnectedQueryScreens from "./ConnectedQueryScreens.svelte"
@@ -127,7 +128,7 @@
   let savingQuery = false,
     runningQuery = false
   let originalBuiltQuery: Query | undefined = undefined
-  let baseUrl: string | undefined = undefined
+  let defaultSpecServerUrl: string | undefined = undefined
   let response: PreviewQueryResponse
   let editableQuery: Query | undefined
   let datasource: Datasource | UIInternalDatasource | undefined
@@ -143,33 +144,16 @@
   let customUrl: string = ""
   let selectedChildTemplateId: string | undefined
 
+  // ── DATASOURCE / MODE ────────────────────────────────────────────────────
   $: draftDatasourceId = $workspaceConnections.draft?.query?.datasourceId
   $: selectedDatasourceId =
     datasourceId || _pickedDatasourceId || draftDatasourceId
-
-  // CUSTOM MODE
+  $: datasourceLookupId = selectedDatasourceId || storeQuery?.datasourceId
+  $: datasource = structuredClone(
+    $datasources.list.find(d => d._id === datasourceLookupId)
+  )
   $: isCustomMode = !hasRestTemplate(datasource)
-  $: if (isCustomMode && editableQuery && !editableQuery.fields.pagination) {
-    editableQuery.fields.pagination = {}
-  }
-  $: pagination = editableQuery?.fields.pagination
-
-  // Reset endpoints when the effective datasource changes
-  $: if (selectedDatasourceId) {
-    selectedEndpointOption = undefined
-    selectedChildTemplateId = undefined
-    endpoints = undefined
-    endpointLoadError = undefined
-    queryParams = undefined
-    originalBuiltQuery = undefined
-  }
-
-  // Build selectedEndpointOption from query metadata or fetch endpoints if needed
-  $: if (editableQuery) {
-    ensureQueryDefaults(editableQuery)
-    syncEndpointFromQuery(editableQuery, endpoints)
-  }
-
+  // ── QUERY INITIALISATION ─────────────────────────────────────────────────
   $: if (!datasourceId && queryId) {
     const dsId = $queries.list.find(q => q._id === queryId)?.datasourceId
     if (dsId && dsId !== _pickedDatasourceId) {
@@ -192,69 +176,75 @@
     }
   }
 
-  $: datasourceLookupId = selectedDatasourceId || storeQuery?.datasourceId
+  $: if (editableQuery) {
+    ensureQueryDefaults(editableQuery)
+    syncEndpointFromQuery(editableQuery, endpoints)
+  }
+
+  // Reset endpoint state when the datasource changes
+  $: if (selectedDatasourceId) {
+    selectedEndpointOption = undefined
+    selectedChildTemplateId = undefined
+    endpoints = undefined
+    endpointLoadError = undefined
+    queryParams = undefined
+    originalBuiltQuery = undefined
+  }
+
+  // ── CUSTOM MODE URL ───────────────────────────────────────────────────────
   $: {
-    datasource = structuredClone(
-      $datasources.list.find(d => d._id === datasourceLookupId)
-    )
     const connUrl = getDatasourceBaseUrl(datasource)
     baseUrlOptions = connUrl
       ? [{ label: "Connection base url", url: connUrl }]
       : []
   }
-
   $: if (!hasRestTemplate(datasource) && isNewQuery) {
     customUrl = getDatasourceBaseUrl(datasource) || ""
   }
 
-  $: if (editableQuery && datasource && isNewQuery && !selectedAuth) {
-    const withAuth = applyDefaultAuth(editableQuery, datasource)
-    if (withAuth) editableQuery = withAuth
-  }
+  // ── TEMPLATE MODE URL ─────────────────────────────────────────────────────
+  // config.url takes priority; falls back to servers[0] from the spec
+  $: templateBaseUrl = getDatasourceBaseUrl(datasource) || defaultSpecServerUrl
 
-  // QUERY DATA
+  $: requestUrl = isCustomMode ? customUrl : editableQuery?.fields?.path
+
+  // Swap stored base for config.url so CodeMirror shows the resolved URL
+  $: displayBaseUrl =
+    !isCustomMode && (templateBaseUrl ?? defaultSpecServerUrl)
+      ? applyBaseUrl(
+          requestUrl ?? "",
+          (templateBaseUrl ?? defaultSpecServerUrl)!
+        )
+      : requestUrl
+
+  $: effectiveUrl = buildUrl(displayBaseUrl, queryParams, mergedBindings)
+
+  // ── QUERY DATA & BINDINGS ─────────────────────────────────────────────────
   $: queryString = editableQuery?.fields.queryString
-  $: runtimeUrlQueries = readableToRuntimeMap(mergedBindings, queryParams)
   $: isGet = editableQuery?.queryVerb === "read"
   $: schema = editableQuery?.schema
   $: nestedSchemaFields = editableQuery?.nestedSchemaFields
   $: requestBindings = editableQuery
     ? restUtils.queryParametersToKeyValue(editableQuery.parameters)
     : {}
+  $: pagination = editableQuery?.fields.pagination
+  $: if (isCustomMode && editableQuery && !editableQuery.fields.pagination) {
+    editableQuery.fields.pagination = {}
+  }
 
-  // Initialize enabledHeaders when query changes
   $: if (editableQuery) {
     enabledHeaders = restUtils.flipHeaderState(
       editableQuery.fields.disabledHeaders || {}
     )
   }
 
-  // Init and build full API path if the query is new
-  $: if (
-    selectedEndpointOption &&
-    baseUrl &&
-    editableQuery &&
-    !editableQuery._id
-  ) {
-    editableQuery = {
-      ...editableQuery,
-      fields: {
-        ...editableQuery.fields,
-        path: constructFullPath(baseUrl, selectedEndpointOption.path || ""),
-      },
-    }
-  }
-
-  // Build dynamic variables from the datasource and query
   $: ({ dynamicVariables: computedDynamicVariables, globalDynamicBindings } =
     datasource && editableQuery
       ? buildDynamicVariables(datasource, editableQuery._id)
       : { dynamicVariables: {}, globalDynamicBindings: {} })
-
-  // Use local override if available, otherwise use computed variables
   $: dynamicVariables = localDynamicVariables ?? computedDynamicVariables
 
-  // Generate all query bindings.
+  // $environment is referenced to force recalculation when env vars change
   $: {
     $environment
     ;({
@@ -271,7 +261,7 @@
     ))
   }
 
-  // Lazily initialize queryParams from query string once dependencies are ready
+  // One-shot init from queryString — queryParams is user-editable after this
   $: if (!queryParams && queryString && mergedBindings) {
     queryParams = runtimeToReadableMap(
       mergedBindings,
@@ -279,38 +269,20 @@
     )
   }
 
-  // Fully qualified display url shown in the CodeMirror preview.
-  $: requestURL = buildUrl(
-    isCustomMode ? effectivePath : editableQuery?.fields?.path,
-    queryParams,
-    mergedBindings
-  )
+  $: runtimeUrlQueries = readableToRuntimeMap(mergedBindings, queryParams)
+  $: prettyBody = editableQuery?.fields?.requestBody
+    ? prettifyQueryRequestBody(editableQuery, mergedBindings)
+    : undefined
 
-  // Custom Mode Url Parsing
-  $: effectivePath = isCustomMode ? customUrl : editableQuery?.fields?.path
-
-  $: isValidCustomUrl = !isCustomMode || isValidEndpointUrl(effectivePath)
-  $: existingQueryUnchanged = !isNewQuery && !queryDirty
-  $: newQueryIncomplete =
-    isNewQuery && (isCustomMode ? !effectivePath : !selectedEndpointOption)
-  $: saveDisabled =
-    savingQuery ||
-    existingQueryUnchanged ||
-    newQueryIncomplete ||
-    !isValidCustomUrl
-
-  // Generates a complete runtime-ready version of the query used to monitor the
-  // current edit state.
+  // ── BUILT QUERY & DIRTY STATE ─────────────────────────────────────────────
   $: builtQuery =
     editableQuery &&
     schema &&
     buildQuery(
-      isCustomMode
-        ? {
-            ...editableQuery,
-            fields: { ...editableQuery.fields, path: effectivePath },
-          }
-        : editableQuery,
+      {
+        ...editableQuery,
+        fields: { ...editableQuery.fields, path: requestUrl },
+      },
       runtimeUrlQueries,
       requestBindings,
       mergedBindings,
@@ -319,9 +291,13 @@
       nestedSchemaFields
     )
 
-  // Track dirty state by comparing runtime-ready queries
   $: if (builtQuery && !originalBuiltQuery) {
     originalBuiltQuery = structuredClone(builtQuery)
+  }
+
+  $: if (editableQuery && datasource && !selectedAuth) {
+    const withAuth = applyDefaultAuth(editableQuery, datasource)
+    if (withAuth) editableQuery = withAuth
   }
 
   $: queryDirty =
@@ -332,10 +308,6 @@
     workspaceConnections.markDraftDirty()
   }
 
-  $: prettyBody = editableQuery?.fields?.requestBody
-    ? prettifyQueryRequestBody(editableQuery, mergedBindings)
-    : undefined
-
   // BB Rest template specs
   $: template =
     hasRestTemplate(datasource) && $restTemplates
@@ -344,8 +316,6 @@
   $: isSharedCollection =
     template?.connectionMode === "shared" &&
     (template.templates?.length ?? 0) > 1
-
-  // Independent tempalte collection endpoints
   $: isIndependentCollection = template?.connectionMode === "independent"
   $: activeChildTemplate = isIndependentCollection
     ? (template?.templates?.find(
@@ -354,14 +324,11 @@
     : isSharedCollection && selectedChildTemplateId
       ? template?.templates?.find(t => t.id === selectedChildTemplateId)
       : undefined
-
   $: spec =
     isIndependentCollection || isSharedCollection
       ? activeChildTemplate?.specs?.[0]
       : template?.specs?.[0]
 
-  // ENDPOINTS - only skip loading if we have both query Id AND metadata
-  // Load endpoints for new queries OR existing queries without metadata
   $: if (
     spec &&
     !endpoints &&
@@ -372,20 +339,7 @@
     loadEndpoints(spec)
   }
 
-  // Build endpoint options from either endpoints list or selected endpoint from metadata
-  $: endpointOptions = (() => {
-    const options = getEndpointOptions(endpoints || [])
-
-    // If we have a selected endpoint from metadata that's not in the options, add it
-    if (
-      selectedEndpointOption &&
-      !options.find(o => o.id === selectedEndpointOption?.id)
-    ) {
-      return [selectedEndpointOption, ...options]
-    }
-
-    return options
-  })()
+  $: endpointOptions = buildEndpointOptions(endpoints, selectedEndpointOption)
   $: endpointVerbColor = isCustomMode
     ? customQueryIconColor(editableQuery?.queryVerb)
     : selectedEndpointOption?.icon?.props?.color
@@ -394,13 +348,13 @@
     editableQuery &&
     isNewQuery &&
     selectedEndpointOption &&
-    selectedEndpointOption.id !==
+    selectedEndpointOption.operationId !==
       editableQuery.restTemplateMetadata?.operationId
   ) {
     editableQuery = applyEndpointDefaults(
       editableQuery,
       selectedEndpointOption,
-      baseUrl
+      defaultSpecServerUrl || templateBaseUrl
     )
     if ($workspaceConnections.draft) {
       workspaceConnections.updateDraftQuery({
@@ -409,6 +363,17 @@
       })
     }
   }
+
+  // ── SAVE / RUN STATE ──────────────────────────────────────────────────────
+  $: isValidCustomUrl = !isCustomMode || isValidEndpointUrl(requestUrl)
+  $: existingQueryUnchanged = !isNewQuery && !queryDirty
+  $: newQueryIncomplete =
+    isNewQuery && (isCustomMode ? !requestUrl : !selectedEndpointOption)
+  $: saveDisabled =
+    savingQuery ||
+    existingQueryUnchanged ||
+    newQueryIncomplete ||
+    !isValidCustomUrl
 
   const initCustomUrlFields = (fullPath: string | undefined) => {
     customUrl = fullPath || getDatasourceBaseUrl(datasource) || ""
@@ -467,7 +432,7 @@
         endpoints = respEndpoints
       }
       if (url) {
-        baseUrl = url
+        defaultSpecServerUrl = url
       }
     } catch (err) {
       endpointLoadError = getErrorMessage(err)
@@ -495,6 +460,20 @@
       return acc
     }, [])
   }
+
+  // Prepend selected endpoint so it's always visible even if not in the loaded list
+  const buildEndpointOptions = (
+    endpoints: ImportEndpoint[] | undefined,
+    selected: EndpointWithIcon | undefined
+  ): EndpointWithIcon[] => {
+    const options = getEndpointOptions(endpoints || [])
+    if (selected && !options.find(o => o.id === selected.id)) {
+      return [selected, ...options]
+    }
+    return options
+  }
+
+  const compareEndpoints = (option: any, value: any) => option.id === value?.id
 
   /**
    * This initialises the query data with either the actual query or a default
@@ -660,11 +639,11 @@
   }
 
   const previewQuery = async () => {
-    if (!editableQuery || !builtQuery) return
+    if (!editableQuery || !builtQuery || !requestUrl) return
     if (!isCustomMode && !selectedEndpointOption) return
     try {
       validateQuery(
-        requestURL,
+        effectiveUrl,
         editableQuery.fields.requestBody,
         requestBindings,
         editableQuery?.fields?.headers || {}
@@ -705,7 +684,11 @@
       newDatasourceId !== _pickedDatasourceId
     ) {
       _pickedDatasourceId = newDatasourceId
-      editableQuery = getSelectedQuery("", newDatasourceId) as Query
+      const newQuery = getSelectedQuery("", newDatasourceId) as Query
+      editableQuery = {
+        ...newQuery,
+        fields: { ...newQuery.fields, authConfigId, authConfigType },
+      } as Query
       const ds = $datasources.list.find(d => d._id === newDatasourceId) as
         | Datasource
         | undefined
@@ -743,8 +726,10 @@
     }>
   ) => {
     const newBindings = keyValueArrayToRecord(e.detail.fields)
-    requestBindings = newBindings
-    editableQuery!.parameters = restUtils.keyValueToQueryParameters(newBindings)
+    editableQuery = {
+      ...editableQuery!,
+      parameters: restUtils.keyValueToQueryParameters(newBindings),
+    }
   }
 
   const setPaginationField = (field: string, value: unknown) => {
@@ -907,12 +892,12 @@
   const applyEndpointDefaults = (
     sourceQuery: Query,
     endpoint: EndpointWithIcon,
-    baseUrl?: string
+    templateBaseUrl?: string
   ): Query => {
     const updated = structuredClone(sourceQuery)
     const fullPath =
-      endpoint && baseUrl
-        ? constructFullPath(baseUrl, endpoint?.path || "")
+      endpoint && templateBaseUrl
+        ? constructFullPath(templateBaseUrl, endpoint?.path || "")
         : ""
     const defaultBindings = endpoint?.defaultBindings || {}
     const staticVariables = datasource?.config?.staticVariables || {}
@@ -1171,7 +1156,7 @@
     <div class="request-bottom">
       <div class="endpoint">
         <CodeEditor
-          value={requestURL}
+          value={effectiveUrl}
           mode={EditorModes.Handlebars}
           aiEnabled={false}
           readonly

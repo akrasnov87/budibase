@@ -169,6 +169,15 @@
     ? $oauth2.configs.find(c => c._id === selected?.sourceId)
     : undefined
 
+  // Initialisation
+  $: init(initialised, selected)
+  $: {
+    // Reset child selection when navigating to a different connection
+    selected
+    selectedChildId = undefined
+    openApiInfo = undefined
+  }
+
   // Auth
   $: authConfigs = data.authConfigs || []
   $: authTypeOptions = AUTH_TYPE_OPTIONS.filter(
@@ -190,15 +199,6 @@
   $: parsedHeaders = runtimeToReadableMap(restBindings, data.defaultHeaders)
   $: parsedQueryParams = runtimeToReadableMap(restBindings, data.queryParams)
 
-  // Initialisation
-  $: init(initialised, selected)
-  $: {
-    // Reset child selection when navigating to a different connection
-    selected
-    selectedChildId = undefined
-    openApiInfo = undefined
-  }
-
   const autoSelectSingleChild = (
     isIndependent: boolean,
     children: { id: string; name: string }[] | undefined
@@ -217,23 +217,21 @@
     if (isInitialised || !connection) {
       return
     }
-    initialised = true
 
     let authConfigs: RestAuthConfig[]
     if (connection.source === "oauth2") {
       const cfg = $oauth2.configs.find(c => c._id === connection.sourceId)
-      authConfigs = cfg
-        ? [
-            cloneDeep({
-              ...cfg,
-              type: RestAuthType.OAUTH2,
-            }) as RestAuthConfig,
-          ]
-        : []
+      // If oauth2 configs haven't loaded yet, don't mark initialised —
+      // the reactive dependency on $oauth2.configs will retry once they arrive
+      if (!cfg) return
+      authConfigs = [
+        cloneDeep({ ...cfg, type: RestAuthType.OAUTH2 }) as RestAuthConfig,
+      ]
     } else {
-      const existingAuth = cloneDeep(connection.auth || []) as RestAuthConfig[]
-      authConfigs = existingAuth
+      authConfigs = cloneDeep(connection.auth || []) as RestAuthConfig[]
     }
+
+    initialised = true
 
     const ds =
       connection.source === "datasource"
@@ -396,13 +394,14 @@
     })
     originalData = cloneDeep(data)
     notifications.success("Connection created")
-    workspaceConnections.select(ds._id!)
     if ($workspaceConnections.draft) {
       workspaceConnections.updateDraft({
         templateId: ds.restTemplateId,
         query: { datasourceId: ds._id },
       })
-      bb.hideSettings()
+      bb.hideSettings(`/connections/apis/${ds._id}`)
+    } else {
+      bb.settings(`/connections/apis/${ds._id}`)
     }
   }
 
