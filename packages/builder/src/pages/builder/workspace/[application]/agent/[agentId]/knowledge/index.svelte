@@ -27,9 +27,18 @@
   const MAX_FILE_SIZE_BYTES = 100 * BYTES_IN_MB
   const MAX_FILE_SIZE_LABEL = "100MB"
 
+  interface PendingUpload {
+    tempId: string
+    filename: string
+    size?: number
+    mimetype?: string
+    createdAt: string
+  }
+
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let loading = $state(true)
   let files = $state<KnowledgeBaseFile[]>([])
+  let pendingUploads = $state<PendingUpload[]>([])
   let uploadingFiles = $state(false)
   let uploadProgress = $state("")
   let fileInput = $state<HTMLInputElement>()
@@ -63,6 +72,10 @@
   const shouldPoll = () =>
     files.some(file => file.status === KnowledgeBaseFileStatus.PROCESSING)
 
+  const removePendingUpload = (tempId: string) => {
+    pendingUploads = pendingUploads.filter(upload => upload.tempId !== tempId)
+  }
+
   const poller = createPolling({
     intervalMs: FILE_STATUS_POLL_MS,
     shouldPoll,
@@ -75,20 +88,34 @@
   })
 
   let tableRows = $derived.by(() =>
-    files
-      .map(file => ({
+    [
+      ...pendingUploads.map(upload => ({
+        _id: upload.tempId,
+        filename: upload.filename,
+        status: KnowledgeBaseFileStatus.PROCESSING,
+        displayStatus: "Uploading",
+        isUploading: true,
+        size: helpers.formatBytes(upload.size, " "),
+        updatedAt: formatTimestamp(upload.createdAt),
+        onDelete: undefined,
+        errorMessage: undefined,
+        mimetype: upload.mimetype,
+      })),
+      ...files.map(file => ({
         _id: file._id,
         filename: file.filename,
         status: file.status,
         displayStatus: formatFileStatus(file),
+        isUploading: false,
         size: helpers.formatBytes(file.size, " "),
         updatedAt: formatTimestamp(
           file.processedAt || file.updatedAt || file.createdAt
         ),
         onDelete: () => removeFile(file),
         errorMessage: file.errorMessage,
-      }))
-      .sort((a, b) => a.filename.localeCompare(b.filename))
+        mimetype: file.mimetype,
+      })),
+    ].sort((a, b) => a.filename.localeCompare(b.filename))
   )
 
   const customRenderers = [
@@ -156,6 +183,23 @@
       return
     }
 
+    const uploads = selectedFiles.map((file, index) => ({
+      file,
+      tempId: `pending-upload-${Date.now()}-${index}`,
+      createdAt: new Date().toISOString(),
+    }))
+
+    pendingUploads = [
+      ...uploads.map(upload => ({
+        tempId: upload.tempId,
+        filename: upload.file.name,
+        size: upload.file.size,
+        mimetype: upload.file.type || undefined,
+        createdAt: upload.createdAt,
+      })),
+      ...pendingUploads,
+    ]
+
     uploadingFiles = true
     uploadProgress = ""
     let successfulUploads = 0
@@ -163,20 +207,31 @@
     const oversizedUploads: string[] = []
 
     try {
-      for (const [index, file] of selectedFiles.entries()) {
-        uploadProgress = `Uploading ${index + 1}/${selectedFiles.length}...`
+      for (const [index, upload] of uploads.entries()) {
+        const file = upload.file
+        uploadProgress = `Uploading ${index + 1}/${uploads.length}...`
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
           oversizedUploads.push(file.name)
+          removePendingUpload(upload.tempId)
           continue
         }
 
         try {
-          await agentsStore.uploadAgentFile(agentId, file)
+          const { file: uploadedFile } = await agentsStore.uploadAgentFile(
+            agentId,
+            file
+          )
+          files = [
+            uploadedFile,
+            ...files.filter(existing => existing._id !== uploadedFile._id),
+          ]
           successfulUploads += 1
         } catch (error) {
           console.error(error)
           failedUploads.push(file.name)
+        } finally {
+          removePendingUpload(upload.tempId)
         }
       }
 
@@ -193,7 +248,7 @@
 
       if (successfulUploads > 0) {
         notifications.info(
-          `Uploaded ${successfulUploads}/${selectedFiles.length} files`
+          `Uploaded ${successfulUploads}/${uploads.length} files`
         )
       }
 
