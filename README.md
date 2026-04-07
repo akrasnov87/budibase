@@ -69,7 +69,7 @@ Employees ask questions, request approvals, and report issues every day. Budibas
 Employees ask questions, request approvals, and report issues every day. Budibase agents understand these requests and handle the work automatically.
 
 <p align="center">
-  <img alt="Budibase chat deploy" src="https://res.cloudinary.com/daog6scxm/image/upload/v1775572269/github/Agent_Chat.jpg">
+  <img alt="Budibase chat deploy" src="https://res.cloudinary.com/daog6scxm/image/upload/v1775573887/github/Agent_Chat.jpg">
 </p>
 
 <br /><br />
