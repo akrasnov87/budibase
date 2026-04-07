@@ -66,9 +66,6 @@
   }
 
   type KnowledgeTableRow = FileKnowledgeTableRow | SharePointConnectionTableRow
-  const BYTES_IN_MB = 1024 * 1024
-  const MAX_FILE_SIZE_BYTES = 100 * BYTES_IN_MB
-  const MAX_FILE_SIZE_LABEL = "100MB"
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let sharePointSources = $derived.by(() =>
@@ -130,18 +127,6 @@
     } catch (error) {
       return value
     }
-  }
-
-  const getUploadErrorMessage = (error: any) => {
-    const status = error?.status
-    const message = error?.message || "Failed to upload file"
-    const isFileTooLargeError = status === 413
-
-    if (isFileTooLargeError) {
-      return `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
-    }
-
-    return message
   }
 
   const showSharePointSyncResult = (result: {
@@ -273,7 +258,7 @@
               ? "Loading SharePoint site..."
               : "SharePoint site")
           const displayStatus = !hasSynced
-            ? "Syncing"
+            ? "Processing"
             : total === 0
               ? "No files found"
               : `${completed}/${total} files`
@@ -454,29 +439,6 @@
     }
   })
 
-  async function uploadFile(file: File) {
-    const agentId = currentAgent?._id
-    if (!agentId) {
-      return
-    }
-
-    if (file.size > MAX_FILE_SIZE_BYTES) {
-      notifications.error(
-        `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
-      )
-      return
-    }
-
-    try {
-      await agentsStore.uploadAgentFile(agentId, file)
-      await fetchFiles(agentId)
-      notifications.success("File uploaded")
-    } catch (error: any) {
-      console.error(error)
-      notifications.error(getUploadErrorMessage(error))
-    }
-  }
-
   function connectSharePoint() {
     const agentId = currentAgent?._id
     const appId = $appStore.appId
@@ -644,9 +606,14 @@
   <div class="section-header">
     <Body size="S">Knowledge</Body>
     <KnowledgeAddControls
+      agentId={currentAgent?._id}
       {hasSharePointConnection}
-      {MAX_FILE_SIZE_LABEL}
-      onUpload={file => uploadFile(file)}
+      onUploaded={async () => {
+        if (!currentAgent?._id) {
+          return
+        }
+        await fetchFiles(currentAgent._id)
+      }}
       onConnectSharePoint={connectSharePoint}
       onSelectSharePoint={() =>
         openSharePointSiteModal().catch(error => {
