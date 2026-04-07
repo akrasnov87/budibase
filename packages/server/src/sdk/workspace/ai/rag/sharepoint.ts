@@ -241,7 +241,7 @@ const listDriveItems = async (
       continue
     }
 
-    if (!nextLink.startsWith(SHAREPOINT_API_BASE)) {
+    if (!nextPageLink.startsWith(SHAREPOINT_API_BASE)) {
       throw new HTTPError("Invalid SharePoint pagination URL", 400)
     }
     nextLink = nextPageLink
