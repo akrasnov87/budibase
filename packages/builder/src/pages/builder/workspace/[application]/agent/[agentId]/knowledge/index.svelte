@@ -87,7 +87,7 @@
     }
     return $agentsStore.filesByAgentId[agentId] || []
   })
-  let loadedAgentId = $state<string | undefined>()
+  let initialKnowledgeLoadedForAgent = $state<string | undefined>()
   interface KnowledgeSourceSyncRun {
     sourceId: string
     lastRunAt: string
@@ -308,17 +308,18 @@
     { column: "actions", component: KnowledgeActionsRenderer },
   ]
 
-  const loadAgentFiles = async () => {
-    const agentId = currentAgent?._id
-    if (!agentId) {
-      loading = false
-      loadedAgentId = undefined
-      return
-    }
+  const loadInitialKnowledge = async (agentId: string) => {
     loading = true
     try {
       await fetchFiles(agentId)
-      loadedAgentId = agentId
+      if (hasSharePointConnection) {
+        await loadSharePointSites(agentId)
+      } else {
+        sharePointSites = []
+        sharePointSyncRunsBySiteId = {}
+        sharePointSitesLoadedForAgent = undefined
+      }
+      initialKnowledgeLoadedForAgent = agentId
     } finally {
       loading = false
     }
@@ -354,12 +355,18 @@
 
   $effect(() => {
     const agentId = currentAgent?._id
-    if (!agentId || loadedAgentId !== agentId) {
-      loadAgentFiles().catch(error => {
-        console.error(error)
-        notifications.error("Failed to load files")
-      })
+    if (!agentId) {
+      loading = false
+      initialKnowledgeLoadedForAgent = undefined
+      return
     }
+    if (initialKnowledgeLoadedForAgent === agentId) {
+      return
+    }
+    loadInitialKnowledge(agentId).catch(error => {
+      console.error(error)
+      notifications.error("Failed to load knowledge")
+    })
   })
 
   $effect(() => {
@@ -438,7 +445,9 @@
         window.history.replaceState({}, "", path)
         notifications.success("SharePoint connected")
       }
-      await loadAgentFiles()
+      if (currentAgent?._id) {
+        initialKnowledgeLoadedForAgent = undefined
+      }
     } catch (error) {
       console.error(error)
       notifications.error("Failed to load files")
@@ -654,7 +663,7 @@
     {#if loading}
       <div class="loading-state">
         <ProgressCircle size="S" />
-        <Body size="S">Loading files...</Body>
+        <Body size="S">Loading knowledge...</Body>
       </div>
     {:else if knowledgeTableRows.length === 0}
       <div class="empty-state">
