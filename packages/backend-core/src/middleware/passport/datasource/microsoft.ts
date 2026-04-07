@@ -11,6 +11,7 @@ type Passport = {
 
 const DEFAULT_SCOPE =
   "offline_access https://graph.microsoft.com/Sites.Read.All"
+const CREATION_CACHE_TTL_SECONDS = 600
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -151,7 +152,7 @@ export async function postAuth(
     expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
     clientId,
     clientSecret,
-  })
+  }, CREATION_CACHE_TTL_SECONDS)
 
   utils.clearCookie(ctx, Cookie.DatasourceAuth)
 
