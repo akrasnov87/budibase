@@ -235,7 +235,16 @@ const listDriveItems = async (
 
     const payload = (await response.json()) as SharePointDriveItemsResponse
     items.push(...(Array.isArray(payload.value) ? payload.value : []))
-    nextLink = trimString(payload?.["@odata.nextLink"])
+    const nextPageLink = trimString(payload?.["@odata.nextLink"])
+    if (!nextPageLink) {
+      nextLink = ""
+      continue
+    }
+
+    if (!nextLink.startsWith(SHAREPOINT_API_BASE)) {
+      throw new HTTPError("Invalid SharePoint pagination URL", 400)
+    }
+    nextLink = nextPageLink
   }
 
   return items
@@ -513,7 +522,7 @@ export const syncSharePointForAgent = async (
             synced++
             siteSynced++
           } catch (error) {
-            console.log("Failed to sync SharePoint file for agent", {
+            console.error("Failed to sync SharePoint file for agent", {
               agentId: trimmedAgentId,
               siteId,
               driveId,
@@ -526,7 +535,7 @@ export const syncSharePointForAgent = async (
         }
       }
     } catch (error) {
-      console.log("Failed to sync SharePoint site for agent", {
+      console.error("Failed to sync SharePoint site for agent", {
         agentId: trimmedAgentId,
         siteId,
         error,
