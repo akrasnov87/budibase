@@ -64,6 +64,20 @@ export interface SyncAgentSharePointResponse {
   totalDiscovered: number
 }
 
+export interface SetAgentSharePointSitesRequest {
+  siteIds: string[]
+}
+
+export interface SetAgentSharePointSitesResponse {
+  agentId: string
+  siteIds: string[]
+}
+
+export interface DisconnectAgentSharePointResponse {
+  agentId: string
+  disconnected: true
+}
+
 export interface FetchChatAppAgentsResponse {
   agents: Pick<Agent, "_id" | "name" | "icon" | "iconColor" | "live">[]
 }
@@ -112,14 +126,33 @@ export interface ToggleAgentDeploymentResponse {
 }
 
 export type CreateAgentRequest = Optional<
-  Omit<Agent, "_id" | "_rev" | "createdAt" | "updatedAt">,
+  Omit<
+    Agent,
+    | "_id"
+    | "_rev"
+    | "createdAt"
+    | "updatedAt"
+    | "knowledgeSources"
+    | "knowledgeBases"
+  >,
   "aiconfig"
 >
-export type CreateAgentResponse = Agent
+export type CreateAgentResponse = Omit<
+  Agent,
+  "knowledgeSources" | "knowledgeBases"
+>
 export type DuplicateAgentResponse = Agent
 
 export type UpdateAgentRequest = Omit<
   Agent,
-  "createdAt" | "updatedAt" | "_deleted" | "createdBy"
+  | "createdAt"
+  | "updatedAt"
+  | "_deleted"
+  | "createdBy"
+  | "knowledgeSources"
+  | "knowledgeBases"
 >
-export type UpdateAgentResponse = Agent
+export type UpdateAgentResponse = Omit<
+  Agent,
+  "knowledgeSources" | "knowledgeBases"
+>

@@ -38,25 +38,6 @@ const SLACK_INTEGRATION_SCHEMA = Joi.object({
   .optional()
   .allow(null)
 
-const KNOWLEDGE_SOURCE_SCHEMA = Joi.object({
-  id: Joi.string().required().trim().disallow(""),
-  type: Joi.string().valid("sharepoint").required(),
-  name: OPTIONAL_STRING,
-  config: Joi.object({
-    connectionId: OPTIONAL_STRING,
-    sites: Joi.array()
-      .items(
-        Joi.object({
-          id: Joi.string().required().trim().disallow(""),
-          name: OPTIONAL_STRING,
-          webUrl: OPTIONAL_STRING,
-        })
-      )
-      .required(),
-    lastSyncedAt: OPTIONAL_STRING,
-  }).required(),
-})
-
 export function createAgentValidator() {
   return auth.joiValidator.body(
     Joi.object({
@@ -68,8 +49,6 @@ export function createAgentValidator() {
       goal: OPTIONAL_STRING,
       icon: OPTIONAL_STRING,
       iconColor: OPTIONAL_STRING,
-      knowledgeBases: Joi.array().items(Joi.string()).optional(),
-      knowledgeSources: Joi.array().items(KNOWLEDGE_SOURCE_SCHEMA).optional(),
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
       MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
       slackIntegration: SLACK_INTEGRATION_SCHEMA,
@@ -90,8 +69,6 @@ export function updateAgentValidator() {
       goal: OPTIONAL_STRING,
       icon: OPTIONAL_STRING,
       iconColor: OPTIONAL_STRING,
-      knowledgeBases: Joi.array().items(Joi.string()).optional(),
-      knowledgeSources: Joi.array().items(KNOWLEDGE_SOURCE_SCHEMA).optional(),
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
       MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
       slackIntegration: SLACK_INTEGRATION_SCHEMA,
@@ -169,6 +146,14 @@ export function syncAgentSharePointValidator() {
   return auth.joiValidator.body(
     Joi.object({
       siteIds: Joi.array().items(Joi.string().trim().disallow("")).optional(),
+    }).required()
+  )
+}
+
+export function setAgentSharePointSitesValidator() {
+  return auth.joiValidator.body(
+    Joi.object({
+      siteIds: Joi.array().items(Joi.string().trim().disallow("")).required(),
     }).required()
   )
 }

@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { get } from "svelte/store"
-import { KnowledgeBaseFileStatus, type KnowledgeBaseFile } from "@budibase/types"
+import {
+  KnowledgeBaseFileStatus,
+  type KnowledgeBaseFile,
+} from "@budibase/types"
 
 vi.mock("@/api", () => {
   const fetchAgentFiles = vi.fn()

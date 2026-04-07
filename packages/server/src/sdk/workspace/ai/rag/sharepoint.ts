@@ -72,7 +72,9 @@ const resolveSitesForIds = async (
   siteIds: string[],
   existingSites: AgentSharePointSite[]
 ): Promise<AgentSharePointSite[]> => {
-  const ids = Array.from(new Set(siteIds.map(id => trimString(id)).filter(Boolean)))
+  const ids = Array.from(
+    new Set(siteIds.map(id => trimString(id)).filter(Boolean))
+  )
   if (ids.length === 0) {
     return []
   }
@@ -315,7 +317,11 @@ export const fetchSharePointSitesForAgent = async (
     return { sites: [] }
   }
 
-  return { sites: await fetchSharePointSitesByConnection(connectionCacheKey(connectionId)) }
+  return {
+    sites: await fetchSharePointSitesByConnection(
+      connectionCacheKey(connectionId)
+    ),
+  }
 }
 
 export const syncSharePointForAgent = async (
@@ -365,13 +371,10 @@ export const syncSharePointForAgent = async (
     throw new HTTPError("Failed to create agent file storage", 500)
   }
 
-  const existingFiles = await knowledgeBaseSdk.listKnowledgeBaseFiles(
-    knowledgeBaseId
-  )
+  const existingFiles =
+    await knowledgeBaseSdk.listKnowledgeBaseFiles(knowledgeBaseId)
   const existingExternalIds = new Set(
-    existingFiles
-      .map(file => trimString(file.externalSourceId))
-      .filter(Boolean)
+    existingFiles.map(file => trimString(file.externalSourceId)).filter(Boolean)
   )
 
   let synced = 0

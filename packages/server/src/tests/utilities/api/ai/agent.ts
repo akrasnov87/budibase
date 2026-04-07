@@ -3,6 +3,7 @@ import {
   AgentFileUploadResponse,
   CompleteAgentSharePointConnectionRequest,
   CompleteAgentSharePointConnectionResponse,
+  DisconnectAgentSharePointResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentFilesResponse,
@@ -13,6 +14,8 @@ import {
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  SetAgentSharePointSitesRequest,
+  SetAgentSharePointSitesResponse,
   SyncAgentSharePointRequest,
   SyncAgentSharePointResponse,
   ToggleAgentDeploymentRequest,
@@ -194,6 +197,32 @@ export class AgentAPI extends TestAPI {
   ): Promise<FetchAgentSharePointSitesResponse> => {
     return await this._get<FetchAgentSharePointSitesResponse>(
       `/api/agent/${agentId}/sharepoint/sites`,
+      {
+        expectations,
+      }
+    )
+  }
+
+  setSharePointSites = async (
+    agentId: string,
+    body: SetAgentSharePointSitesRequest,
+    expectations?: Expectations
+  ): Promise<SetAgentSharePointSitesResponse> => {
+    return await this._put<SetAgentSharePointSitesResponse>(
+      `/api/agent/${agentId}/sharepoint/sites`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
+  disconnectSharePoint = async (
+    agentId: string,
+    expectations?: Expectations
+  ): Promise<DisconnectAgentSharePointResponse> => {
+    return await this._delete<DisconnectAgentSharePointResponse>(
+      `/api/agent/${agentId}/sharepoint`,
       {
         expectations,
       }

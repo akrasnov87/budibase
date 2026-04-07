@@ -60,7 +60,12 @@
 >
   {#if icon}
     {#if isCustomIconSource}
-      <img class="custom-icon custom-icon-{size}" src={icon} alt="" aria-hidden="true" />
+      <img
+        class="custom-icon custom-icon-{size}"
+        src={icon}
+        alt=""
+        aria-hidden="true"
+      />
     {:else}
       <Icon
         name={icon}

@@ -1,7 +1,6 @@
-import { db, features, HTTPError } from "@budibase/backend-core"
+import { db, HTTPError } from "@budibase/backend-core"
 import {
   Agent,
-  AgentKnowledgeSourceType,
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentsResponse,
@@ -14,13 +13,17 @@ import {
   ToggleAgentDeploymentResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
-  FeatureFlag,
   ToolMetadata,
   UpdateAgentRequest,
   UpdateAgentResponse,
   UserCtx,
 } from "@budibase/types"
 import sdk from "../../../sdk"
+import {
+  cleanupSharePointFilesForAgent,
+  getSharePointSiteIds,
+  hasSharePointConnection,
+} from "./sharepoint"
 
 const SECRET_MASK = "********"
 
@@ -55,26 +58,21 @@ const obfuscateAgentSecrets = (agent: Agent): Agent => ({
   }),
 })
 
+const withoutKnowledgeConfig = <T extends Agent>(agent: T) => {
+  const {
+    knowledgeSources: _knowledgeSources,
+    knowledgeBases: _knowledgeBases,
+    ...rest
+  } = agent
+  return rest
+}
+
 const parseOptionalChatAppId = (value: unknown) => {
   if (typeof value !== "string") {
     return undefined
   }
   const trimmed = value.trim()
   return trimmed.length > 0 ? trimmed : undefined
-}
-
-const getSharePointSiteIds = (agent?: Agent): Set<string> => {
-  const source = (agent?.knowledgeSources || []).find(
-    item => item.type === AgentKnowledgeSourceType.SHAREPOINT
-  )
-  if (!source) {
-    return new Set<string>()
-  }
-
-  const ids = (source.config.sites || [])
-    .map(site => site.id?.trim())
-    .filter((id): id is string => !!id)
-  return new Set(ids)
 }
 
 interface ConfiguredDeployment<TValidatedIntegration> {
@@ -241,7 +239,6 @@ export async function createAgent(
   ctx: UserCtx<CreateAgentRequest, CreateAgentResponse>
 ) {
   const body = ctx.request.body
-  const ragEnabled = await features.isEnabled(FeatureFlag.AI_RAG)
   const createdBy = ctx.user?._id!
   const globalId = db.getGlobalIDFromUserMetadataID(createdBy)
 
@@ -257,8 +254,6 @@ export async function createAgent(
     _deleted: false,
     createdBy: globalId,
     enabledTools: body.enabledTools,
-    knowledgeBases: ragEnabled ? body.knowledgeBases : undefined,
-    knowledgeSources: body.knowledgeSources,
     discordIntegration: body.discordIntegration,
     MSTeamsIntegration: body.MSTeamsIntegration,
     slackIntegration: body.slackIntegration,
@@ -267,7 +262,7 @@ export async function createAgent(
   const agent = await sdk.ai.agents.create(createRequest)
   await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
 
-  ctx.body = obfuscateAgentSecrets(agent)
+  ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 201
 }
 
@@ -275,7 +270,6 @@ export async function updateAgent(
   ctx: UserCtx<UpdateAgentRequest, UpdateAgentResponse>
 ) {
   const body = ctx.request.body
-  const ragEnabled = await features.isEnabled(FeatureFlag.AI_RAG)
   const existingAgent = await sdk.ai.agents.getOrThrow(body._id)
   const previousSharePointSiteIds = getSharePointSiteIds(existingAgent)
 
@@ -292,8 +286,6 @@ export async function updateAgent(
     live: body.live,
     publishedAt: undefined,
     enabledTools: body.enabledTools,
-    knowledgeBases: ragEnabled ? body.knowledgeBases : undefined,
-    knowledgeSources: body.knowledgeSources,
     discordIntegration: body.discordIntegration,
     MSTeamsIntegration: body.MSTeamsIntegration,
     slackIntegration: body.slackIntegration,
@@ -305,38 +297,21 @@ export async function updateAgent(
   const removedSharePointSiteIds = [...previousSharePointSiteIds].filter(
     id => !nextSharePointSiteIds.has(id)
   )
+  const sharePointDisconnected =
+    hasSharePointConnection(existingAgent) && !hasSharePointConnection(agent)
 
-  if (removedSharePointSiteIds.length > 0 && agent._id) {
-    const files = await sdk.ai.rag.listFilesForAgent(agent._id)
-    const filesToDelete = files.filter(file => {
-      const externalSourceId = file.externalSourceId
-      if (!externalSourceId) {
-        return false
-      }
-      return removedSharePointSiteIds.some(siteId =>
-        externalSourceId.startsWith(`sharepoint:${siteId}:`)
-      )
+  if (
+    (sharePointDisconnected || removedSharePointSiteIds.length > 0) &&
+    agent._id
+  ) {
+    await cleanupSharePointFilesForAgent({
+      agentId: agent._id,
+      removedSharePointSiteIds,
+      sharePointDisconnected,
     })
-
-    const results = await Promise.allSettled(
-      filesToDelete
-        .map(file => file._id)
-        .filter((fileId): fileId is string => !!fileId)
-        .map(fileId => sdk.ai.rag.deleteFileForAgent(agent._id!, fileId))
-    )
-    const failedDeletes = results.filter(
-      result => result.status === "rejected"
-    ).length
-    if (failedDeletes > 0) {
-      console.log("Failed to delete some SharePoint files after site removal", {
-        agentId: agent._id,
-        removedSharePointSiteIds,
-        failedDeletes,
-      })
-    }
   }
 
-  ctx.body = obfuscateAgentSecrets(agent)
+  ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 200
 }
 

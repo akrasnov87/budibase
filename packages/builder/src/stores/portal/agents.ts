@@ -6,6 +6,7 @@ import {
   CompleteAgentSharePointConnectionRequest,
   CompleteAgentSharePointConnectionResponse,
   CreateAgentRequest,
+  DisconnectAgentSharePointResponse,
   FetchAgentFilesResponse,
   FetchAgentSharePointSitesResponse,
   ProvisionAgentSlackChannelRequest,
@@ -14,6 +15,8 @@ import {
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  SetAgentSharePointSitesRequest,
+  SetAgentSharePointSitesResponse,
   SyncAgentSharePointRequest,
   SyncAgentSharePointResponse,
   UpdateAgentRequest,
@@ -57,7 +60,9 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
   private shouldPollAgentFiles = (agentId: string) => {
     const state = get(this.store)
     const files = state.filesByAgentId[agentId] || []
-    return files.some(file => file.status === KnowledgeBaseFileStatus.PROCESSING)
+    return files.some(
+      file => file.status === KnowledgeBaseFileStatus.PROCESSING
+    )
   }
 
   private pollAgentFilesOnce = async (agentId: string) => {
@@ -228,7 +233,9 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       API.toggleAgentSlackDeployment(agentId, enabled)
     )
 
-  fetchAgentFiles = async (agentId: string): Promise<FetchAgentFilesResponse> => {
+  fetchAgentFiles = async (
+    agentId: string
+  ): Promise<FetchAgentFilesResponse> => {
     const response = await API.fetchAgentFiles(agentId)
     this.setAgentFiles(agentId, response.files)
     return response
@@ -253,6 +260,17 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     agentId: string
   ): Promise<FetchAgentSharePointSitesResponse> =>
     await API.fetchAgentSharePointSites(agentId)
+
+  setAgentSharePointSites = async (
+    agentId: string,
+    body: SetAgentSharePointSitesRequest
+  ): Promise<SetAgentSharePointSitesResponse> =>
+    await API.setAgentSharePointSites(agentId, body)
+
+  disconnectAgentSharePoint = async (
+    agentId: string
+  ): Promise<DisconnectAgentSharePointResponse> =>
+    await API.disconnectAgentSharePoint(agentId)
 
   syncAgentSharePoint = async (
     agentId: string,

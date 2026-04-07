@@ -14,7 +14,8 @@ interface SharePointConnectionCacheRecord {
 }
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
-const DEFAULT_SCOPE = "offline_access https://graph.microsoft.com/Sites.Read.All"
+const DEFAULT_SCOPE =
+  "offline_access https://graph.microsoft.com/Sites.Read.All"
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
@@ -99,7 +100,9 @@ export const storeSharePointConnectionFromSetup = async ({
   setupId: string
   connectionKey: string
 }) => {
-  const cachedConnection = await cache.get(sharePointSetupCacheKey(appId, setupId))
+  const cachedConnection = await cache.get(
+    sharePointSetupCacheKey(appId, setupId)
+  )
   if (!cachedConnection?.refreshToken) {
     throw new HTTPError(
       "SharePoint setup token is invalid or expired. Please connect again.",
@@ -107,7 +110,10 @@ export const storeSharePointConnectionFromSetup = async ({
     )
   }
 
-  await cache.store(connectionKey, cachedConnection as SharePointConnectionCacheRecord)
+  await cache.store(
+    connectionKey,
+    cachedConnection as SharePointConnectionCacheRecord
+  )
   await cache.destroy(sharePointSetupCacheKey(appId, setupId))
 }
 

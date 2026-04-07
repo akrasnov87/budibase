@@ -4,6 +4,7 @@ import {
   CompleteAgentSharePointConnectionResponse,
   CreateAgentRequest,
   CreateAgentResponse,
+  DisconnectAgentSharePointResponse,
   DuplicateAgentResponse,
   FetchAgentFilesResponse,
   FetchAgentSharePointSitesResponse,
@@ -14,6 +15,8 @@ import {
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  SetAgentSharePointSitesRequest,
+  SetAgentSharePointSitesResponse,
   SyncAgentSharePointRequest,
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
@@ -72,6 +75,13 @@ export interface AgentEndpoints {
   fetchAgentSharePointSites: (
     agentId: string
   ) => Promise<FetchAgentSharePointSitesResponse>
+  setAgentSharePointSites: (
+    agentId: string,
+    body: SetAgentSharePointSitesRequest
+  ) => Promise<SetAgentSharePointSitesResponse>
+  disconnectAgentSharePoint: (
+    agentId: string
+  ) => Promise<DisconnectAgentSharePointResponse>
   syncAgentSharePoint: (
     agentId: string,
     body?: SyncAgentSharePointRequest
@@ -217,8 +227,30 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     })
   },
 
-  syncAgentSharePoint: async (agentId: string, body?: SyncAgentSharePointRequest) => {
-    return await API.post<SyncAgentSharePointRequest | undefined, SyncAgentSharePointResponse>({
+  setAgentSharePointSites: async (agentId: string, body) => {
+    return await API.put<
+      SetAgentSharePointSitesRequest,
+      SetAgentSharePointSitesResponse
+    >({
+      url: `/api/agent/${agentId}/sharepoint/sites`,
+      body,
+    })
+  },
+
+  disconnectAgentSharePoint: async (agentId: string) => {
+    return await API.delete<DisconnectAgentSharePointResponse>({
+      url: `/api/agent/${agentId}/sharepoint`,
+    })
+  },
+
+  syncAgentSharePoint: async (
+    agentId: string,
+    body?: SyncAgentSharePointRequest
+  ) => {
+    return await API.post<
+      SyncAgentSharePointRequest | undefined,
+      SyncAgentSharePointResponse
+    >({
       url: `/api/agent/${agentId}/sharepoint/sync`,
       body,
     })

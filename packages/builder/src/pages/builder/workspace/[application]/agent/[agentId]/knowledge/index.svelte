@@ -438,6 +438,9 @@
       const nextSiteIds = Array.from(
         new Set([...selectedSiteIds, selectedSharePointSiteId])
       )
+      await agentsStore.setAgentSharePointSites(agentId, {
+        siteIds: nextSiteIds,
+      })
       const result = await agentsStore.syncAgentSharePoint(agentId, {
         siteIds: nextSiteIds,
       })
@@ -479,7 +482,7 @@
 
   async function removeSharePointSite(siteId: string) {
     const agent = currentAgent
-    if (!agent?._id || !agent?._rev || !sharePointSource) {
+    if (!agent?._id || !sharePointSource) {
       return
     }
     const nextSites = (sharePointSource.config.sites || []).filter(
@@ -487,22 +490,14 @@
     )
     const nextSiteIds = nextSites.map(site => site.id)
     try {
-      const nextSources = (agent.knowledgeSources || []).map(source => {
-        if (source.type !== AgentKnowledgeSourceType.SHAREPOINT) {
-          return source
-        }
-        return {
-          ...source,
-          config: {
-            ...source.config,
-            sites: nextSites,
-          },
-        }
-      })
-      await agentsStore.updateAgent({
-        ...agent,
-        knowledgeSources: nextSources,
-      })
+      if (nextSiteIds.length === 0) {
+        await agentsStore.disconnectAgentSharePoint(agent._id)
+      } else {
+        await agentsStore.setAgentSharePointSites(agent._id, {
+          siteIds: nextSiteIds,
+        })
+      }
+      await agentsStore.fetchAgents()
       await fetchFiles(agent._id)
       selectedSiteIds = nextSiteIds
       notifications.success("SharePoint site removed")

@@ -9,7 +9,8 @@ type Passport = {
   authenticate: any
 }
 
-const DEFAULT_SCOPE = "offline_access https://graph.microsoft.com/Sites.Read.All"
+const DEFAULT_SCOPE =
+  "offline_access https://graph.microsoft.com/Sites.Read.All"
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -96,7 +97,9 @@ export async function postAuth(
 
   const code = String(ctx.query.code || "").trim()
   if (!code) {
-    throw new Error("Microsoft OAuth callback is missing the authorization code")
+    throw new Error(
+      "Microsoft OAuth callback is missing the authorization code"
+    )
   }
 
   const { clientId, clientSecret, tenantId } = getMicrosoftConfig()
@@ -149,7 +152,5 @@ export async function postAuth(
   utils.clearCookie(ctx, Cookie.DatasourceAuth)
 
   const returnPath = authStateCookie.returnPath || `/builder/workspace/${appId}`
-  ctx.redirect(
-    appendQueryParam(returnPath, "continue_microsoft_setup", id)
-  )
+  ctx.redirect(appendQueryParam(returnPath, "continue_microsoft_setup", id))
 }

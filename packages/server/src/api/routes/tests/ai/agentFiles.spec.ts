@@ -2,6 +2,7 @@ import nock from "nock"
 import { context, features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
 import {
+  type Agent,
   AgentKnowledgeSourceType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
@@ -94,6 +95,30 @@ describe("agent files", () => {
       )
       .reply(200, { deleted: true })
 
+  const setSharePointSourceInAgent = async (
+    agentId: string,
+    siteIds: string[]
+  ) => {
+    await config.doInContext(config.getDevWorkspaceId(), async () => {
+      const db = context.getWorkspaceDB()
+      const agentDoc = await db.tryGet<Agent>(agentId)
+      await db.put({
+        ...agentDoc!,
+        knowledgeSources: [
+          {
+            id: "sharepoint_default",
+            type: AgentKnowledgeSourceType.SHAREPOINT,
+            name: "SharePoint",
+            config: {
+              connectionId: agentId,
+              sites: siteIds.map(id => ({ id })),
+            },
+          },
+        ],
+      })
+    })
+  }
+
   it("uploads and lists files attached to an agent", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
@@ -179,6 +204,26 @@ describe("agent files", () => {
     })
   })
 
+  it("returns 400 when setting SharePoint sites without a connected source", async () => {
+    await withRagEnabled(async () => {
+      const created = await config.api.agent.create({
+        name: "SharePoint Set Sites Agent",
+        aiconfig: "default",
+      })
+
+      await config.api.agent.setSharePointSites(
+        created._id!,
+        { siteIds: ["site-1"] },
+        {
+          status: 400,
+          body: {
+            message: "SharePoint is not connected for this agent",
+          },
+        }
+      )
+    })
+  })
+
   it("validates complete SharePoint connection payload", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
@@ -218,7 +263,7 @@ describe("agent files", () => {
     })
   })
 
-  it("removes Gemini files for removed SharePoint sites during agent update", async () => {
+  it("removes Gemini files for removed SharePoint sites when setting SharePoint sites", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
         name: "SharePoint Cleanup Agent",
@@ -245,8 +290,12 @@ describe("agent files", () => {
       const { files: uploadedFiles } = await config.api.agent.fetchFiles(
         created._id!
       )
-      const siteOne = uploadedFiles.find(file => file.filename === "site-one.txt")
-      const siteTwo = uploadedFiles.find(file => file.filename === "site-two.txt")
+      const siteOne = uploadedFiles.find(
+        file => file.filename === "site-one.txt"
+      )
+      const siteTwo = uploadedFiles.find(
+        file => file.filename === "site-two.txt"
+      )
       expect(siteOne?._id).toBeDefined()
       expect(siteTwo?._id).toBeDefined()
 
@@ -264,52 +313,17 @@ describe("agent files", () => {
         })
       })
 
-      const fetchedBeforeSetup = await config.api.agent.fetch()
-      const agentBeforeSetup = fetchedBeforeSetup.agents.find(
-        agent => agent._id === created._id
-      )!
-
-      const setupResponse = await config.api.agent.update({
-        ...agentBeforeSetup,
-        knowledgeSources: [
-          {
-            id: "sharepoint_default",
-            type: AgentKnowledgeSourceType.SHAREPOINT,
-            name: "SharePoint",
-            config: {
-              connectionId: created._id!,
-              sites: [{ id: "site-1" }, { id: "site-2" }],
-            },
-          },
-        ],
-      })
-      expect(setupResponse.knowledgeSources?.[0]?.config.sites).toHaveLength(2)
-
-      const deleteScope = mockGeminiFileDelete("vector-store-1", "gemini-file-a")
-      const fetchedBeforeRemoval = await config.api.agent.fetch()
-      const agentBeforeRemoval = fetchedBeforeRemoval.agents.find(
-        agent => agent._id === created._id
-      )!
-
-      const updated = await config.api.agent.update({
-        ...agentBeforeRemoval,
-        knowledgeSources: [
-          {
-            id: "sharepoint_default",
-            type: AgentKnowledgeSourceType.SHAREPOINT,
-            name: "SharePoint",
-            config: {
-              connectionId: created._id!,
-              sites: [{ id: "site-2" }],
-            },
-          },
-        ],
+      await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
+      const deleteScope = mockGeminiFileDelete(
+        "vector-store-1",
+        "gemini-file-a"
+      )
+      const response = await config.api.agent.setSharePointSites(created._id!, {
+        siteIds: ["site-2"],
       })
 
       expect(deleteScope.isDone()).toBe(true)
-      expect(updated.knowledgeSources?.[0]?.config.sites).toEqual([
-        { id: "site-2" },
-      ])
+      expect(response.siteIds).toEqual(["site-2"])
 
       const { files: remainingFiles } = await config.api.agent.fetchFiles(
         created._id!
@@ -317,6 +331,86 @@ describe("agent files", () => {
       expect(remainingFiles.map(file => file.filename).sort()).toEqual([
         "site-two.txt",
       ])
+    })
+  })
+
+  it("disconnect endpoint removes all SharePoint files", async () => {
+    await withRagEnabled(async () => {
+      const created = await config.api.agent.create({
+        name: "SharePoint Disconnect Endpoint Agent",
+        aiconfig: "default",
+      })
+
+      mockAutoKnowledgeBaseCreate()
+      const ingestScopeOne = mockGeminiIngest(
+        "gemini-file-disconnect-endpoint-a"
+      )
+      const ingestScopeTwo = mockGeminiIngest(
+        "gemini-file-disconnect-endpoint-b"
+      )
+
+      await config.api.agent.uploadFile(created._id!, {
+        file: fileBuffer,
+        name: "site-one-disconnect-endpoint.txt",
+      })
+      await config.api.agent.uploadFile(created._id!, {
+        file: fileBuffer,
+        name: "site-two-disconnect-endpoint.txt",
+      })
+
+      await utils.queue.processMessages(getQueue().getBullQueue())
+      expect(ingestScopeOne.isDone()).toBe(true)
+      expect(ingestScopeTwo.isDone()).toBe(true)
+
+      const { files: uploadedFiles } = await config.api.agent.fetchFiles(
+        created._id!
+      )
+      const siteOne = uploadedFiles.find(file =>
+        file.filename.includes("site-one")
+      )
+      const siteTwo = uploadedFiles.find(file =>
+        file.filename.includes("site-two")
+      )
+
+      await config.doInContext(config.getDevWorkspaceId(), async () => {
+        const db = context.getWorkspaceDB()
+        const siteOneDoc = await db.tryGet<KnowledgeBaseFile>(siteOne!._id!)
+        const siteTwoDoc = await db.tryGet<KnowledgeBaseFile>(siteTwo!._id!)
+        await db.put({
+          ...siteOneDoc!,
+          externalSourceId: "sharepoint:site-1:drive-1:item-1",
+          uploadedBy: "sharepoint:site-1",
+        })
+        await db.put({
+          ...siteTwoDoc!,
+          externalSourceId: "sharepoint:site-2:drive-2:item-2",
+          uploadedBy: "sharepoint:site-2",
+        })
+      })
+
+      await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
+
+      const deleteScopeOne = mockGeminiFileDelete(
+        "vector-store-1",
+        "gemini-file-disconnect-endpoint-a"
+      )
+      const deleteScopeTwo = mockGeminiFileDelete(
+        "vector-store-1",
+        "gemini-file-disconnect-endpoint-b"
+      )
+
+      const response = await config.api.agent.disconnectSharePoint(created._id!)
+      expect(response).toEqual({
+        agentId: created._id!,
+        disconnected: true,
+      })
+      expect(deleteScopeOne.isDone()).toBe(true)
+      expect(deleteScopeTwo.isDone()).toBe(true)
+
+      const { files: remainingFiles } = await config.api.agent.fetchFiles(
+        created._id!
+      )
+      expect(remainingFiles).toHaveLength(0)
     })
   })
 })

@@ -7,6 +7,7 @@ import {
   createAgentValidator,
   provisionAgentSlackChannelValidator,
   provisionAgentMSTeamsChannelValidator,
+  setAgentSharePointSitesValidator,
   syncAgentDiscordCommandsValidator,
   syncAgentSharePointValidator,
   toggleAgentDiscordDeploymentValidator,
@@ -70,6 +71,12 @@ aiRagBuilderAdminRoutes
     ai.completeAgentSharePointConnection
   )
   .get("/api/agent/:agentId/sharepoint/sites", ai.fetchAgentSharePointSites)
+  .put(
+    "/api/agent/:agentId/sharepoint/sites",
+    setAgentSharePointSitesValidator(),
+    ai.setAgentSharePointSites
+  )
+  .delete("/api/agent/:agentId/sharepoint", ai.disconnectAgentSharePoint)
   .post(
     "/api/agent/:agentId/sharepoint/sync",
     syncAgentSharePointValidator(),

@@ -1,16 +1,25 @@
 import { readFile, unlink } from "node:fs/promises"
 import { HTTPError } from "@budibase/backend-core"
 import {
+  AgentKnowledgeSourceType,
   AgentFileUploadResponse,
   CompleteAgentSharePointConnectionRequest,
   CompleteAgentSharePointConnectionResponse,
+  DisconnectAgentSharePointResponse,
   FetchAgentSharePointSitesResponse,
   FetchAgentFilesResponse,
+  SetAgentSharePointSitesRequest,
+  SetAgentSharePointSitesResponse,
   SyncAgentSharePointRequest,
   SyncAgentSharePointResponse,
   UserCtx,
 } from "@budibase/types"
 import sdk from "../../../sdk"
+import {
+  cleanupSharePointFilesForAgent,
+  getSharePointSiteIds,
+  getSharePointSource,
+} from "./sharepoint"
 
 const normalizeUpload = (fileInput: any) => {
   if (!fileInput) {
@@ -142,5 +151,123 @@ export async function syncAgentSharePoint(
   const agent = await sdk.ai.agents.getOrThrow(agentId)
   await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
   ctx.body = response
+  ctx.status = 200
+}
+
+export async function setAgentSharePointSites(
+  ctx: UserCtx<
+    SetAgentSharePointSitesRequest,
+    SetAgentSharePointSitesResponse,
+    { agentId: string }
+  >
+) {
+  const { agentId } = ctx.params
+  const siteIds = Array.from(
+    new Set(
+      (ctx.request.body.siteIds || [])
+        .map(id => id?.trim())
+        .filter((id): id is string => !!id)
+    )
+  )
+
+  const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
+  const sharePointSource = getSharePointSource(existingAgent)
+  const connectionId = sharePointSource?.config.connectionId?.trim()
+  if (!sharePointSource || !connectionId) {
+    throw new HTTPError("SharePoint is not connected for this agent", 400)
+  }
+
+  const previousSiteIds = getSharePointSiteIds(existingAgent)
+  let availableById = new Map<string, { name?: string; webUrl?: string }>()
+  try {
+    const availableSites =
+      await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+    availableById = new Map(
+      availableSites.sites.map(site => [
+        site.id,
+        { name: site.name, webUrl: site.webUrl },
+      ])
+    )
+  } catch (error) {
+    console.log(
+      "Failed to fetch SharePoint site metadata while updating sites",
+      {
+        agentId,
+        error,
+      }
+    )
+  }
+  const existingById = new Map(
+    (sharePointSource.config.sites || []).map(site => [site.id, site] as const)
+  )
+  const nextSites = siteIds.map(siteId => {
+    const existingSite = existingById.get(siteId)
+    const fetchedSite = availableById.get(siteId)
+    return {
+      id: siteId,
+      name: fetchedSite?.name || existingSite?.name,
+      webUrl: fetchedSite?.webUrl || existingSite?.webUrl,
+    }
+  })
+
+  const nextSources = (existingAgent.knowledgeSources || []).map(source => {
+    if (source.type !== AgentKnowledgeSourceType.SHAREPOINT) {
+      return source
+    }
+    return {
+      ...source,
+      config: {
+        ...source.config,
+        sites: nextSites,
+      },
+    }
+  })
+
+  const updated = await sdk.ai.agents.update({
+    ...existingAgent,
+    knowledgeSources: nextSources,
+  })
+  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(updated)
+
+  const removedSharePointSiteIds = [...previousSiteIds].filter(
+    id => !siteIds.includes(id)
+  )
+  await cleanupSharePointFilesForAgent({
+    agentId,
+    removedSharePointSiteIds,
+    sharePointDisconnected: false,
+  })
+
+  ctx.body = {
+    agentId,
+    siteIds,
+  }
+  ctx.status = 200
+}
+
+export async function disconnectAgentSharePoint(
+  ctx: UserCtx<void, DisconnectAgentSharePointResponse, { agentId: string }>
+) {
+  const { agentId } = ctx.params
+  const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
+
+  const nextSources = (existingAgent.knowledgeSources || []).filter(
+    source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
+  )
+  await sdk.ai.agents.update({
+    ...existingAgent,
+    knowledgeSources: nextSources,
+  })
+  await sdk.ai.rag.sharepointSyncQueue.removeAllAgentJobs(agentId)
+  await cleanupSharePointFilesForAgent({
+    agentId,
+    removedSharePointSiteIds: [],
+    sharePointDisconnected: true,
+  })
+
+  ctx.body = {
+    agentId,
+    disconnected: true,
+  }
   ctx.status = 200
 }

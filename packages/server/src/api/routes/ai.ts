@@ -1,9 +1,7 @@
 import { middleware } from "@budibase/pro"
 import * as ai from "../controllers/ai"
 import { builderAdminRoutes, endpointGroupList } from "./endpointGroups"
-import {
-  generateAgentInstructionsValidator,
-} from "./utils/validators/agent"
+import { generateAgentInstructionsValidator } from "./utils/validators/agent"
 import {
   createAIConfigValidator,
   updateAIConfigValidator,
