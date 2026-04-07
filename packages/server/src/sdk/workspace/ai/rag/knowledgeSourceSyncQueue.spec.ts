@@ -160,8 +160,7 @@ describe("knowledgeSourceSyncQueue", () => {
         sourceId: "site_2",
       },
       expect.objectContaining({
-        jobId:
-          "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_2",
+        jobId: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_2",
       })
     )
   })
