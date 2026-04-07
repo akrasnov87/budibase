@@ -485,33 +485,45 @@
     if (!agent?._id || !hasSharePointConnection) {
       return
     }
-    pendingSiteIds = pendingSiteIds.filter(id => id !== siteId)
-    const nextSites = sharePointSources
-      .map(source => source.config.site)
-      .filter(
-        (site): site is { id: string; name?: string; webUrl?: string } =>
-          !!site?.id && site.id !== siteId
-      )
-    const nextSiteIds = nextSites.map(site => site.id)
-    try {
-      if (nextSiteIds.length === 0) {
-        await agentsStore.disconnectAgentKnowledgeSources(agent._id)
-      } else {
-        await agentsStore.setAgentKnowledgeSources(agent._id, {
-          sourceIds: nextSiteIds,
-        })
-      }
-      await agentsStore.fetchAgents()
-      pendingSiteIds = []
-      await fetchFiles(agent._id)
-      if (nextSiteIds.length === 0) {
-        await loadSharePointSites(agent._id)
-      }
-      notifications.success("SharePoint site removed")
-    } catch (error) {
-      console.error(error)
-      notifications.error("Failed to remove SharePoint site")
-    }
+    const siteName =
+      sharePointSources
+        .map(source => source.config.site)
+        .find(site => site?.id === siteId)?.name || "this SharePoint site"
+
+    await confirm({
+      title: "Confirm deletion",
+      body: `Are you sure you want to remove ${siteName}? This action can't be undone.`,
+      okText: "Delete",
+      onConfirm: async () => {
+        pendingSiteIds = pendingSiteIds.filter(id => id !== siteId)
+        const nextSites = sharePointSources
+          .map(source => source.config.site)
+          .filter(
+            (site): site is { id: string; name?: string; webUrl?: string } =>
+              !!site?.id && site.id !== siteId
+          )
+        const nextSiteIds = nextSites.map(site => site.id)
+        try {
+          if (nextSiteIds.length === 0) {
+            await agentsStore.disconnectAgentKnowledgeSources(agent._id)
+          } else {
+            await agentsStore.setAgentKnowledgeSources(agent._id, {
+              sourceIds: nextSiteIds,
+            })
+          }
+          await agentsStore.fetchAgents()
+          pendingSiteIds = []
+          await fetchFiles(agent._id)
+          if (nextSiteIds.length === 0) {
+            await loadSharePointSites(agent._id)
+          }
+          notifications.success("SharePoint site removed")
+        } catch (error) {
+          console.error(error)
+          notifications.error("Failed to remove SharePoint site")
+        }
+      },
+    })
   }
 
   async function removeFile(file: KnowledgeBaseFile) {
