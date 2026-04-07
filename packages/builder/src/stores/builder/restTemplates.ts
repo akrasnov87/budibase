@@ -1840,7 +1840,7 @@ const microsoftSharepointRestTemplateGroup: RestTemplate = {
     "Microsoft Graph SharePoint APIs for sites, drives, and shared items.",
   operationsCount: 2826,
   connectionMode: "shared",
-  mixin: { servers: [{ url: "https://graph.microsoft.com/v1.0" }] },
+  mixin: { servers: [{ url: "https://graph.microsoft.com" }] },
   templates: [
     {
       id: "microsoft-sharepoint-sites",
