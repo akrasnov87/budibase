@@ -1,6 +1,7 @@
 import { Optional } from "../../../shared"
 import {
   Agent,
+  AgentSharePointSyncRunStatus,
   ChatApp,
   ChatConversation,
   ChatConversationRequest,
@@ -40,6 +41,17 @@ export interface SharePointSite {
 
 export interface FetchAgentSharePointSitesResponse {
   sites: SharePointSite[]
+  runs: SharePointSyncRun[]
+}
+
+export interface SharePointSyncRun {
+  siteId: string
+  lastRunAt: string
+  synced: number
+  failed: number
+  skipped: number
+  totalDiscovered: number
+  status: AgentSharePointSyncRunStatus
 }
 
 export interface CompleteAgentSharePointConnectionRequest {

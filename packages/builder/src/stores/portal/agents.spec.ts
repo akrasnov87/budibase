@@ -115,6 +115,7 @@ describe("agentsStore sharepoint and file syncing", () => {
   it("fetchAgentSharePointSites forwards request", async () => {
     fetchAgentSharePointSites.mockResolvedValue({
       sites: [{ id: "site-1", name: "Team Site", webUrl: "https://example" }],
+      runs: [],
     })
 
     const result = await store.fetchAgentSharePointSites("agent_1")

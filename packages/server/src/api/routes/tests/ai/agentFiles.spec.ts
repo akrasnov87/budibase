@@ -1,6 +1,7 @@
 import nock from "nock"
 import { cache, context, features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
+import type { MockAgent } from "undici"
 import {
   type Agent,
   AgentKnowledgeSourceType,
@@ -11,11 +12,13 @@ import {
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
 import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/sharepoint"
+import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
 describe("agent files", () => {
   const config = new TestConfiguration()
   let cleanup: ReturnType<typeof setEnv> | undefined
+  let mockAgent: MockAgent
 
   const withRagEnabled = async <T>(f: () => Promise<T>) => {
     return await features.testutils.withFeatureFlags(
@@ -27,9 +30,11 @@ describe("agent files", () => {
 
   beforeAll(() => {
     cleanup = setEnv({ GEMINI_API_KEY: "test-gemini-key" })
+    mockAgent = installHttpMocking()
   })
 
-  afterAll(() => {
+  afterAll(async () => {
+    await resetHttpMocking()
     config.end()
     cleanup?.()
   })
@@ -132,6 +137,18 @@ describe("agent files", () => {
         clientSecret: "client-secret",
       })
     })
+  }
+
+  const mockSharePointSitesFetch = (siteIds: string[]) => {
+    const graphPool = mockAgent.get("https://graph.microsoft.com")
+    graphPool
+      .intercept({
+        method: "GET",
+        path: /.*/,
+      })
+      .reply(200, {
+        value: siteIds.map(id => ({ id })),
+      })
   }
 
   it("uploads and lists files attached to an agent", async () => {
@@ -267,6 +284,19 @@ describe("agent files", () => {
     })
   })
 
+  it("returns empty SharePoint sync state for an agent without sync runs", async () => {
+    await withRagEnabled(async () => {
+      const created = await config.api.agent.create({
+        name: "SharePoint Sync State Agent",
+        aiconfig: "default",
+      })
+
+      const response = await config.api.agent.fetchSharePointSites(created._id!)
+
+      expect(response.runs).toEqual([])
+    })
+  })
+
   it("sync SharePoint accepts empty body and still returns no-connection error", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
@@ -330,23 +360,7 @@ describe("agent files", () => {
 
       await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
       await setSharePointConnectionInCache(created._id!)
-      const originalFetch = globalThis.fetch
-      const fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation(
-        async (input: RequestInfo | URL, init?: RequestInit) => {
-          if (
-            typeof input === "string" &&
-            input.startsWith("https://graph.microsoft.com/v1.0/sites?")
-          ) {
-            return new Response(
-              JSON.stringify({
-                value: [{ id: "site-1" }, { id: "site-2" }],
-              }),
-              { status: 200, headers: { "Content-Type": "application/json" } }
-            )
-          }
-          return await originalFetch(input, init)
-        }
-      )
+      mockSharePointSitesFetch(["site-1", "site-2"])
       const deleteScope = mockGeminiFileDelete(
         "vector-store-1",
         "gemini-file-a"
@@ -354,7 +368,6 @@ describe("agent files", () => {
       const response = await config.api.agent.setSharePointSites(created._id!, {
         siteIds: ["site-2"],
       })
-      fetchSpy.mockRestore()
 
       expect(deleteScope.isDone()).toBe(true)
       expect(response.siteIds).toEqual(["site-2"])

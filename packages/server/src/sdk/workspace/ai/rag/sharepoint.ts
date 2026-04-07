@@ -1,10 +1,13 @@
-import { HTTPError } from "@budibase/backend-core"
+import { context, docIds, HTTPError } from "@budibase/backend-core"
 import {
   type Agent,
+  type AgentSharePointSyncState,
+  AgentSharePointSyncRunStatus,
   AgentKnowledgeSourceType,
   type AgentKnowledgeSource,
   type CompleteAgentSharePointConnectionRequest,
   type CompleteAgentSharePointConnectionResponse,
+  DocumentType,
   type FetchAgentSharePointSitesResponse,
   type SharePointSite,
   type SyncAgentSharePointResponse,
@@ -42,6 +45,7 @@ interface SharePointDriveItemsResponse {
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_CONNECTION_SOURCE_ID = "sharepoint_connection"
+const SHAREPOINT_SOURCE_TYPE = "sharepoint"
 type SharePointSourceSite = {
   id: string
   name?: string
@@ -83,12 +87,68 @@ const getSharePointConnectionId = (agent: Agent): string | undefined => {
     .find(Boolean)
 }
 
-const getSharePointSitesFromSources = (agent: Agent): SharePointSourceSite[] => {
+const getSharePointSitesFromSources = (
+  agent: Agent
+): SharePointSourceSite[] => {
   return normalizeSites(
     getSharePointSources(agent)
       .map(source => source.config.site)
       .filter((site): site is SharePointSourceSite => !!site?.id)
   )
+}
+
+const getSharePointSyncRunStatus = (
+  synced: number,
+  failed: number
+): AgentSharePointSyncRunStatus => {
+  if (failed === 0) {
+    return AgentSharePointSyncRunStatus.SUCCESS
+  }
+  if (synced === 0) {
+    return AgentSharePointSyncRunStatus.FAILED
+  }
+  return AgentSharePointSyncRunStatus.PARTIAL
+}
+
+const saveSharePointSyncRunState = async ({
+  agentId,
+  siteId,
+  lastRunAt,
+  synced,
+  failed,
+  skipped,
+  totalDiscovered,
+}: {
+  agentId: string
+  siteId: string
+  lastRunAt: string
+  synced: number
+  failed: number
+  skipped: number
+  totalDiscovered: number
+}) => {
+  const db = context.getWorkspaceDB()
+  const stateId = docIds.generateAgentKnowledgeSourceSyncStateID(
+    agentId,
+    SHAREPOINT_SOURCE_TYPE,
+    siteId
+  )
+  const existing = await db.tryGet<AgentSharePointSyncState>(stateId)
+  const now = new Date().toISOString()
+  await db.put({
+    ...existing,
+    _id: stateId,
+    agentId,
+    siteId,
+    lastRunAt,
+    synced,
+    failed,
+    skipped,
+    totalDiscovered,
+    status: getSharePointSyncRunStatus(synced, failed),
+    createdAt: existing?.createdAt || now,
+    updatedAt: now,
+  })
 }
 
 const upsertSharePointConnection = async (
@@ -284,15 +344,81 @@ export const fetchSharePointSitesForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
+  const { runs } = await fetchSharePointSyncStateForAgent(trimmedAgentId)
   const connectionId = trimString(getSharePointConnectionId(agent))
   if (!connectionId) {
-    return { sites: [] }
+    return { sites: [], runs }
   }
 
   return {
     sites: await fetchSharePointSitesByConnection(
       connectionCacheKey(connectionId)
     ),
+    runs,
+  }
+}
+
+export const fetchSharePointSyncStateForAgent = async (
+  agentId: string
+): Promise<{ runs: FetchAgentSharePointSitesResponse["runs"] }> => {
+  const trimmedAgentId = trimString(agentId)
+  if (!trimmedAgentId) {
+    throw new HTTPError("agentId is required", 400)
+  }
+  const db = context.getWorkspaceDB()
+  const result = await db.allDocs<AgentSharePointSyncState>(
+    docIds.getDocParams(
+      DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
+      `${trimmedAgentId}_${SHAREPOINT_SOURCE_TYPE}_`,
+      { include_docs: true }
+    )
+  )
+
+  const runs = result.rows
+    .map(row => row.doc)
+    .filter((doc): doc is AgentSharePointSyncState => !!doc?.siteId)
+    .map(doc => ({
+      siteId: doc.siteId,
+      lastRunAt: doc.lastRunAt,
+      synced: doc.synced,
+      failed: doc.failed,
+      skipped: doc.skipped,
+      totalDiscovered: doc.totalDiscovered,
+      status: doc.status,
+    }))
+
+  return { runs }
+}
+
+export const deleteSharePointSyncStateForAgent = async (
+  agentId: string,
+  siteIds?: string[]
+) => {
+  const trimmedAgentId = trimString(agentId)
+  if (!trimmedAgentId) {
+    return
+  }
+
+  const db = context.getWorkspaceDB()
+  const result = await db.allDocs<AgentSharePointSyncState>(
+    docIds.getDocParams(
+      DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
+      `${trimmedAgentId}_${SHAREPOINT_SOURCE_TYPE}_`,
+      { include_docs: true }
+    )
+  )
+  const siteIdSet = siteIds ? new Set(siteIds.map(id => trimString(id))) : null
+  const docsToDelete = result.rows
+    .map(row => row.doc)
+    .filter((doc): doc is AgentSharePointSyncState => !!doc?._id && !!doc._rev)
+    .filter(doc => !siteIdSet || siteIdSet.has(doc.siteId))
+    .map(doc => ({
+      ...doc,
+      _deleted: true,
+    }))
+
+  if (docsToDelete.length > 0) {
+    await db.bulkDocs(docsToDelete)
   }
 }
 
@@ -300,6 +426,7 @@ export const syncSharePointForAgent = async (
   agentId: string,
   siteIdsInput?: string[]
 ): Promise<SyncAgentSharePointResponse> => {
+  const lastRunAt = new Date().toISOString()
   const trimmedAgentId = trimString(agentId)
   if (!trimmedAgentId) {
     throw new HTTPError("agentId is required", 400)
@@ -347,15 +474,21 @@ export const syncSharePointForAgent = async (
   let totalDiscovered = 0
 
   for (const siteId of siteIds) {
+    let siteSynced = 0
+    let siteFailed = 0
+    let siteSkipped = 0
+    let siteTotalDiscovered = 0
     try {
       const driveIds = await listDrives(bearerToken, siteId)
       for (const driveId of driveIds) {
         const files = await collectFilesRecursive(bearerToken, driveId)
+        siteTotalDiscovered += files.length
         totalDiscovered += files.length
         for (const file of files) {
           const externalSourceId = `sharepoint:${siteId}:${driveId}:${file.itemId}`
           if (existingExternalIds.has(externalSourceId)) {
             skipped++
+            siteSkipped++
             continue
           }
 
@@ -378,6 +511,7 @@ export const syncSharePointForAgent = async (
 
             existingExternalIds.add(externalSourceId)
             synced++
+            siteSynced++
           } catch (error) {
             console.log("Failed to sync SharePoint file for agent", {
               agentId: trimmedAgentId,
@@ -387,6 +521,7 @@ export const syncSharePointForAgent = async (
               error,
             })
             failed++
+            siteFailed++
           }
         }
       }
@@ -397,6 +532,17 @@ export const syncSharePointForAgent = async (
         error,
       })
       failed++
+      siteFailed++
+    } finally {
+      await saveSharePointSyncRunState({
+        agentId: trimmedAgentId,
+        siteId,
+        lastRunAt,
+        synced: siteSynced,
+        failed: siteFailed,
+        skipped: siteSkipped,
+        totalDiscovered: siteTotalDiscovered,
+      })
     }
   }
 

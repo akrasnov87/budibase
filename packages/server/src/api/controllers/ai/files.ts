@@ -191,8 +191,9 @@ export async function setAgentSharePointSites(
   const existingById = new Map(
     sharePointSources
       .map(source => source.config.site)
-      .filter((site): site is { id: string; name?: string; webUrl?: string } =>
-        !!site?.id
+      .filter(
+        (site): site is { id: string; name?: string; webUrl?: string } =>
+          !!site?.id
       )
       .map(site => [site.id, site] as const)
   )
@@ -231,6 +232,10 @@ export async function setAgentSharePointSites(
     removedSharePointSiteIds,
     sharePointDisconnected: false,
   })
+  await sdk.ai.rag.deleteSharePointSyncStateForAgent(
+    agentId,
+    removedSharePointSiteIds
+  )
 
   ctx.body = {
     agentId,
@@ -258,6 +263,7 @@ export async function disconnectAgentSharePoint(
     removedSharePointSiteIds: [],
     sharePointDisconnected: true,
   })
+  await sdk.ai.rag.deleteSharePointSyncStateForAgent(agentId)
 
   ctx.body = {
     agentId,

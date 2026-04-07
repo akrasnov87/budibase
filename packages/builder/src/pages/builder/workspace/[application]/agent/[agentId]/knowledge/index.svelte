@@ -14,6 +14,7 @@
     type Agent,
     type KnowledgeBaseFile,
     type SharePointSite,
+    type SharePointSyncRun,
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
   import { agentsStore, auth, selectedAgent } from "@/stores/portal"
@@ -82,6 +83,7 @@
   })
   let loadedAgentId = $state<string | undefined>()
   let sharePointSites = $state<SharePointSite[]>([])
+  let sharePointSyncRunsBySiteId = $state<Record<string, SharePointSyncRun>>({})
   let selectedSiteIds = $state<string[]>([])
   let storedSharePointSites = $state<SharePointSite[]>([])
   let loadingSharePointSites = $state(false)
@@ -184,16 +186,11 @@
     )
 
   const getSharePointLastSyncLabel = (siteId: string) => {
-    const siteFiles = getSharePointFilesForSite(siteId)
-    const latestTimestamp = siteFiles
-      .map(file => file.processedAt || file.updatedAt || file.createdAt)
-      .filter((timestamp): timestamp is string => !!timestamp)
-      .sort()
-      .pop()
-    if (!latestTimestamp) {
+    const run = sharePointSyncRunsBySiteId[siteId]
+    if (!run?.lastRunAt) {
       return "SharePoint"
     }
-    return `Last sync at ${formatTimestamp(latestTimestamp)} - SharePoint`
+    return `Last sync at ${formatTimestamp(run.lastRunAt)} - SharePoint`
   }
 
   const openSharePointFilesStatusModal = (siteId: string, siteName: string) => {
@@ -289,13 +286,18 @@
   const loadSharePointSites = async (agentId: string) => {
     if (!hasSharePointConnection) {
       sharePointSites = []
+      sharePointSyncRunsBySiteId = {}
       sharePointSitesLoadedForAgent = undefined
       return
     }
     loadingSharePointSites = true
     try {
-      const { sites } = await agentsStore.fetchAgentSharePointSites(agentId)
+      const { sites, runs } =
+        await agentsStore.fetchAgentSharePointSites(agentId)
       sharePointSites = sites
+      sharePointSyncRunsBySiteId = Object.fromEntries(
+        runs.map(run => [run.siteId, run])
+      )
       sharePointSitesLoadedForAgent = agentId
     } finally {
       loadingSharePointSites = false
@@ -316,6 +318,7 @@
     const agentId = currentAgent?._id
     if (!agentId) {
       selectedSiteIds = []
+      sharePointSyncRunsBySiteId = {}
       storedSharePointSites = []
       return
     }
@@ -340,7 +343,7 @@
     }
     loadSharePointSites(agentId).catch(error => {
       console.error(error)
-      notifications.error("Failed to fetch SharePoint sites")
+      notifications.error("Failed to fetch SharePoint data")
     })
   })
 
@@ -453,6 +456,7 @@
       const result = await agentsStore.syncAgentSharePoint(agentId, {
         siteIds: nextSiteIds,
       })
+      await loadSharePointSites(agentId)
       selectedSiteIds = nextSiteIds
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
@@ -478,6 +482,7 @@
       const result = await agentsStore.syncAgentSharePoint(agentId, {
         siteIds,
       })
+      await loadSharePointSites(agentId)
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
       showSharePointSyncResult(result)
@@ -511,6 +516,7 @@
       }
       await agentsStore.fetchAgents()
       await fetchFiles(agent._id)
+      await loadSharePointSites(agent._id)
       selectedSiteIds = nextSiteIds
       notifications.success("SharePoint site removed")
     } catch (error) {
