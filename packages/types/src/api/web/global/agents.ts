@@ -33,19 +33,19 @@ export interface AgentFileUploadResponse {
   file: KnowledgeBaseFile
 }
 
-export interface SharePointSite {
+export interface KnowledgeSourceOption {
   id: string
   name?: string
   webUrl?: string
 }
 
-export interface FetchAgentSharePointSitesResponse {
-  sites: SharePointSite[]
-  runs: SharePointSyncRun[]
+export interface FetchAgentKnowledgeSourceOptionsResponse {
+  options: KnowledgeSourceOption[]
+  runs: KnowledgeSourceSyncRun[]
 }
 
-export interface SharePointSyncRun {
-  siteId: string
+export interface KnowledgeSourceSyncRun {
+  sourceId: string
   lastRunAt: string
   synced: number
   failed: number
@@ -54,21 +54,21 @@ export interface SharePointSyncRun {
   status: AgentSharePointSyncRunStatus
 }
 
-export interface CompleteAgentSharePointConnectionRequest {
+export interface CompleteAgentKnowledgeSourceConnectionRequest {
   appId: string
   continueSetupId: string
 }
 
-export interface CompleteAgentSharePointConnectionResponse {
+export interface CompleteAgentKnowledgeSourceConnectionResponse {
   agentId: string
   connected: true
 }
 
-export interface SyncAgentSharePointRequest {
-  siteIds?: string[]
+export interface SyncAgentKnowledgeSourcesRequest {
+  sourceIds?: string[]
 }
 
-export interface SyncAgentSharePointResponse {
+export interface SyncAgentKnowledgeSourcesResponse {
   agentId: string
   synced: number
   failed: number
@@ -76,13 +76,14 @@ export interface SyncAgentSharePointResponse {
   totalDiscovered: number
 }
 
-export interface SetAgentSharePointSitesRequest {
-  siteIds: string[]
+export interface SetAgentKnowledgeSourcesRequest {
+  sourceIds: string[]
 }
 
-export type SetAgentSharePointSitesResponse = FetchAgentSharePointSitesResponse
+export type SetAgentKnowledgeSourcesResponse =
+  FetchAgentKnowledgeSourceOptionsResponse
 
-export interface DisconnectAgentSharePointResponse {
+export interface DisconnectAgentKnowledgeSourcesResponse {
   agentId: string
   disconnected: true
 }

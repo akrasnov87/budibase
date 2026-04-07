@@ -8,14 +8,14 @@
   } from "@budibase/bbui"
   import { confirm } from "@/helpers"
   import { helpers } from "@budibase/shared-core"
+  import type { AgentSharePointSyncRunStatus } from "@budibase/types"
   import {
     AgentKnowledgeSourceType,
     KnowledgeBaseFileStatus,
     type Agent,
-    type FetchAgentSharePointSitesResponse,
+    type FetchAgentKnowledgeSourceOptionsResponse,
+    type KnowledgeSourceOption,
     type KnowledgeBaseFile,
-    type SharePointSite,
-    type SharePointSyncRun,
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
   import { agentsStore, auth, selectedAgent } from "@/stores/portal"
@@ -83,10 +83,22 @@
     return $agentsStore.filesByAgentId[agentId] || []
   })
   let loadedAgentId = $state<string | undefined>()
-  let sharePointSites = $state<SharePointSite[]>([])
-  let sharePointSyncRunsBySiteId = $state<Record<string, SharePointSyncRun>>({})
+  interface KnowledgeSourceSyncRun {
+    sourceId: string
+    lastRunAt: string
+    synced: number
+    failed: number
+    skipped: number
+    totalDiscovered: number
+    status: AgentSharePointSyncRunStatus
+  }
+
+  let sharePointSites = $state<KnowledgeSourceOption[]>([])
+  let sharePointSyncRunsBySiteId = $state<
+    Record<string, KnowledgeSourceSyncRun>
+  >({})
   let selectedSiteIds = $state<string[]>([])
-  let storedSharePointSites = $state<SharePointSite[]>([])
+  let storedSharePointSites = $state<KnowledgeSourceOption[]>([])
   let loadingSharePointSites = $state(false)
   let syncingSharePointSiteId = $state<string | undefined>()
   let sharePointSitesLoadedForAgent = $state<string | undefined>()
@@ -293,7 +305,8 @@
     }
     loadingSharePointSites = true
     try {
-      const response = await agentsStore.fetchAgentSharePointSites(agentId)
+      const response =
+        await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
       applySharePointSitesResponse(agentId, response)
     } finally {
       loadingSharePointSites = false
@@ -302,11 +315,11 @@
 
   const applySharePointSitesResponse = (
     agentId: string,
-    response: FetchAgentSharePointSitesResponse
+    response: FetchAgentKnowledgeSourceOptionsResponse
   ) => {
-    sharePointSites = response.sites
+    sharePointSites = response.options
     sharePointSyncRunsBySiteId = Object.fromEntries(
-      response.runs.map(run => [run.siteId, run])
+      response.runs.map(run => [run.sourceId, run])
     )
     sharePointSitesLoadedForAgent = agentId
   }
@@ -381,10 +394,13 @@
         if (!appId) {
           throw new Error("Missing app id for SharePoint setup completion")
         }
-        await agentsStore.completeAgentSharePointConnection(currentAgent._id, {
-          appId,
-          continueSetupId,
-        })
+        await agentsStore.completeAgentKnowledgeSourceConnection(
+          currentAgent._id,
+          {
+            appId,
+            continueSetupId,
+          }
+        )
         await agentsStore.fetchAgents()
         currentUrl.searchParams.delete("continue_microsoft_setup")
         const query = currentUrl.searchParams.toString()
@@ -457,19 +473,21 @@
       const nextSiteIds = Array.from(
         new Set([...selectedSiteIds, selectedSharePointSiteId])
       )
-      const setSitesResponse = await agentsStore.setAgentSharePointSites(
+      const setSitesResponse = await agentsStore.setAgentKnowledgeSources(
         agentId,
         {
-          siteIds: nextSiteIds,
+          sourceIds: nextSiteIds,
         }
       )
       applySharePointSitesResponse(agentId, setSitesResponse)
       selectedSiteIds = nextSiteIds
       storedSharePointSites = nextSiteIds
-        .map(siteId => setSitesResponse.sites.find(site => site.id === siteId))
-        .filter((site): site is SharePointSite => !!site)
-      const result = await agentsStore.syncAgentSharePoint(agentId, {
-        siteIds: nextSiteIds,
+        .map(siteId =>
+          setSitesResponse.options.find(site => site.id === siteId)
+        )
+        .filter((site): site is KnowledgeSourceOption => !!site)
+      const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
+        sourceIds: nextSiteIds,
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
@@ -493,8 +511,8 @@
     }
     syncingSharePointSiteId = siteIds.length === 1 ? siteIds[0] : "__multiple__"
     try {
-      const result = await agentsStore.syncAgentSharePoint(agentId, {
-        siteIds,
+      const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
+        sourceIds: siteIds,
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
@@ -522,19 +540,21 @@
     const nextSiteIds = nextSites.map(site => site.id)
     try {
       if (nextSiteIds.length === 0) {
-        await agentsStore.disconnectAgentSharePoint(agent._id)
+        await agentsStore.disconnectAgentKnowledgeSources(agent._id)
       } else {
-        const setSitesResponse = await agentsStore.setAgentSharePointSites(
+        const setSitesResponse = await agentsStore.setAgentKnowledgeSources(
           agent._id,
           {
-            siteIds: nextSiteIds,
+            sourceIds: nextSiteIds,
           }
         )
         applySharePointSitesResponse(agent._id, setSitesResponse)
         selectedSiteIds = nextSiteIds
         storedSharePointSites = nextSiteIds
-          .map(siteId => setSitesResponse.sites.find(site => site.id === siteId))
-          .filter((site): site is SharePointSite => !!site)
+          .map(siteId =>
+            setSitesResponse.options.find(site => site.id === siteId)
+          )
+          .filter((site): site is KnowledgeSourceOption => !!site)
       }
       await agentsStore.fetchAgents()
       await fetchFiles(agent._id)

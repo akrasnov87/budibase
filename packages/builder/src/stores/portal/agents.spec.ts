@@ -7,16 +7,16 @@ import {
 
 vi.mock("@/api", () => {
   const fetchAgentFiles = vi.fn()
-  const syncAgentSharePoint = vi.fn()
-  const completeAgentSharePointConnection = vi.fn()
-  const fetchAgentSharePointSites = vi.fn()
+  const syncAgentKnowledgeSources = vi.fn()
+  const completeAgentKnowledgeSourceConnection = vi.fn()
+  const fetchAgentKnowledgeSourceOptions = vi.fn()
 
   return {
     API: {
       fetchAgentFiles,
-      syncAgentSharePoint,
-      completeAgentSharePointConnection,
-      fetchAgentSharePointSites,
+      syncAgentKnowledgeSources,
+      completeAgentKnowledgeSourceConnection,
+      fetchAgentKnowledgeSourceOptions,
     },
   }
 })
@@ -25,11 +25,13 @@ import { API } from "@/api"
 import { AgentsStore } from "./agents"
 
 const fetchAgentFiles = vi.mocked(API.fetchAgentFiles)
-const syncAgentSharePoint = vi.mocked(API.syncAgentSharePoint)
-const completeAgentSharePointConnection = vi.mocked(
-  API.completeAgentSharePointConnection
+const syncAgentKnowledgeSources = vi.mocked(API.syncAgentKnowledgeSources)
+const completeAgentKnowledgeSourceConnection = vi.mocked(
+  API.completeAgentKnowledgeSourceConnection
 )
-const fetchAgentSharePointSites = vi.mocked(API.fetchAgentSharePointSites)
+const fetchAgentKnowledgeSourceOptions = vi.mocked(
+  API.fetchAgentKnowledgeSourceOptions
+)
 
 describe("agentsStore sharepoint and file syncing", () => {
   let store: AgentsStore
@@ -37,9 +39,9 @@ describe("agentsStore sharepoint and file syncing", () => {
   beforeEach(() => {
     store = new AgentsStore()
     fetchAgentFiles.mockReset()
-    syncAgentSharePoint.mockReset()
-    completeAgentSharePointConnection.mockReset()
-    fetchAgentSharePointSites.mockReset()
+    syncAgentKnowledgeSources.mockReset()
+    completeAgentKnowledgeSourceConnection.mockReset()
+    fetchAgentKnowledgeSourceOptions.mockReset()
     store.set({
       agents: [],
       tools: [],
@@ -54,8 +56,8 @@ describe("agentsStore sharepoint and file syncing", () => {
     vi.useRealTimers()
   })
 
-  it("syncAgentSharePoint forwards siteIds payload", async () => {
-    syncAgentSharePoint.mockResolvedValue({
+  it("syncAgentKnowledgeSources forwards sourceIds payload", async () => {
+    syncAgentKnowledgeSources.mockResolvedValue({
       agentId: "agent_1",
       synced: 2,
       failed: 0,
@@ -63,12 +65,12 @@ describe("agentsStore sharepoint and file syncing", () => {
       totalDiscovered: 3,
     })
 
-    const result = await store.syncAgentSharePoint("agent_1", {
-      siteIds: ["site-1", "site-2"],
+    const result = await store.syncAgentKnowledgeSources("agent_1", {
+      sourceIds: ["site-1", "site-2"],
     })
 
-    expect(syncAgentSharePoint).toHaveBeenCalledWith("agent_1", {
-      siteIds: ["site-1", "site-2"],
+    expect(syncAgentKnowledgeSources).toHaveBeenCalledWith("agent_1", {
+      sourceIds: ["site-1", "site-2"],
     })
     expect(result.synced).toBe(2)
     expect(result.totalDiscovered).toBe(3)
@@ -94,34 +96,40 @@ describe("agentsStore sharepoint and file syncing", () => {
     expect(get(store.store).filesByAgentId["agent_1"]).toEqual(files)
   })
 
-  it("completeAgentSharePointConnection forwards payload", async () => {
-    completeAgentSharePointConnection.mockResolvedValue({
+  it("completeAgentKnowledgeSourceConnection forwards payload", async () => {
+    completeAgentKnowledgeSourceConnection.mockResolvedValue({
       agentId: "agent_1",
       connected: true,
     })
 
-    const result = await store.completeAgentSharePointConnection("agent_1", {
-      appId: "app_1",
-      continueSetupId: "setup_1",
-    })
+    const result = await store.completeAgentKnowledgeSourceConnection(
+      "agent_1",
+      {
+        appId: "app_1",
+        continueSetupId: "setup_1",
+      }
+    )
 
-    expect(completeAgentSharePointConnection).toHaveBeenCalledWith("agent_1", {
-      appId: "app_1",
-      continueSetupId: "setup_1",
-    })
+    expect(completeAgentKnowledgeSourceConnection).toHaveBeenCalledWith(
+      "agent_1",
+      {
+        appId: "app_1",
+        continueSetupId: "setup_1",
+      }
+    )
     expect(result.connected).toBe(true)
   })
 
-  it("fetchAgentSharePointSites forwards request", async () => {
-    fetchAgentSharePointSites.mockResolvedValue({
-      sites: [{ id: "site-1", name: "Team Site", webUrl: "https://example" }],
+  it("fetchAgentKnowledgeSourceOptions forwards request", async () => {
+    fetchAgentKnowledgeSourceOptions.mockResolvedValue({
+      options: [{ id: "site-1", name: "Team Site", webUrl: "https://example" }],
       runs: [],
     })
 
-    const result = await store.fetchAgentSharePointSites("agent_1")
+    const result = await store.fetchAgentKnowledgeSourceOptions("agent_1")
 
-    expect(fetchAgentSharePointSites).toHaveBeenCalledWith("agent_1")
-    expect(result.sites).toHaveLength(1)
+    expect(fetchAgentKnowledgeSourceOptions).toHaveBeenCalledWith("agent_1")
+    expect(result.options).toHaveLength(1)
   })
 
   it("startAgentFilePolling fetches while files are processing", async () => {

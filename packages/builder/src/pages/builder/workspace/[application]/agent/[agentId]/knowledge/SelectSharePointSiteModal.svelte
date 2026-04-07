@@ -1,11 +1,11 @@
 <script lang="ts">
   import { Body, Modal, ModalContent, Select } from "@budibase/bbui"
-  import type { SharePointSite } from "@budibase/types"
+  import type { KnowledgeSourceOption } from "@budibase/types"
   import { createEventDispatcher } from "svelte"
 
   interface Props {
     loadingSharePointSites: boolean
-    sharePointSites?: SharePointSite[]
+    sharePointSites?: KnowledgeSourceOption[]
     selectedSiteId?: string
   }
 

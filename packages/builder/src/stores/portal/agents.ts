@@ -3,26 +3,26 @@ import { BudiStore } from "../BudiStore"
 import {
   Agent,
   AgentFileUploadResponse,
-  CompleteAgentSharePointConnectionRequest,
-  CompleteAgentSharePointConnectionResponse,
+  CompleteAgentKnowledgeSourceConnectionRequest,
+  CompleteAgentKnowledgeSourceConnectionResponse,
   CreateAgentRequest,
-  DisconnectAgentSharePointResponse,
+  DisconnectAgentKnowledgeSourcesResponse,
   FetchAgentFilesResponse,
-  FetchAgentSharePointSitesResponse,
+  FetchAgentKnowledgeSourceOptionsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
+  KnowledgeBaseFileStatus,
+  SetAgentKnowledgeSourcesRequest,
+  SetAgentKnowledgeSourcesResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
-  SetAgentSharePointSitesRequest,
-  SetAgentSharePointSitesResponse,
-  SyncAgentSharePointRequest,
-  SyncAgentSharePointResponse,
-  UpdateAgentRequest,
-  KnowledgeBaseFileStatus,
-  type KnowledgeBaseFile,
+  SyncAgentKnowledgeSourcesRequest,
+  SyncAgentKnowledgeSourcesResponse,
   ToolMetadata,
+  UpdateAgentRequest,
+  type KnowledgeBaseFile,
 } from "@budibase/types"
 import { derived, get } from "svelte/store"
 
@@ -250,33 +250,33 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
   deleteAgentFile = async (agentId: string, fileId: string) =>
     await API.deleteAgentFile(agentId, fileId)
 
-  completeAgentSharePointConnection = async (
+  completeAgentKnowledgeSourceConnection = async (
     agentId: string,
-    body: CompleteAgentSharePointConnectionRequest
-  ): Promise<CompleteAgentSharePointConnectionResponse> =>
-    await API.completeAgentSharePointConnection(agentId, body)
+    body: CompleteAgentKnowledgeSourceConnectionRequest
+  ): Promise<CompleteAgentKnowledgeSourceConnectionResponse> =>
+    await API.completeAgentKnowledgeSourceConnection(agentId, body)
 
-  fetchAgentSharePointSites = async (
+  fetchAgentKnowledgeSourceOptions = async (
     agentId: string
-  ): Promise<FetchAgentSharePointSitesResponse> =>
-    await API.fetchAgentSharePointSites(agentId)
+  ): Promise<FetchAgentKnowledgeSourceOptionsResponse> =>
+    await API.fetchAgentKnowledgeSourceOptions(agentId)
 
-  setAgentSharePointSites = async (
+  setAgentKnowledgeSources = async (
     agentId: string,
-    body: SetAgentSharePointSitesRequest
-  ): Promise<SetAgentSharePointSitesResponse> =>
-    await API.setAgentSharePointSites(agentId, body)
+    body: SetAgentKnowledgeSourcesRequest
+  ): Promise<SetAgentKnowledgeSourcesResponse> =>
+    await API.setAgentKnowledgeSources(agentId, body)
 
-  disconnectAgentSharePoint = async (
+  disconnectAgentKnowledgeSources = async (
     agentId: string
-  ): Promise<DisconnectAgentSharePointResponse> =>
-    await API.disconnectAgentSharePoint(agentId)
+  ): Promise<DisconnectAgentKnowledgeSourcesResponse> =>
+    await API.disconnectAgentKnowledgeSources(agentId)
 
-  syncAgentSharePoint = async (
+  syncAgentKnowledgeSources = async (
     agentId: string,
-    body?: SyncAgentSharePointRequest
-  ): Promise<SyncAgentSharePointResponse> =>
-    await API.syncAgentSharePoint(agentId, body)
+    body?: SyncAgentKnowledgeSourcesRequest
+  ): Promise<SyncAgentKnowledgeSourcesResponse> =>
+    await API.syncAgentKnowledgeSources(agentId, body)
 }
 export const agentsStore = new AgentsStore()
 export const selectedAgent = derived(agentsStore, state =>

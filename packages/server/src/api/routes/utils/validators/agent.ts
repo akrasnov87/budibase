@@ -133,7 +133,7 @@ export function generateAgentInstructionsValidator() {
   )
 }
 
-export function completeAgentSharePointConnectionValidator() {
+export function completeAgentKnowledgeSourceConnectionValidator() {
   return auth.joiValidator.body(
     Joi.object({
       appId: Joi.string().required().trim().disallow(""),
@@ -142,18 +142,18 @@ export function completeAgentSharePointConnectionValidator() {
   )
 }
 
-export function syncAgentSharePointValidator() {
+export function syncAgentKnowledgeSourcesValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      siteIds: Joi.array().items(Joi.string().trim().disallow("")).optional(),
+      sourceIds: Joi.array().items(Joi.string().trim().disallow("")).optional(),
     }).required()
   )
 }
 
-export function setAgentSharePointSitesValidator() {
+export function setAgentKnowledgeSourcesValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      siteIds: Joi.array().items(Joi.string().trim().disallow("")).required(),
+      sourceIds: Joi.array().items(Joi.string().trim().disallow("")).required(),
     }).required()
   )
 }

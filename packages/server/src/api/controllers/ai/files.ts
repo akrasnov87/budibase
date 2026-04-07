@@ -3,15 +3,15 @@ import { HTTPError } from "@budibase/backend-core"
 import {
   AgentKnowledgeSourceType,
   AgentFileUploadResponse,
-  CompleteAgentSharePointConnectionRequest,
-  CompleteAgentSharePointConnectionResponse,
-  DisconnectAgentSharePointResponse,
-  FetchAgentSharePointSitesResponse,
+  CompleteAgentKnowledgeSourceConnectionRequest,
+  CompleteAgentKnowledgeSourceConnectionResponse,
+  DisconnectAgentKnowledgeSourcesResponse,
+  FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentFilesResponse,
-  SetAgentSharePointSitesRequest,
-  SetAgentSharePointSitesResponse,
-  SyncAgentSharePointRequest,
-  SyncAgentSharePointResponse,
+  SetAgentKnowledgeSourcesRequest,
+  SetAgentKnowledgeSourcesResponse,
+  SyncAgentKnowledgeSourcesRequest,
+  SyncAgentKnowledgeSourcesResponse,
   UserCtx,
 } from "@budibase/types"
 import sdk from "../../../sdk"
@@ -108,10 +108,10 @@ export async function deleteAgentFile(
   ctx.status = 200
 }
 
-export async function completeAgentSharePointConnection(
+export async function completeAgentKnowledgeSourceConnection(
   ctx: UserCtx<
-    CompleteAgentSharePointConnectionRequest,
-    CompleteAgentSharePointConnectionResponse,
+    CompleteAgentKnowledgeSourceConnectionRequest,
+    CompleteAgentKnowledgeSourceConnectionResponse,
     { agentId: string }
   >
 ) {
@@ -128,24 +128,28 @@ export async function completeAgentSharePointConnection(
   ctx.status = 200
 }
 
-export async function fetchAgentSharePointSites(
-  ctx: UserCtx<void, FetchAgentSharePointSitesResponse, { agentId: string }>
+export async function fetchAgentKnowledgeSourceOptions(
+  ctx: UserCtx<
+    void,
+    FetchAgentKnowledgeSourceOptionsResponse,
+    { agentId: string }
+  >
 ) {
   const { agentId } = ctx.params
   ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   ctx.status = 200
 }
 
-export async function syncAgentSharePoint(
+export async function syncAgentKnowledgeSources(
   ctx: UserCtx<
-    SyncAgentSharePointRequest,
-    SyncAgentSharePointResponse,
+    SyncAgentKnowledgeSourcesRequest,
+    SyncAgentKnowledgeSourcesResponse,
     { agentId: string }
   >
 ) {
   const { agentId } = ctx.params
-  const siteIds = Array.isArray(ctx.request.body?.siteIds)
-    ? ctx.request.body.siteIds
+  const siteIds = Array.isArray(ctx.request.body?.sourceIds)
+    ? ctx.request.body.sourceIds
     : undefined
   const response = await sdk.ai.rag.syncSharePointForAgent(agentId, siteIds)
   const agent = await sdk.ai.agents.getOrThrow(agentId)
@@ -154,17 +158,17 @@ export async function syncAgentSharePoint(
   ctx.status = 200
 }
 
-export async function setAgentSharePointSites(
+export async function setAgentKnowledgeSources(
   ctx: UserCtx<
-    SetAgentSharePointSitesRequest,
-    SetAgentSharePointSitesResponse,
+    SetAgentKnowledgeSourcesRequest,
+    SetAgentKnowledgeSourcesResponse,
     { agentId: string }
   >
 ) {
   const { agentId } = ctx.params
   const siteIds = Array.from(
     new Set(
-      (ctx.request.body.siteIds || [])
+      (ctx.request.body.sourceIds || [])
         .map(id => id?.trim())
         .filter((id): id is string => !!id)
     )
@@ -183,7 +187,7 @@ export async function setAgentSharePointSites(
   const previousSiteIds = getSharePointSiteIds(existingAgent)
   const availableSites = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   const availableById = new Map(
-    availableSites.sites.map(site => [
+    availableSites.options.map(site => [
       site.id,
       { name: site.name, webUrl: site.webUrl },
     ])
@@ -241,8 +245,12 @@ export async function setAgentSharePointSites(
   ctx.status = 200
 }
 
-export async function disconnectAgentSharePoint(
-  ctx: UserCtx<void, DisconnectAgentSharePointResponse, { agentId: string }>
+export async function disconnectAgentKnowledgeSources(
+  ctx: UserCtx<
+    void,
+    DisconnectAgentKnowledgeSourcesResponse,
+    { agentId: string }
+  >
 ) {
   const { agentId } = ctx.params
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)

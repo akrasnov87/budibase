@@ -5,12 +5,12 @@ import {
   AgentSharePointSyncRunStatus,
   AgentKnowledgeSourceType,
   type AgentKnowledgeSource,
-  type CompleteAgentSharePointConnectionRequest,
-  type CompleteAgentSharePointConnectionResponse,
+  type CompleteAgentKnowledgeSourceConnectionRequest,
+  type CompleteAgentKnowledgeSourceConnectionResponse,
   DocumentType,
-  type FetchAgentSharePointSitesResponse,
-  type SharePointSite,
-  type SyncAgentSharePointResponse,
+  type FetchAgentKnowledgeSourceOptionsResponse,
+  type KnowledgeSourceOption,
+  type SyncAgentKnowledgeSourcesResponse,
 } from "@budibase/types"
 import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
 import {
@@ -58,7 +58,7 @@ const connectionCacheKey = (connectionId: string) =>
   sharePointConnectionCacheKey("connection", connectionId)
 
 const normalizeSites = (
-  sites: Array<SharePointSourceSite | SharePointSite>
+  sites: Array<SharePointSourceSite | KnowledgeSourceOption>
 ): SharePointSourceSite[] => {
   const map = new Map<string, SharePointSourceSite>()
   for (const site of sites) {
@@ -310,9 +310,9 @@ export const completeSharePointConnectionForAgent = async ({
   agentId,
   appId,
   continueSetupId,
-}: CompleteAgentSharePointConnectionRequest & {
+}: CompleteAgentKnowledgeSourceConnectionRequest & {
   agentId: string
-}): Promise<CompleteAgentSharePointConnectionResponse> => {
+}): Promise<CompleteAgentKnowledgeSourceConnectionResponse> => {
   const trimmedAgentId = trimString(agentId)
   const trimmedAppId = trimString(appId)
   const trimmedSetupId = trimString(continueSetupId)
@@ -338,7 +338,7 @@ export const completeSharePointConnectionForAgent = async ({
 
 export const fetchSharePointSitesForAgent = async (
   agentId: string
-): Promise<FetchAgentSharePointSitesResponse> => {
+): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
   const trimmedAgentId = trimString(agentId)
   if (!trimmedAgentId) {
     throw new HTTPError("agentId is required", 400)
@@ -347,11 +347,11 @@ export const fetchSharePointSitesForAgent = async (
   const { runs } = await fetchSharePointSyncStateForAgent(trimmedAgentId)
   const connectionId = trimString(getSharePointConnectionId(agent))
   if (!connectionId) {
-    return { sites: [], runs }
+    return { options: [], runs }
   }
 
   return {
-    sites: await fetchSharePointSitesByConnection(
+    options: await fetchSharePointSitesByConnection(
       connectionCacheKey(connectionId)
     ),
     runs,
@@ -360,7 +360,7 @@ export const fetchSharePointSitesForAgent = async (
 
 export const fetchSharePointSyncStateForAgent = async (
   agentId: string
-): Promise<{ runs: FetchAgentSharePointSitesResponse["runs"] }> => {
+): Promise<{ runs: FetchAgentKnowledgeSourceOptionsResponse["runs"] }> => {
   const trimmedAgentId = trimString(agentId)
   if (!trimmedAgentId) {
     throw new HTTPError("agentId is required", 400)
@@ -378,7 +378,7 @@ export const fetchSharePointSyncStateForAgent = async (
     .map(row => row.doc)
     .filter((doc): doc is AgentSharePointSyncState => !!doc?.siteId)
     .map(doc => ({
-      siteId: doc.siteId,
+      sourceId: doc.siteId,
       lastRunAt: doc.lastRunAt,
       synced: doc.synced,
       failed: doc.failed,
@@ -425,7 +425,7 @@ export const deleteSharePointSyncStateForAgent = async (
 export const syncSharePointForAgent = async (
   agentId: string,
   siteIdsInput?: string[]
-): Promise<SyncAgentSharePointResponse> => {
+): Promise<SyncAgentKnowledgeSourcesResponse> => {
   const lastRunAt = new Date().toISOString()
   const trimmedAgentId = trimString(agentId)
   if (!trimmedAgentId) {

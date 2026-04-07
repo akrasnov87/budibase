@@ -1,23 +1,23 @@
 import {
   Agent,
   AgentFileUploadResponse,
-  CompleteAgentSharePointConnectionRequest,
-  CompleteAgentSharePointConnectionResponse,
-  DisconnectAgentSharePointResponse,
+  CompleteAgentKnowledgeSourceConnectionRequest,
+  CompleteAgentKnowledgeSourceConnectionResponse,
+  DisconnectAgentKnowledgeSourcesResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentFilesResponse,
-  FetchAgentSharePointSitesResponse,
+  FetchAgentKnowledgeSourceOptionsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
+  SetAgentKnowledgeSourcesRequest,
+  SetAgentKnowledgeSourcesResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
-  SetAgentSharePointSitesRequest,
-  SetAgentSharePointSitesResponse,
-  SyncAgentSharePointRequest,
-  SyncAgentSharePointResponse,
+  SyncAgentKnowledgeSourcesRequest,
+  SyncAgentKnowledgeSourcesResponse,
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
   UpdateAgentRequest,
@@ -177,13 +177,13 @@ export class AgentAPI extends TestAPI {
     )
   }
 
-  completeSharePointConnection = async (
+  completeKnowledgeSourceConnection = async (
     agentId: string,
-    body: CompleteAgentSharePointConnectionRequest,
+    body: CompleteAgentKnowledgeSourceConnectionRequest,
     expectations?: Expectations
-  ): Promise<CompleteAgentSharePointConnectionResponse> => {
-    return await this._post<CompleteAgentSharePointConnectionResponse>(
-      `/api/agent/${agentId}/sharepoint/connect/complete`,
+  ): Promise<CompleteAgentKnowledgeSourceConnectionResponse> => {
+    return await this._post<CompleteAgentKnowledgeSourceConnectionResponse>(
+      `/api/agent/${agentId}/knowledge-sources/connect/complete`,
       {
         body,
         expectations,
@@ -191,25 +191,25 @@ export class AgentAPI extends TestAPI {
     )
   }
 
-  fetchSharePointSites = async (
+  fetchKnowledgeSourceOptions = async (
     agentId: string,
     expectations?: Expectations
-  ): Promise<FetchAgentSharePointSitesResponse> => {
-    return await this._get<FetchAgentSharePointSitesResponse>(
-      `/api/agent/${agentId}/sharepoint/sites`,
+  ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
+    return await this._get<FetchAgentKnowledgeSourceOptionsResponse>(
+      `/api/agent/${agentId}/knowledge-sources/options`,
       {
         expectations,
       }
     )
   }
 
-  setSharePointSites = async (
+  setKnowledgeSources = async (
     agentId: string,
-    body: SetAgentSharePointSitesRequest,
+    body: SetAgentKnowledgeSourcesRequest,
     expectations?: Expectations
-  ): Promise<SetAgentSharePointSitesResponse> => {
-    return await this._put<SetAgentSharePointSitesResponse>(
-      `/api/agent/${agentId}/sharepoint/sites`,
+  ): Promise<SetAgentKnowledgeSourcesResponse> => {
+    return await this._put<SetAgentKnowledgeSourcesResponse>(
+      `/api/agent/${agentId}/knowledge-sources`,
       {
         body,
         expectations,
@@ -217,25 +217,25 @@ export class AgentAPI extends TestAPI {
     )
   }
 
-  disconnectSharePoint = async (
+  disconnectKnowledgeSources = async (
     agentId: string,
     expectations?: Expectations
-  ): Promise<DisconnectAgentSharePointResponse> => {
-    return await this._delete<DisconnectAgentSharePointResponse>(
-      `/api/agent/${agentId}/sharepoint`,
+  ): Promise<DisconnectAgentKnowledgeSourcesResponse> => {
+    return await this._delete<DisconnectAgentKnowledgeSourcesResponse>(
+      `/api/agent/${agentId}/knowledge-sources`,
       {
         expectations,
       }
     )
   }
 
-  syncSharePoint = async (
+  syncKnowledgeSources = async (
     agentId: string,
-    body?: SyncAgentSharePointRequest,
+    body?: SyncAgentKnowledgeSourcesRequest,
     expectations?: Expectations
-  ): Promise<SyncAgentSharePointResponse> => {
-    return await this._post<SyncAgentSharePointResponse>(
-      `/api/agent/${agentId}/sharepoint/sync`,
+  ): Promise<SyncAgentKnowledgeSourcesResponse> => {
+    return await this._post<SyncAgentKnowledgeSourcesResponse>(
+      `/api/agent/${agentId}/knowledge-sources/sync`,
       {
         body,
         expectations,

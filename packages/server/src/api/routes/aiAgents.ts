@@ -3,13 +3,13 @@ import { aiRagEnabled } from "../../middleware/aiRagEnabled"
 import * as ai from "../controllers/ai"
 import { builderAdminRoutes, endpointGroupList } from "./endpointGroups"
 import {
-  completeAgentSharePointConnectionValidator,
+  completeAgentKnowledgeSourceConnectionValidator,
   createAgentValidator,
   provisionAgentSlackChannelValidator,
   provisionAgentMSTeamsChannelValidator,
-  setAgentSharePointSitesValidator,
+  setAgentKnowledgeSourcesValidator,
   syncAgentDiscordCommandsValidator,
-  syncAgentSharePointValidator,
+  syncAgentKnowledgeSourcesValidator,
   toggleAgentDiscordDeploymentValidator,
   toggleAgentMSTeamsDeploymentValidator,
   toggleAgentSlackDeploymentValidator,
@@ -66,19 +66,25 @@ aiRagBuilderAdminRoutes
   .post("/api/agent/:agentId/files", ai.uploadAgentFile)
   .delete("/api/agent/:agentId/files/:fileId", ai.deleteAgentFile)
   .post(
-    "/api/agent/:agentId/sharepoint/connect/complete",
-    completeAgentSharePointConnectionValidator(),
-    ai.completeAgentSharePointConnection
+    "/api/agent/:agentId/knowledge-sources/connect/complete",
+    completeAgentKnowledgeSourceConnectionValidator(),
+    ai.completeAgentKnowledgeSourceConnection
   )
-  .get("/api/agent/:agentId/sharepoint/sites", ai.fetchAgentSharePointSites)
+  .get(
+    "/api/agent/:agentId/knowledge-sources/options",
+    ai.fetchAgentKnowledgeSourceOptions
+  )
   .put(
-    "/api/agent/:agentId/sharepoint/sites",
-    setAgentSharePointSitesValidator(),
-    ai.setAgentSharePointSites
+    "/api/agent/:agentId/knowledge-sources",
+    setAgentKnowledgeSourcesValidator(),
+    ai.setAgentKnowledgeSources
   )
-  .delete("/api/agent/:agentId/sharepoint", ai.disconnectAgentSharePoint)
+  .delete(
+    "/api/agent/:agentId/knowledge-sources",
+    ai.disconnectAgentKnowledgeSources
+  )
   .post(
-    "/api/agent/:agentId/sharepoint/sync",
-    syncAgentSharePointValidator(),
-    ai.syncAgentSharePoint
+    "/api/agent/:agentId/knowledge-sources/sync",
+    syncAgentKnowledgeSourcesValidator(),
+    ai.syncAgentKnowledgeSources
   )

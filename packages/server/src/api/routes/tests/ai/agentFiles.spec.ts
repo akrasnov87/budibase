@@ -223,9 +223,9 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      await config.api.agent.syncSharePoint(
+      await config.api.agent.syncKnowledgeSources(
         created._id!,
-        { siteIds: ["site-1"] },
+        { sourceIds: ["site-1"] },
         {
           status: 400,
           body: {
@@ -243,9 +243,9 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      await config.api.agent.setSharePointSites(
+      await config.api.agent.setKnowledgeSources(
         created._id!,
-        { siteIds: ["site-1"] },
+        { sourceIds: ["site-1"] },
         {
           status: 400,
           body: {
@@ -263,7 +263,7 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      await config.api.agent.completeSharePointConnection(
+      await config.api.agent.completeKnowledgeSourceConnection(
         created._id!,
         {} as any,
         { status: 400 }
@@ -278,9 +278,11 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      const response = await config.api.agent.fetchSharePointSites(created._id!)
+      const response = await config.api.agent.fetchKnowledgeSourceOptions(
+        created._id!
+      )
 
-      expect(response.sites).toEqual([])
+      expect(response.options).toEqual([])
     })
   })
 
@@ -291,7 +293,9 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      const response = await config.api.agent.fetchSharePointSites(created._id!)
+      const response = await config.api.agent.fetchKnowledgeSourceOptions(
+        created._id!
+      )
 
       expect(response.runs).toEqual([])
     })
@@ -304,7 +308,11 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      await config.api.agent.syncSharePoint(created._id!, {}, { status: 400 })
+      await config.api.agent.syncKnowledgeSources(
+        created._id!,
+        {},
+        { status: 400 }
+      )
     })
   })
 
@@ -366,12 +374,18 @@ describe("agent files", () => {
         "vector-store-1",
         "gemini-file-a"
       )
-      const response = await config.api.agent.setSharePointSites(created._id!, {
-        siteIds: ["site-2"],
-      })
+      const response = await config.api.agent.setKnowledgeSources(
+        created._id!,
+        {
+          sourceIds: ["site-2"],
+        }
+      )
 
       expect(deleteScope.isDone()).toBe(true)
-      expect(response.sites.map(site => site.id)).toEqual(["site-1", "site-2"])
+      expect(response.options.map(site => site.id)).toEqual([
+        "site-1",
+        "site-2",
+      ])
 
       const { files: remainingFiles } = await config.api.agent.fetchFiles(
         created._id!
@@ -447,7 +461,9 @@ describe("agent files", () => {
         "gemini-file-disconnect-endpoint-b"
       )
 
-      const response = await config.api.agent.disconnectSharePoint(created._id!)
+      const response = await config.api.agent.disconnectKnowledgeSources(
+        created._id!
+      )
       expect(response).toEqual({
         agentId: created._id!,
         disconnected: true,

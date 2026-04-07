@@ -1,5 +1,5 @@
 import { cache, HTTPError } from "@budibase/backend-core"
-import type { SharePointSite } from "@budibase/types"
+import type { KnowledgeSourceOption } from "@budibase/types"
 
 interface SharePointConnectionCacheRecord {
   tenantId: string
@@ -123,8 +123,8 @@ export const clearSharePointConnection = async (connectionKey: string) => {
 
 export const fetchSharePointSitesByBearerToken = async (
   bearerToken: string
-): Promise<SharePointSite[]> => {
-  const sitesById = new Map<string, SharePointSite>()
+): Promise<KnowledgeSourceOption[]> => {
+  const sitesById = new Map<string, KnowledgeSourceOption>()
   let currentPath = "/sites"
   let currentQuery = "search=*&$top=200&$select=id,name,webUrl"
 
@@ -146,7 +146,7 @@ export const fetchSharePointSitesByBearerToken = async (
     }
 
     const payload = (await response.json()) as {
-      value?: SharePointSite[]
+      value?: KnowledgeSourceOption[]
       "@odata.nextLink"?: string
     }
 
@@ -179,7 +179,7 @@ export const fetchSharePointSitesByBearerToken = async (
 
 export const fetchSharePointSitesByConnection = async (
   connectionKey: string
-): Promise<SharePointSite[]> => {
+): Promise<KnowledgeSourceOption[]> => {
   const bearerToken = await getSharePointBearerToken(connectionKey)
   return fetchSharePointSitesByBearerToken(bearerToken)
 }
