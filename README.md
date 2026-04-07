@@ -10,7 +10,7 @@
   AI Agents that run your operations
 </h3>
 <p align="center">
-  Budibase is an open-source operations platform that saves engineers 100s of hours building Apps, Agent and Automations, securely.
+  Budibase is an open-source operations platform that saves engineers 100s of hours building Agents, Apps and Automations, securely.
 </p>
 
 <h3 align="center">
@@ -19,7 +19,7 @@
 <br>
 
 <p align="center">
-  <img alt="Budibase agent ui" src="https://res.cloudinary.com/daog6scxm/image/upload/t_1920x1080/v1775570148/Agent_for_Github.jpg">
+  <img alt="Budibase agent ui" src="https://res.cloudinary.com/daog6scxm/image/upload/v1775572268/github/Agent_preview.jpg">
 </p>
 
 <p align="center">
@@ -69,7 +69,7 @@ Employees ask questions, request approvals, and report issues every day. Budibas
 Employees ask questions, request approvals, and report issues every day. Budibase agents understand these requests and handle the work automatically.
 
 <p align="center">
-  <img alt="Budibase chat deploy" src="https://res.cloudinary.com/daog6scxm/image/upload/t_1920x1080/v1775571137/github/Github_Chat_agents.jpg">
+  <img alt="Budibase chat deploy" src="https://res.cloudinary.com/daog6scxm/image/upload/v1775572269/github/Agent_Chat.jpg">
 </p>
 
 <br /><br />
@@ -79,7 +79,7 @@ Employees ask questions, request approvals, and report issues every day. Budibas
 Budibase agents don’t just answer questions. They run workflows across your business - creating records, routing approvals, updating apps, and notifying teams automatically.
 
 <p align="center">
-  <img alt="Budibase agent actions" src="https://res.cloudinary.com/daog6scxm/image/upload/t_1920x1080/v1775571449/github/Github_Agents_take_actions.jpg">
+  <img alt="Budibase agent actions" src="https://res.cloudinary.com/daog6scxm/image/upload/v1775572270/github/Agent_Actions.jpg">
 </p>
 <br /><br />
 
