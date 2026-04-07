@@ -181,25 +181,13 @@ export async function setAgentSharePointSites(
   const trimmedConnectionId = connectionId.trim()
 
   const previousSiteIds = getSharePointSiteIds(existingAgent)
-  let availableById = new Map<string, { name?: string; webUrl?: string }>()
-  try {
-    const availableSites =
-      await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
-    availableById = new Map(
-      availableSites.sites.map(site => [
-        site.id,
-        { name: site.name, webUrl: site.webUrl },
-      ])
-    )
-  } catch (error) {
-    console.log(
-      "Failed to fetch SharePoint site metadata while updating sites",
-      {
-        agentId,
-        error,
-      }
-    )
-  }
+  const availableSites = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+  const availableById = new Map(
+    availableSites.sites.map(site => [
+      site.id,
+      { name: site.name, webUrl: site.webUrl },
+    ])
+  )
   const existingById = new Map(
     sharePointSources
       .map(source => source.config.site)

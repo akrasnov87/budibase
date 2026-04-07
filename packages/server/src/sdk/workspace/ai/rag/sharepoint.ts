@@ -71,21 +71,6 @@ const normalizeSites = (
   return Array.from(map.values())
 }
 
-const normalizeSiteIdForSource = (siteId: string) =>
-  siteId.replace(/[^a-zA-Z0-9_-]/g, "_")
-
-const buildSharePointSourceForSite = (
-  site: SharePointSourceSite,
-  connectionId: string
-): AgentKnowledgeSource => ({
-  id: `sharepoint_site_${normalizeSiteIdForSource(site.id)}`,
-  type: AgentKnowledgeSourceType.SHAREPOINT,
-  config: {
-    connectionId,
-    site,
-  },
-})
-
 const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
   return (agent.knowledgeSources || []).filter(
     source => source.type === AgentKnowledgeSourceType.SHAREPOINT
@@ -106,42 +91,34 @@ const getSharePointSitesFromSources = (agent: Agent): SharePointSourceSite[] => 
   )
 }
 
-const updateAgentSharePoint = async (
+const upsertSharePointConnection = async (
   agent: Agent,
-  update: {
-    connectionId?: string
-    sites?: SharePointSourceSite[]
-    remove?: boolean
-  }
+  connectionId: string
 ) => {
-  const existingSources = [...(agent.knowledgeSources || [])]
-  const withoutSharePoint = existingSources.filter(
-    existing => existing.type !== AgentKnowledgeSourceType.SHAREPOINT
+  const nonSharePointSources = (agent.knowledgeSources || []).filter(
+    source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
   )
-  const existingConnectionId = getSharePointConnectionId(agent)
-  const connectionId = trimString(update.connectionId || existingConnectionId)
-  const sites = normalizeSites(update.sites ?? getSharePointSitesFromSources(agent))
-  const nextSources = update.remove
-    ? withoutSharePoint
-    : sites.length > 0
-      ? [
-          ...withoutSharePoint,
-          ...sites.map(site => buildSharePointSourceForSite(site, connectionId)),
-        ]
+  const existingSharePointSources = getSharePointSources(agent)
+  const nextSharePointSources =
+    existingSharePointSources.length > 0
+      ? existingSharePointSources.map(source => ({
+          ...source,
+          config: {
+            ...source.config,
+            connectionId,
+          },
+        }))
       : [
-          ...withoutSharePoint,
           {
             id: SHAREPOINT_CONNECTION_SOURCE_ID,
             type: AgentKnowledgeSourceType.SHAREPOINT,
-            config: {
-              connectionId,
-            },
+            config: { connectionId },
           } satisfies AgentKnowledgeSource,
         ]
 
   await agentsSdk.update({
     ...agent,
-    knowledgeSources: nextSources,
+    knowledgeSources: [...nonSharePointSources, ...nextSharePointSources],
   })
 }
 
@@ -291,7 +268,7 @@ export const completeSharePointConnectionForAgent = async ({
     setupId: trimmedSetupId,
     connectionKey: connectionCacheKey(connectionId),
   })
-  await updateAgentSharePoint(agent, { connectionId })
+  await upsertSharePointConnection(agent, connectionId)
 
   return {
     agentId: trimmedAgentId,

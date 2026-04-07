@@ -1,5 +1,5 @@
 import nock from "nock"
-import { context, features } from "@budibase/backend-core"
+import { cache, context, features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
 import {
   type Agent,
@@ -10,6 +10,7 @@ import {
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
+import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/sharepoint"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
 describe("agent files", () => {
@@ -112,6 +113,23 @@ describe("agent files", () => {
             site: { id: siteId },
           },
         })),
+      })
+    })
+  }
+
+  const setSharePointConnectionInCache = async (agentId: string) => {
+    await config.doInContext(config.getDevWorkspaceId(), async () => {
+      await cache.store(sharePointConnectionCacheKey("connection", agentId), {
+        tenantId: config.getTenantId(),
+        tokenEndpoint:
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        scope: "offline_access https://graph.microsoft.com/Sites.Read.All",
+        accessToken: "header.payload.signature",
+        refreshToken: "refresh-token",
+        tokenType: "Bearer",
+        expiresAt: Date.now() + 60_000,
+        clientId: "client-id",
+        clientSecret: "client-secret",
       })
     })
   }
@@ -311,6 +329,24 @@ describe("agent files", () => {
       })
 
       await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
+      await setSharePointConnectionInCache(created._id!)
+      const originalFetch = globalThis.fetch
+      const fetchSpy = jest.spyOn(globalThis, "fetch").mockImplementation(
+        async (input: RequestInfo | URL, init?: RequestInit) => {
+          if (
+            typeof input === "string" &&
+            input.startsWith("https://graph.microsoft.com/v1.0/sites?")
+          ) {
+            return new Response(
+              JSON.stringify({
+                value: [{ id: "site-1" }, { id: "site-2" }],
+              }),
+              { status: 200, headers: { "Content-Type": "application/json" } }
+            )
+          }
+          return await originalFetch(input, init)
+        }
+      )
       const deleteScope = mockGeminiFileDelete(
         "vector-store-1",
         "gemini-file-a"
@@ -318,6 +354,7 @@ describe("agent files", () => {
       const response = await config.api.agent.setSharePointSites(created._id!, {
         siteIds: ["site-2"],
       })
+      fetchSpy.mockRestore()
 
       expect(deleteScope.isDone()).toBe(true)
       expect(response.siteIds).toEqual(["site-2"])
