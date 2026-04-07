@@ -645,6 +645,7 @@
     <Body size="S">Knowledge</Body>
     <KnowledgeAddControls
       {hasSharePointConnection}
+      {MAX_FILE_SIZE_LABEL}
       onUpload={file => uploadFile(file)}
       onConnectSharePoint={connectSharePoint}
       onSelectSharePoint={() =>
@@ -656,10 +657,6 @@
   </div>
 
   <div class="section">
-    <div class="file-limit-note">
-      <Body size="S">Max file size: {MAX_FILE_SIZE_LABEL} per file.</Body>
-    </div>
-
     {#if loading}
       <div class="loading-state">
         <ProgressCircle size="S" />
@@ -744,9 +741,5 @@
     text-align: center;
     border: 1px dashed var(--spectrum-global-color-gray-400);
     border-radius: var(--radius-l);
-  }
-
-  .file-limit-note {
-    color: var(--spectrum-global-color-gray-700);
   }
 </style>

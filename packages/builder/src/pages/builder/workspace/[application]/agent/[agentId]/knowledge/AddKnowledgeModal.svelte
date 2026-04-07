@@ -4,11 +4,12 @@
   import MicrosoftSharepointLogo from "assets/rest-template-icons/microsoft-sharepoint.svg"
 
   interface Props {
+    MAX_FILE_SIZE_LABEL: string
     onUpload?: () => void
     onSharePoint?: () => Promise<void>
   }
 
-  let { onUpload, onSharePoint }: Props = $props()
+  let { onUpload, onSharePoint, MAX_FILE_SIZE_LABEL }: Props = $props()
 
   let modal = $state<Modal>()
   let loading = $state(false)
@@ -60,7 +61,9 @@
         disabled={loading}
         on:click={handleUpload}
       >
-        Add files
+        Add files <span class="file-limit-note"
+          >(max {MAX_FILE_SIZE_LABEL} per file)</span
+        >
       </ActionButton>
       <ActionButton
         quiet
@@ -82,5 +85,9 @@
   }
   .title {
     padding: var(--spacing-s);
+  }
+
+  .file-limit-note {
+    color: var(--spectrum-global-color-gray-600);
   }
 </style>

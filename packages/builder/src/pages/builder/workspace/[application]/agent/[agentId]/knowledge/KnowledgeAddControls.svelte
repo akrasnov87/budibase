@@ -4,6 +4,7 @@
 
   interface Props {
     hasSharePointConnection: boolean
+    MAX_FILE_SIZE_LABEL: string
     onUpload?: (_file: File) => void
     onConnectSharePoint?: () => void
     onSelectSharePoint?: () => Promise<void>
@@ -11,6 +12,7 @@
 
   let {
     hasSharePointConnection,
+    MAX_FILE_SIZE_LABEL,
     onUpload,
     onConnectSharePoint,
     onSelectSharePoint,
@@ -63,6 +65,7 @@
 
 <AddKnowledgeModal
   bind:this={addKnowledgeModal}
+  {MAX_FILE_SIZE_LABEL}
   onUpload={handleUploadClick}
   onSharePoint={handleSharePoint}
 />
