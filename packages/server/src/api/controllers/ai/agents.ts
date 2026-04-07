@@ -237,7 +237,9 @@ export async function createAgent(
   const createdBy = ctx.user?._id!
   const globalId = db.getGlobalIDFromUserMetadataID(createdBy)
 
-  const createRequest: CreateAgentRequest = {
+  const createRequest: RequiredKeys<
+    Parameters<typeof sdk.ai.agents.create>[0]
+  > = {
     name: body.name,
     description: body.description,
     aiconfig: body.aiconfig,
@@ -252,6 +254,8 @@ export async function createAgent(
     discordIntegration: body.discordIntegration,
     MSTeamsIntegration: body.MSTeamsIntegration,
     slackIntegration: body.slackIntegration,
+    knowledgeSources: undefined,
+    knowledgeBases: undefined,
   }
 
   const agent = await sdk.ai.agents.create(createRequest)

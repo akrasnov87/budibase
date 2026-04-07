@@ -145,12 +145,9 @@ export async function removeJob(job: SharePointSyncJob) {
   )
 }
 
-export async function removeAllAgentJobs(
-  agentId: string,
-  workspaceId?: string
-) {
-  const resolvedWorkspaceId = workspaceId || context.getWorkspaceId()
-  const prefix = getAgentJobPrefix(resolvedWorkspaceId, agentId)
+export async function removeAllAgentJobs(agentId: string) {
+  const workspaceId = context.getOrThrowWorkspaceId()
+  const prefix = getAgentJobPrefix(workspaceId, agentId)
   const bullQueue = getQueue().getBullQueue()
   const repeatableJobs = await bullQueue.getRepeatableJobs()
   const matchingJobs = repeatableJobs.filter(
@@ -169,15 +166,15 @@ export async function removeAllAgentJobs(
   )
 }
 
-export async function reconcileAgentJobs(agent: Agent, workspaceId?: string) {
+export async function reconcileAgentJobs(agent: Agent) {
   if (!agent._id) {
     return
   }
-  const resolvedWorkspaceId = workspaceId || context.getWorkspaceId()
-  const desiredJobs = getDesiredJobsForAgent(resolvedWorkspaceId, agent)
+  const workspaceId = context.getOrThrowWorkspaceId()
+  const desiredJobs = getDesiredJobsForAgent(workspaceId, agent)
   const desiredIds = new Set(desiredJobs.map(getJobId))
 
-  const prefix = getAgentJobPrefix(resolvedWorkspaceId, agent._id)
+  const prefix = getAgentJobPrefix(workspaceId, agent._id)
   const bullQueue = getQueue().getBullQueue()
   const repeatableJobs = await bullQueue.getRepeatableJobs()
   const existingAgentJobs = repeatableJobs.filter(
@@ -275,7 +272,7 @@ export async function rehydrateScheduledJobs() {
         staleQueuedJobsRemoved: removedQueuedJobs,
       })
       await Promise.all(
-        reconcileTargets.map(agent => reconcileAgentJobs(agent, workspaceId))
+        reconcileTargets.map(agent => reconcileAgentJobs(agent))
       )
     })
   }

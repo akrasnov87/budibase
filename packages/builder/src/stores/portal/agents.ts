@@ -278,7 +278,11 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     agentId: string
   ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
     const response = await API.fetchAgentKnowledgeSourceOptions(agentId)
-    this.setAgentKnowledgeSourceOptions(agentId, response.options, response.runs)
+    this.setAgentKnowledgeSourceOptions(
+      agentId,
+      response.options,
+      response.runs
+    )
     return response
   }
 
@@ -287,7 +291,11 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     body: SetAgentKnowledgeSourcesRequest
   ): Promise<SetAgentKnowledgeSourcesResponse> => {
     const response = await API.setAgentKnowledgeSources(agentId, body)
-    this.setAgentKnowledgeSourceOptions(agentId, response.options, response.runs)
+    this.setAgentKnowledgeSourceOptions(
+      agentId,
+      response.options,
+      response.runs
+    )
     return response
   }
 

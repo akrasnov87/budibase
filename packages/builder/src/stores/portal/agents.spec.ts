@@ -82,6 +82,7 @@ describe("agentsStore sharepoint and file syncing", () => {
       {
         _id: "kb_file_1",
         knowledgeBaseId: "kb_1",
+        ragSourceId: "rag_source_1",
         filename: "notes.md",
         objectStoreKey: "object/key",
         status: KnowledgeBaseFileStatus.READY,
@@ -150,6 +151,7 @@ describe("agentsStore sharepoint and file syncing", () => {
           {
             _id: "kb_file_1",
             knowledgeBaseId: "kb_1",
+            ragSourceId: "rag_source_1",
             filename: "notes.md",
             objectStoreKey: "object/key",
             status: KnowledgeBaseFileStatus.PROCESSING,
@@ -167,6 +169,7 @@ describe("agentsStore sharepoint and file syncing", () => {
         {
           _id: "kb_file_1",
           knowledgeBaseId: "kb_1",
+          ragSourceId: "rag_source_1",
           filename: "notes.md",
           objectStoreKey: "object/key",
           status: KnowledgeBaseFileStatus.READY,
@@ -195,6 +198,7 @@ describe("agentsStore sharepoint and file syncing", () => {
           {
             _id: "kb_file_1",
             knowledgeBaseId: "kb_1",
+            ragSourceId: "rag_source_1",
             filename: "notes.md",
             objectStoreKey: "object/key",
             status: KnowledgeBaseFileStatus.READY,

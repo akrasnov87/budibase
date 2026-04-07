@@ -238,7 +238,7 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
   },
 
   disconnectAgentKnowledgeSources: async (agentId: string) => {
-    return await API.delete<DisconnectAgentKnowledgeSourcesResponse>({
+    return await API.delete<void, DisconnectAgentKnowledgeSourcesResponse>({
       url: `/api/agent/${agentId}/knowledge-sources`,
     })
   },
