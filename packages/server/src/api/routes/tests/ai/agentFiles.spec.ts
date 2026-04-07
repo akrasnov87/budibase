@@ -361,6 +361,7 @@ describe("agent files", () => {
       await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
       await setSharePointConnectionInCache(created._id!)
       mockSharePointSitesFetch(["site-1", "site-2"])
+      mockSharePointSitesFetch(["site-1", "site-2"])
       const deleteScope = mockGeminiFileDelete(
         "vector-store-1",
         "gemini-file-a"
@@ -370,7 +371,7 @@ describe("agent files", () => {
       })
 
       expect(deleteScope.isDone()).toBe(true)
-      expect(response.siteIds).toEqual(["site-2"])
+      expect(response.sites.map(site => site.id)).toEqual(["site-1", "site-2"])
 
       const { files: remainingFiles } = await config.api.agent.fetchFiles(
         created._id!

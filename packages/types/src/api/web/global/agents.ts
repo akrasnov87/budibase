@@ -80,10 +80,7 @@ export interface SetAgentSharePointSitesRequest {
   siteIds: string[]
 }
 
-export interface SetAgentSharePointSitesResponse {
-  agentId: string
-  siteIds: string[]
-}
+export type SetAgentSharePointSitesResponse = FetchAgentSharePointSitesResponse
 
 export interface DisconnectAgentSharePointResponse {
   agentId: string

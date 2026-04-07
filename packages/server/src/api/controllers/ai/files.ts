@@ -237,10 +237,7 @@ export async function setAgentSharePointSites(
     removedSharePointSiteIds
   )
 
-  ctx.body = {
-    agentId,
-    siteIds,
-  }
+  ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   ctx.status = 200
 }
 

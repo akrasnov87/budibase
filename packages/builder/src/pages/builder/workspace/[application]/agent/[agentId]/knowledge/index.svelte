@@ -12,6 +12,7 @@
     AgentKnowledgeSourceType,
     KnowledgeBaseFileStatus,
     type Agent,
+    type FetchAgentSharePointSitesResponse,
     type KnowledgeBaseFile,
     type SharePointSite,
     type SharePointSyncRun,
@@ -292,16 +293,22 @@
     }
     loadingSharePointSites = true
     try {
-      const { sites, runs } =
-        await agentsStore.fetchAgentSharePointSites(agentId)
-      sharePointSites = sites
-      sharePointSyncRunsBySiteId = Object.fromEntries(
-        runs.map(run => [run.siteId, run])
-      )
-      sharePointSitesLoadedForAgent = agentId
+      const response = await agentsStore.fetchAgentSharePointSites(agentId)
+      applySharePointSitesResponse(agentId, response)
     } finally {
       loadingSharePointSites = false
     }
+  }
+
+  const applySharePointSitesResponse = (
+    agentId: string,
+    response: FetchAgentSharePointSitesResponse
+  ) => {
+    sharePointSites = response.sites
+    sharePointSyncRunsBySiteId = Object.fromEntries(
+      response.runs.map(run => [run.siteId, run])
+    )
+    sharePointSitesLoadedForAgent = agentId
   }
 
   $effect(() => {
@@ -450,14 +457,21 @@
       const nextSiteIds = Array.from(
         new Set([...selectedSiteIds, selectedSharePointSiteId])
       )
-      await agentsStore.setAgentSharePointSites(agentId, {
-        siteIds: nextSiteIds,
-      })
+      const setSitesResponse = await agentsStore.setAgentSharePointSites(
+        agentId,
+        {
+          siteIds: nextSiteIds,
+        }
+      )
+      applySharePointSitesResponse(agentId, setSitesResponse)
+      selectedSiteIds = nextSiteIds
+      storedSharePointSites = nextSiteIds
+        .map(siteId => setSitesResponse.sites.find(site => site.id === siteId))
+        .filter((site): site is SharePointSite => !!site)
       const result = await agentsStore.syncAgentSharePoint(agentId, {
         siteIds: nextSiteIds,
       })
       await loadSharePointSites(agentId)
-      selectedSiteIds = nextSiteIds
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
       sharePointSiteModal?.hide()
@@ -510,14 +524,23 @@
       if (nextSiteIds.length === 0) {
         await agentsStore.disconnectAgentSharePoint(agent._id)
       } else {
-        await agentsStore.setAgentSharePointSites(agent._id, {
-          siteIds: nextSiteIds,
-        })
+        const setSitesResponse = await agentsStore.setAgentSharePointSites(
+          agent._id,
+          {
+            siteIds: nextSiteIds,
+          }
+        )
+        applySharePointSitesResponse(agent._id, setSitesResponse)
+        selectedSiteIds = nextSiteIds
+        storedSharePointSites = nextSiteIds
+          .map(siteId => setSitesResponse.sites.find(site => site.id === siteId))
+          .filter((site): site is SharePointSite => !!site)
       }
       await agentsStore.fetchAgents()
       await fetchFiles(agent._id)
-      await loadSharePointSites(agent._id)
-      selectedSiteIds = nextSiteIds
+      if (nextSiteIds.length === 0) {
+        await loadSharePointSites(agent._id)
+      }
       notifications.success("SharePoint site removed")
     } catch (error) {
       console.error(error)
