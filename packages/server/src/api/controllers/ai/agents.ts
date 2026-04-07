@@ -259,7 +259,7 @@ export async function createAgent(
   }
 
   const agent = await sdk.ai.agents.create(createRequest)
-  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
+  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
 
   ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 201
@@ -289,7 +289,7 @@ export async function updateAgent(
   }
 
   const agent = await sdk.ai.agents.update(updateRequest)
-  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
+  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
 
   ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 200
@@ -549,7 +549,7 @@ export async function deleteAgent(
   ctx: UserCtx<void, { deleted: true }, { agentId: string }>
 ) {
   const agentId = ctx.params.agentId
-  await sdk.ai.rag.sharepointSyncQueue.removeAllAgentJobs(agentId ?? "")
+  await sdk.ai.rag.knowledgeSourceSyncQueue.removeAllAgentJobs(agentId ?? "")
   await sdk.ai.rag.deleteSharePointSyncStateForAgent(agentId ?? "")
   await sdk.ai.agents.remove(agentId ?? "")
   ctx.body = { deleted: true }

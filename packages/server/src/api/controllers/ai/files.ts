@@ -123,7 +123,7 @@ export async function completeAgentKnowledgeSourceConnection(
     continueSetupId,
   })
   const agent = await sdk.ai.agents.getOrThrow(agentId)
-  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
+  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
   ctx.body = response
   ctx.status = 200
 }
@@ -153,7 +153,7 @@ export async function syncAgentKnowledgeSources(
     : undefined
   const response = await sdk.ai.rag.syncSharePointForAgent(agentId, siteIds)
   const agent = await sdk.ai.agents.getOrThrow(agentId)
-  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
+  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
   ctx.body = response
   ctx.status = 200
 }
@@ -226,7 +226,7 @@ export async function setAgentKnowledgeSources(
     ...existingAgent,
     knowledgeSources: [...nonSharePointSources, ...nextSources],
   })
-  await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(updated)
+  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(updated)
 
   const removedSharePointSiteIds = [...previousSiteIds].filter(
     id => !siteIds.includes(id)
@@ -262,7 +262,7 @@ export async function disconnectAgentKnowledgeSources(
     ...existingAgent,
     knowledgeSources: nextSources,
   })
-  await sdk.ai.rag.sharepointSyncQueue.removeAllAgentJobs(agentId)
+  await sdk.ai.rag.knowledgeSourceSyncQueue.removeAllAgentJobs(agentId)
   await cleanupSharePointFilesForAgent({
     agentId,
     removedSharePointSiteIds: [],

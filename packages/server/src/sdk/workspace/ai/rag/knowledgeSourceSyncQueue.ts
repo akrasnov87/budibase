@@ -12,20 +12,23 @@ const DEFAULT_CONCURRENCY = 2
 const DEFAULT_BACKOFF_MS = utils.Duration.fromSeconds(10).toMs()
 const DEFAULT_TIMEOUT_MS = utils.Duration.fromMinutes(15).toMs()
 
-export interface SharePointSyncJob {
+export interface KnowledgeSourceSyncJob {
   workspaceId: string
   agentId: string
-  siteId: string
+  sourceType: AgentKnowledgeSourceType
+  sourceId: string
 }
 
-let sharePointSyncQueue: queue.BudibaseQueue<SharePointSyncJob> | undefined
-let sharePointSyncQueueInitialised = false
+let knowledgeSourceSyncQueue:
+  | queue.BudibaseQueue<KnowledgeSourceSyncJob>
+  | undefined
+let knowledgeSourceSyncQueueInitialised = false
 
-const getJobId = (job: SharePointSyncJob) =>
-  `${job.workspaceId}_sharepoint_sync_${job.agentId}_${job.siteId}`
+const getJobId = (job: KnowledgeSourceSyncJob) =>
+  `${job.workspaceId}_knowledge_source_sync_${job.agentId}_${job.sourceType}_${job.sourceId}`
 
 const getAgentJobPrefix = (workspaceId: string, agentId: string) =>
-  `${workspaceId}_sharepoint_sync_${agentId}_`
+  `${workspaceId}_knowledge_source_sync_${agentId}_`
 
 const getAgentSharePointSources = (agent: Agent) =>
   (agent.knowledgeSources || []).filter(
@@ -60,14 +63,15 @@ const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {
   return siteIds.map(siteId => ({
     workspaceId,
     agentId: agent._id!,
-    siteId,
+    sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+    sourceId: siteId,
   }))
 }
 
 export function getQueue() {
-  if (!sharePointSyncQueue) {
-    sharePointSyncQueue = new queue.BudibaseQueue<SharePointSyncJob>(
-      queue.JobQueue.SHAREPOINT_SYNC,
+  if (!knowledgeSourceSyncQueue) {
+    knowledgeSourceSyncQueue = new queue.BudibaseQueue<KnowledgeSourceSyncJob>(
+      queue.JobQueue.KNOWLEDGE_SOURCE_SYNC,
       {
         maxStalledCount: 3,
         jobOptions: {
@@ -83,38 +87,47 @@ export function getQueue() {
         jobTags: data => ({
           workspaceId: data.workspaceId,
           agentId: data.agentId,
-          siteId: data.siteId,
+          sourceType: data.sourceType,
+          sourceId: data.sourceId,
         }),
       }
     )
   }
 
-  return sharePointSyncQueue
+  return knowledgeSourceSyncQueue
 }
 
 export function init(concurrency = DEFAULT_CONCURRENCY) {
-  if (sharePointSyncQueueInitialised) {
+  if (knowledgeSourceSyncQueueInitialised) {
     return Promise.resolve()
   }
   try {
-    sharePointSyncQueueInitialised = true
+    knowledgeSourceSyncQueueInitialised = true
     return getQueue().process(
       concurrency,
-      async (job: Job<SharePointSyncJob>) => {
-        const { workspaceId, agentId, siteId } = job.data
+      async (job: Job<KnowledgeSourceSyncJob>) => {
+        const { workspaceId, agentId, sourceType, sourceId } = job.data
         await context.doInWorkspaceContext(workspaceId, async () => {
-          await syncSharePointForAgent(agentId, [siteId])
+          switch (sourceType) {
+            case AgentKnowledgeSourceType.SHAREPOINT:
+              await syncSharePointForAgent(agentId, [sourceId])
+              break
+            default:
+              throw new Error(
+                `Unsupported knowledge source type for sync queue: ${sourceType}`
+              )
+          }
         })
       }
     )
   } catch (error) {
     console.error("Error initialising SharePoint sync queue", error)
-    sharePointSyncQueueInitialised = false
+    knowledgeSourceSyncQueueInitialised = false
     return Promise.resolve()
   }
 }
 
-export async function scheduleJob(job: SharePointSyncJob) {
+export async function scheduleJob(job: KnowledgeSourceSyncJob) {
   init()
   const jobId = getJobId(job)
   return await getQueue().add(job, {
@@ -125,7 +138,7 @@ export async function scheduleJob(job: SharePointSyncJob) {
   })
 }
 
-export async function removeJob(job: SharePointSyncJob) {
+export async function removeJob(job: KnowledgeSourceSyncJob) {
   const jobId = getJobId(job)
   const bullQueue = getQueue().getBullQueue()
   const repeatableJobs = await bullQueue.getRepeatableJobs()
@@ -146,8 +159,11 @@ export async function removeJob(job: SharePointSyncJob) {
 }
 
 export async function removeAllAgentJobs(agentId: string) {
-  const workspaceId = context.getOrThrowWorkspaceId()
-  const prefix = getAgentJobPrefix(workspaceId, agentId)
+  const resolvedWorkspaceId = context.getWorkspaceId()
+  if (!resolvedWorkspaceId) {
+    return
+  }
+  const prefix = getAgentJobPrefix(resolvedWorkspaceId, agentId)
   const bullQueue = getQueue().getBullQueue()
   const repeatableJobs = await bullQueue.getRepeatableJobs()
   const matchingJobs = repeatableJobs.filter(
@@ -166,15 +182,18 @@ export async function removeAllAgentJobs(agentId: string) {
   )
 }
 
-export async function reconcileAgentJobs(agent: Agent) {
+export async function reconcileAgentJobs(agent: Agent, workspaceId?: string) {
   if (!agent._id) {
     return
   }
-  const workspaceId = context.getOrThrowWorkspaceId()
-  const desiredJobs = getDesiredJobsForAgent(workspaceId, agent)
+  const resolvedWorkspaceId = workspaceId || context.getWorkspaceId()
+  if (!resolvedWorkspaceId) {
+    return
+  }
+  const desiredJobs = getDesiredJobsForAgent(resolvedWorkspaceId, agent)
   const desiredIds = new Set(desiredJobs.map(getJobId))
 
-  const prefix = getAgentJobPrefix(workspaceId, agent._id)
+  const prefix = getAgentJobPrefix(resolvedWorkspaceId, agent._id)
   const bullQueue = getQueue().getBullQueue()
   const repeatableJobs = await bullQueue.getRepeatableJobs()
   const existingAgentJobs = repeatableJobs.filter(
@@ -231,7 +250,7 @@ export async function rehydrateScheduledJobs() {
         getDesiredJobsForAgent(workspaceId, agent)
       )
       const desiredIds = new Set(desiredJobs.map(getJobId))
-      const workspacePrefix = `${workspaceId}_sharepoint_sync_`
+      const workspacePrefix = `${workspaceId}_knowledge_source_sync_`
       const staleWorkspaceJobs = repeatableJobs.filter(
         repeatable =>
           repeatable.id &&
@@ -272,7 +291,7 @@ export async function rehydrateScheduledJobs() {
         staleQueuedJobsRemoved: removedQueuedJobs,
       })
       await Promise.all(
-        reconcileTargets.map(agent => reconcileAgentJobs(agent))
+        reconcileTargets.map(agent => reconcileAgentJobs(agent, workspaceId))
       )
     })
   }
