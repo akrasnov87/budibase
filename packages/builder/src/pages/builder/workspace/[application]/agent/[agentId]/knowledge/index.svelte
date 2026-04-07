@@ -24,6 +24,7 @@
   import KnowledgeActionsRenderer from "./renderers/KnowledgeActionsRenderer.svelte"
   import KnowledgeAddControls from "./KnowledgeAddControls.svelte"
   import SelectSharePointSiteModal from "./SelectSharePointSiteModal.svelte"
+  import SharePointFilesStatusModal from "./SharePointFilesStatusModal.svelte"
   import { onDestroy, onMount } from "svelte"
 
   interface ModalHandle {
@@ -33,6 +34,7 @@
 
   interface FileKnowledgeTableRow {
     kind: "file"
+    __clickable?: boolean
     _id?: string
     filename: string
     status: KnowledgeBaseFileStatus
@@ -46,6 +48,7 @@
 
   interface SharePointConnectionTableRow {
     kind: "sharepoint_connection"
+    __clickable: boolean
     _id: string
     siteId: string
     filename: string
@@ -86,7 +89,10 @@
   let syncingSharePointSiteId = $state<string | undefined>()
   let sharePointSitesLoadedForAgent = $state<string | undefined>()
   let sharePointSiteModal = $state<ModalHandle>()
+  let sharePointFilesStatusModal = $state<ModalHandle>()
   let selectedSharePointSiteId = $state("")
+  let selectedStatusSiteId = $state<string | undefined>()
+  let selectedStatusSiteName = $state<string | undefined>()
 
   const readableStatus: Record<KnowledgeBaseFileStatus, string> = {
     [KnowledgeBaseFileStatus.PROCESSING]: "Processing",
@@ -173,6 +179,34 @@
     return { synced, total, failed }
   }
 
+  const getSharePointFilesForSite = (siteId: string) =>
+    files.filter(file =>
+      file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
+    )
+
+  const openSharePointFilesStatusModal = (siteId: string, siteName: string) => {
+    selectedStatusSiteId = siteId
+    selectedStatusSiteName = siteName
+    sharePointFilesStatusModal?.show()
+  }
+
+  const handleKnowledgeRowClick = (event: CustomEvent<KnowledgeTableRow>) => {
+    const row = event.detail
+    openSharePointFilesStatusModal(
+      (row as SharePointConnectionTableRow).siteId,
+      row.filename
+    )
+  }
+
+  let selectedStatusSiteFiles = $derived.by(() => {
+    if (!selectedStatusSiteId) {
+      return [] as KnowledgeBaseFile[]
+    }
+    return getSharePointFilesForSite(selectedStatusSiteId).sort((a, b) =>
+      a.filename.localeCompare(b.filename)
+    )
+  })
+
   let fileTableRows: FileKnowledgeTableRow[] = $derived.by(() =>
     toFileTableRows(
       files.filter(file => !file.externalSourceId?.startsWith("sharepoint:"))
@@ -197,6 +231,7 @@
               : "SharePoint site")
           return {
             kind: "sharepoint_connection" as const,
+            __clickable: true,
             _id: `sharepoint-site-${siteId}`,
             siteId,
             filename: siteDisplayName,
@@ -540,12 +575,18 @@
         allowClickRows={false}
         allowEditRows={false}
         allowEditColumns={false}
+        on:click={handleKnowledgeRowClick}
         data={knowledgeTableRows}
         schema={{
           icon: { width: "36px" },
           filename: { displayName: "Name", width: "minmax(0, 2fr)" },
           displayStatus: { displayName: "Status", width: "130px" },
-          actions: { displayName: "", width: "90px", align: "Right" },
+          actions: {
+            displayName: "",
+            width: "90px",
+            align: "Right",
+            preventSelectRow: true,
+          },
         }}
         {customRenderers}
       />
@@ -559,6 +600,12 @@
   {sharePointSites}
   bind:selectedSiteId={selectedSharePointSiteId}
   on:save={saveSharePointSites}
+/>
+
+<SharePointFilesStatusModal
+  bind:this={sharePointFilesStatusModal}
+  siteName={selectedStatusSiteName}
+  files={selectedStatusSiteFiles}
 />
 
 <style>
