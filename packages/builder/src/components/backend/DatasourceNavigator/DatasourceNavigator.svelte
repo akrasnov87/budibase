@@ -10,6 +10,7 @@
     userSelectedResourceMap,
     dataEnvironmentStore,
     workspaceDeploymentStore,
+    workspaceConnections,
   } from "@/stores/builder"
   import QueryNavItem from "./QueryNavItem.svelte"
   import NavItem from "@/components/common/NavItem.svelte"
@@ -19,6 +20,10 @@
   import { enrichDatasources } from "./datasourceUtils"
   import { onMount } from "svelte"
   import { DataEnvironmentMode } from "@budibase/types"
+  import {
+    customQueryIconText,
+    customQueryIconColor,
+  } from "@/helpers/data/utils"
 
   $goto
   $isActive
@@ -31,6 +36,9 @@
   export let datasourceSort
   export let noResultsText = "There aren't any datasources matching that name"
   let toggledDatasources = {}
+
+  $: ({ draftDatasource, draftQuery } = $workspaceConnections)
+  $: draftQueryVerb = $workspaceConnections.draft?.query?.queryVerb
 
   $: enrichedDataSources = enrichDatasources(
     $datasources,
@@ -45,9 +53,26 @@
     datasourceFilter
   )
 
-  $: displayedDatasources = datasourceSort
+  $: sortedDatasources = datasourceSort
     ? enrichedDataSources.slice().sort(datasourceSort)
     : enrichedDataSources
+
+  $: displayedDatasources = (() => {
+    if (draftQuery?.datasourceId) {
+      return sortedDatasources.map(ds => {
+        if (ds._id !== draftQuery.datasourceId) return ds
+        return { ...ds, open: true, queries: [draftQuery, ...ds.queries] }
+      })
+    }
+    if (draftDatasource) {
+      const effective =
+        toggledDatasources["__draft__"] === false
+          ? { ...draftDatasource, open: false }
+          : draftDatasource
+      return [effective, ...sortedDatasources]
+    }
+    return sortedDatasources
+  })()
 
   function selectDatasource(datasource) {
     openNode(datasource)
@@ -118,7 +143,22 @@
     {#if datasource.open}
       <TableNavigator tables={datasource.tables} {selectTable} />
       {#each datasource.queries as query}
-        <QueryNavItem {datasource} {query} />
+        {#if query._id === "__draft_query__"}
+          {@const hasDatasource =
+            !!$workspaceConnections.draft?.query?.datasourceId}
+          <NavItem
+            indentLevel={1}
+            iconText={customQueryIconText(draftQueryVerb)}
+            iconColor={hasDatasource
+              ? (customQueryIconColor(draftQueryVerb) ?? "#00a4e4")
+              : undefined}
+            text={query.name}
+            selected={true}
+            on:click={() => $goto("./query/new")}
+          />
+        {:else}
+          <QueryNavItem {datasource} {query} />
+        {/if}
       {/each}
     {/if}
   {/each}
