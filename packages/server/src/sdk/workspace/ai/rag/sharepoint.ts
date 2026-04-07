@@ -2,8 +2,7 @@ import { HTTPError } from "@budibase/backend-core"
 import {
   type Agent,
   AgentKnowledgeSourceType,
-  type AgentSharePointSite,
-  type AgentSharePointKnowledgeSource,
+  type AgentKnowledgeSource,
   type CompleteAgentSharePointConnectionRequest,
   type CompleteAgentSharePointConnectionResponse,
   type FetchAgentSharePointSitesResponse,
@@ -42,7 +41,12 @@ interface SharePointDriveItemsResponse {
 }
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
-const DEFAULT_SHAREPOINT_SOURCE_ID = "sharepoint_default"
+const SHAREPOINT_CONNECTION_SOURCE_ID = "sharepoint_connection"
+type SharePointSourceSite = {
+  id: string
+  name?: string
+  webUrl?: string
+}
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
@@ -50,9 +54,9 @@ const connectionCacheKey = (connectionId: string) =>
   sharePointConnectionCacheKey("connection", connectionId)
 
 const normalizeSites = (
-  sites: Array<AgentSharePointSite | SharePointSite>
-): AgentSharePointSite[] => {
-  const map = new Map<string, AgentSharePointSite>()
+  sites: Array<SharePointSourceSite | SharePointSite>
+): SharePointSourceSite[] => {
+  const map = new Map<string, SharePointSourceSite>()
   for (const site of sites) {
     const id = trimString(site.id)
     if (!id) {
@@ -67,81 +71,73 @@ const normalizeSites = (
   return Array.from(map.values())
 }
 
-const resolveSitesForIds = async (
-  connectionId: string,
-  siteIds: string[],
-  existingSites: AgentSharePointSite[]
-): Promise<AgentSharePointSite[]> => {
-  const ids = Array.from(
-    new Set(siteIds.map(id => trimString(id)).filter(Boolean))
-  )
-  if (ids.length === 0) {
-    return []
-  }
+const normalizeSiteIdForSource = (siteId: string) =>
+  siteId.replace(/[^a-zA-Z0-9_-]/g, "_")
 
-  const existingById = new Map(
-    existingSites.map(site => [trimString(site.id), site] as const)
-  )
+const buildSharePointSourceForSite = (
+  site: SharePointSourceSite,
+  connectionId: string
+): AgentKnowledgeSource => ({
+  id: `sharepoint_site_${normalizeSiteIdForSource(site.id)}`,
+  type: AgentKnowledgeSourceType.SHAREPOINT,
+  config: {
+    connectionId,
+    site,
+  },
+})
 
-  let fetchedById = new Map<string, SharePointSite>()
-  try {
-    const fetchedSites = await fetchSharePointSitesByConnection(
-      connectionCacheKey(connectionId)
-    )
-    fetchedById = new Map(
-      fetchedSites.map(site => [trimString(site.id), site] as const)
-    )
-  } catch (error) {
-    console.log("Failed to fetch SharePoint site metadata for id resolution", {
-      connectionId,
-      error,
-    })
-  }
-
-  return normalizeSites(
-    ids.map(id => fetchedById.get(id) || existingById.get(id) || { id })
+const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
+  return (agent.knowledgeSources || []).filter(
+    source => source.type === AgentKnowledgeSourceType.SHAREPOINT
   )
 }
 
-const getSharePointSource = (
-  agent: Agent
-): AgentSharePointKnowledgeSource | undefined => {
-  return (agent.knowledgeSources || []).find(
-    source => source.type === AgentKnowledgeSourceType.SHAREPOINT
-  ) as AgentSharePointKnowledgeSource | undefined
+const getSharePointConnectionId = (agent: Agent): string | undefined => {
+  return getSharePointSources(agent)
+    .map(source => trimString(source.config.connectionId))
+    .find(Boolean)
+}
+
+const getSharePointSitesFromSources = (agent: Agent): SharePointSourceSite[] => {
+  return normalizeSites(
+    getSharePointSources(agent)
+      .map(source => source.config.site)
+      .filter((site): site is SharePointSourceSite => !!site?.id)
+  )
 }
 
 const updateAgentSharePoint = async (
   agent: Agent,
   update: {
     connectionId?: string
-    sites?: AgentSharePointSite[]
-    lastSyncedAt?: string
+    sites?: SharePointSourceSite[]
     remove?: boolean
   }
 ) => {
   const existingSources = [...(agent.knowledgeSources || [])]
-  const source = getSharePointSource(agent)
-  const sourceId = source?.id || DEFAULT_SHAREPOINT_SOURCE_ID
   const withoutSharePoint = existingSources.filter(
     existing => existing.type !== AgentKnowledgeSourceType.SHAREPOINT
   )
+  const existingConnectionId = getSharePointConnectionId(agent)
+  const connectionId = trimString(update.connectionId || existingConnectionId)
+  const sites = normalizeSites(update.sites ?? getSharePointSitesFromSources(agent))
   const nextSources = update.remove
     ? withoutSharePoint
-    : [
-        ...withoutSharePoint,
-        {
-          id: sourceId,
-          type: AgentKnowledgeSourceType.SHAREPOINT,
-          name: source?.name || "SharePoint",
-          config: {
-            connectionId: update.connectionId ?? source?.config.connectionId,
-            sites: normalizeSites(update.sites ?? source?.config.sites ?? []),
-            lastSyncedAt:
-              update.lastSyncedAt ?? source?.config.lastSyncedAt ?? undefined,
-          },
-        } satisfies AgentSharePointKnowledgeSource,
-      ]
+    : sites.length > 0
+      ? [
+          ...withoutSharePoint,
+          ...sites.map(site => buildSharePointSourceForSite(site, connectionId)),
+        ]
+      : [
+          ...withoutSharePoint,
+          {
+            id: SHAREPOINT_CONNECTION_SOURCE_ID,
+            type: AgentKnowledgeSourceType.SHAREPOINT,
+            config: {
+              connectionId,
+            },
+          } satisfies AgentKnowledgeSource,
+        ]
 
   await agentsSdk.update({
     ...agent,
@@ -311,8 +307,7 @@ export const fetchSharePointSitesForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  const source = getSharePointSource(agent)
-  const connectionId = trimString(source?.config.connectionId)
+  const connectionId = trimString(getSharePointConnectionId(agent))
   if (!connectionId) {
     return { sites: [] }
   }
@@ -333,24 +328,16 @@ export const syncSharePointForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  const source = getSharePointSource(agent)
-  const connectionId = trimString(source?.config.connectionId)
+  const connectionId = trimString(getSharePointConnectionId(agent))
   if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
 
-  const existingSites = source?.config.sites ?? []
-  let sites = siteIdsInput
-    ? await resolveSitesForIds(connectionId, siteIdsInput, existingSites)
+  const existingSites = getSharePointSitesFromSources(agent)
+  const sites = siteIdsInput
+    ? normalizeSites(siteIdsInput.map(id => ({ id })))
     : normalizeSites(existingSites)
   const siteIds = sites.map(site => site.id)
-
-  if (siteIdsInput) {
-    await updateAgentSharePoint(agent, {
-      connectionId,
-      sites,
-    })
-  }
 
   if (siteIds.length === 0) {
     return {
@@ -435,16 +422,6 @@ export const syncSharePointForAgent = async (
       failed++
     }
   }
-
-  const latestAgent = await agentsSdk.getOrThrow(trimmedAgentId)
-  sites = siteIdsInput
-    ? await resolveSitesForIds(connectionId, siteIds, sites)
-    : sites
-  await updateAgentSharePoint(latestAgent, {
-    connectionId,
-    sites,
-    lastSyncedAt: new Date().toISOString(),
-  })
 
   return {
     agentId: trimmedAgentId,

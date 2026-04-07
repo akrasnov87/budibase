@@ -19,11 +19,6 @@ import {
   UserCtx,
 } from "@budibase/types"
 import sdk from "../../../sdk"
-import {
-  cleanupSharePointFilesForAgent,
-  getSharePointSiteIds,
-  hasSharePointConnection,
-} from "./sharepoint"
 
 const SECRET_MASK = "********"
 
@@ -270,8 +265,6 @@ export async function updateAgent(
   ctx: UserCtx<UpdateAgentRequest, UpdateAgentResponse>
 ) {
   const body = ctx.request.body
-  const existingAgent = await sdk.ai.agents.getOrThrow(body._id)
-  const previousSharePointSiteIds = getSharePointSiteIds(existingAgent)
 
   const updateRequest: RequiredKeys<UpdateAgentRequest> = {
     _id: body._id,
@@ -293,23 +286,6 @@ export async function updateAgent(
 
   const agent = await sdk.ai.agents.update(updateRequest)
   await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(agent)
-  const nextSharePointSiteIds = getSharePointSiteIds(agent)
-  const removedSharePointSiteIds = [...previousSharePointSiteIds].filter(
-    id => !nextSharePointSiteIds.has(id)
-  )
-  const sharePointDisconnected =
-    hasSharePointConnection(existingAgent) && !hasSharePointConnection(agent)
-
-  if (
-    (sharePointDisconnected || removedSharePointSiteIds.length > 0) &&
-    agent._id
-  ) {
-    await cleanupSharePointFilesForAgent({
-      agentId: agent._id,
-      removedSharePointSiteIds,
-      sharePointDisconnected,
-    })
-  }
 
   ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 200

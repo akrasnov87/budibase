@@ -27,18 +27,22 @@ const getJobId = (job: SharePointSyncJob) =>
 const getAgentJobPrefix = (workspaceId: string, agentId: string) =>
   `${workspaceId}_sharepoint_sync_${agentId}_`
 
-const getAgentSharePointSource = (agent: Agent) =>
-  (agent.knowledgeSources || []).find(
+const getAgentSharePointSources = (agent: Agent) =>
+  (agent.knowledgeSources || []).filter(
     source => source.type === AgentKnowledgeSourceType.SHAREPOINT
   )
 
 const hasSchedulableSharePointSource = (agent: Agent) => {
-  const source = getAgentSharePointSource(agent)
-  if (!source) {
+  const sources = getAgentSharePointSources(agent)
+  if (sources.length === 0) {
     return false
   }
-  const connectionId = source.config.connectionId?.trim()
-  const sites = source.config.sites || []
+  const connectionId = sources
+    .map(source => source.config.connectionId?.trim())
+    .find(Boolean)
+  const sites = sources
+    .map(source => source.config.site?.id?.trim())
+    .filter((siteId): siteId is string => !!siteId)
   return !!connectionId && sites.length > 0
 }
 
@@ -46,11 +50,10 @@ const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {
   if (!agent._id || !hasSchedulableSharePointSource(agent)) {
     return []
   }
-  const source = getAgentSharePointSource(agent)
   const siteIds = Array.from(
     new Set(
-      (source?.config.sites || [])
-        .map(site => site.id?.trim())
+      getAgentSharePointSources(agent)
+        .map(source => source.config.site?.id?.trim())
         .filter((siteId): siteId is string => !!siteId)
     )
   )

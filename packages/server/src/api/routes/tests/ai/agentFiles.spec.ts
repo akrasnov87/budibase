@@ -104,17 +104,14 @@ describe("agent files", () => {
       const agentDoc = await db.tryGet<Agent>(agentId)
       await db.put({
         ...agentDoc!,
-        knowledgeSources: [
-          {
-            id: "sharepoint_default",
-            type: AgentKnowledgeSourceType.SHAREPOINT,
-            name: "SharePoint",
-            config: {
-              connectionId: agentId,
-              sites: siteIds.map(id => ({ id })),
-            },
+        knowledgeSources: siteIds.map(siteId => ({
+          id: `sharepoint_site_${siteId}`,
+          type: AgentKnowledgeSourceType.SHAREPOINT,
+          config: {
+            connectionId: agentId,
+            site: { id: siteId },
           },
-        ],
+        })),
       })
     })
   }

@@ -12,7 +12,6 @@
     AgentKnowledgeSourceType,
     KnowledgeBaseFileStatus,
     type Agent,
-    type AgentSharePointKnowledgeSource,
     type KnowledgeBaseFile,
     type SharePointSite,
   } from "@budibase/types"
@@ -65,13 +64,13 @@
   type KnowledgeTableRow = FileKnowledgeTableRow | SharePointConnectionTableRow
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
-  let sharePointSource = $derived.by(() => {
-    return currentAgent?.knowledgeSources?.find(
+  let sharePointSources = $derived.by(() =>
+    (currentAgent?.knowledgeSources || []).filter(
       source => source.type === AgentKnowledgeSourceType.SHAREPOINT
-    ) as AgentSharePointKnowledgeSource | undefined
-  })
+    )
+  )
   let hasSharePointConnection = $derived(
-    !!sharePointSource?.config.connectionId
+    sharePointSources.some(source => !!source.config.connectionId)
   )
   let loading = $state(true)
   let files = $derived.by(() => {
@@ -184,6 +183,19 @@
       file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
     )
 
+  const getSharePointLastSyncLabel = (siteId: string) => {
+    const siteFiles = getSharePointFilesForSite(siteId)
+    const latestTimestamp = siteFiles
+      .map(file => file.processedAt || file.updatedAt || file.createdAt)
+      .filter((timestamp): timestamp is string => !!timestamp)
+      .sort()
+      .pop()
+    if (!latestTimestamp) {
+      return "SharePoint"
+    }
+    return `Last sync at ${formatTimestamp(latestTimestamp)} - SharePoint`
+  }
+
   const openSharePointFilesStatusModal = (siteId: string, siteName: string) => {
     selectedStatusSiteId = siteId
     selectedStatusSiteName = siteName
@@ -235,7 +247,7 @@
             _id: `sharepoint-site-${siteId}`,
             siteId,
             filename: siteDisplayName,
-            subtitle: lastSharePointSyncLabel,
+            subtitle: getSharePointLastSyncLabel(siteId),
             displayStatus: `${synced}/${total} files`,
             syncedCount: synced,
             totalCount: total,
@@ -251,14 +263,6 @@
   let knowledgeTableRows: KnowledgeTableRow[] = $derived.by(() => {
     return [...sharePointConnectionRows, ...fileTableRows]
   })
-  let lastSharePointSyncLabel = $derived.by(() => {
-    const sourceLastSyncedAt = sharePointSource?.config.lastSyncedAt
-    if (sourceLastSyncedAt) {
-      return `Last sync at ${formatTimestamp(sourceLastSyncedAt)} - SharePoint`
-    }
-    return "SharePoint"
-  })
-
   const customRenderers = [
     { column: "icon", component: KnowledgeIconRenderer },
     { column: "filename", component: KnowledgeNameRenderer },
@@ -315,7 +319,12 @@
       storedSharePointSites = []
       return
     }
-    const sites = [...(sharePointSource?.config.sites || [])]
+    const sites = sharePointSources
+      .map(source => source.config.site)
+      .filter(
+        (site): site is { id: string; name?: string; webUrl?: string } =>
+          !!site?.id
+      )
     storedSharePointSites = sites
     selectedSiteIds = sites.map(site => site.id)
   })
@@ -482,12 +491,15 @@
 
   async function removeSharePointSite(siteId: string) {
     const agent = currentAgent
-    if (!agent?._id || !sharePointSource) {
+    if (!agent?._id || !hasSharePointConnection) {
       return
     }
-    const nextSites = (sharePointSource.config.sites || []).filter(
-      site => site.id !== siteId
-    )
+    const nextSites = sharePointSources
+      .map(source => source.config.site)
+      .filter(
+        (site): site is { id: string; name?: string; webUrl?: string } =>
+          !!site?.id && site.id !== siteId
+      )
     const nextSiteIds = nextSites.map(site => site.id)
     try {
       if (nextSiteIds.length === 0) {

@@ -49,20 +49,16 @@ export enum AgentKnowledgeSourceType {
   SHAREPOINT = "sharepoint",
 }
 
-export interface AgentSharePointSite {
-  id: string
-  name?: string
-  webUrl?: string
-}
-
 export interface AgentSharePointKnowledgeSource {
   id: string
   type: AgentKnowledgeSourceType.SHAREPOINT
-  name?: string
   config: {
-    connectionId?: string
-    sites: AgentSharePointSite[]
-    lastSyncedAt?: string
+    connectionId: string
+    site?: {
+      id: string
+      name?: string
+      webUrl?: string
+    }
   }
 }
 

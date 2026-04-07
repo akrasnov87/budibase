@@ -18,7 +18,7 @@ import sdk from "../../../sdk"
 import {
   cleanupSharePointFilesForAgent,
   getSharePointSiteIds,
-  getSharePointSource,
+  getSharePointSources,
 } from "./sharepoint"
 
 const normalizeUpload = (fileInput: any) => {
@@ -171,11 +171,14 @@ export async function setAgentSharePointSites(
   )
 
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
-  const sharePointSource = getSharePointSource(existingAgent)
-  const connectionId = sharePointSource?.config.connectionId?.trim()
-  if (!sharePointSource || !connectionId) {
+  const sharePointSources = getSharePointSources(existingAgent)
+  const connectionId = sharePointSources.find(source =>
+    source.config.connectionId?.trim()
+  )?.config.connectionId
+  if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
+  const trimmedConnectionId = connectionId.trim()
 
   const previousSiteIds = getSharePointSiteIds(existingAgent)
   let availableById = new Map<string, { name?: string; webUrl?: string }>()
@@ -198,34 +201,37 @@ export async function setAgentSharePointSites(
     )
   }
   const existingById = new Map(
-    (sharePointSource.config.sites || []).map(site => [site.id, site] as const)
+    sharePointSources
+      .map(source => source.config.site)
+      .filter((site): site is { id: string; name?: string; webUrl?: string } =>
+        !!site?.id
+      )
+      .map(site => [site.id, site] as const)
   )
-  const nextSites = siteIds.map(siteId => {
+  const nextSources = siteIds.map(siteId => {
+    const sourceSiteId = siteId.replace(/[^a-zA-Z0-9_-]/g, "_")
     const existingSite = existingById.get(siteId)
     const fetchedSite = availableById.get(siteId)
     return {
-      id: siteId,
-      name: fetchedSite?.name || existingSite?.name,
-      webUrl: fetchedSite?.webUrl || existingSite?.webUrl,
-    }
-  })
-
-  const nextSources = (existingAgent.knowledgeSources || []).map(source => {
-    if (source.type !== AgentKnowledgeSourceType.SHAREPOINT) {
-      return source
-    }
-    return {
-      ...source,
+      id: `sharepoint_site_${sourceSiteId}`,
+      type: AgentKnowledgeSourceType.SHAREPOINT,
       config: {
-        ...source.config,
-        sites: nextSites,
+        connectionId: trimmedConnectionId,
+        site: {
+          id: siteId,
+          name: fetchedSite?.name || existingSite?.name,
+          webUrl: fetchedSite?.webUrl || existingSite?.webUrl,
+        },
       },
     }
   })
+  const nonSharePointSources = (existingAgent.knowledgeSources || []).filter(
+    source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
+  )
 
   const updated = await sdk.ai.agents.update({
     ...existingAgent,
-    knowledgeSources: nextSources,
+    knowledgeSources: [...nonSharePointSources, ...nextSources],
   })
   await sdk.ai.rag.sharepointSyncQueue.reconcileAgentJobs(updated)
 

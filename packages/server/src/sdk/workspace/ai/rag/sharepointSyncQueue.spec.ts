@@ -126,11 +126,19 @@ describe("sharepointSyncQueue", () => {
       aiconfig: "default",
       knowledgeSources: [
         {
-          id: "sharepoint_default",
+          id: "sharepoint_site_site_1",
           type: AgentKnowledgeSourceType.SHAREPOINT,
           config: {
             connectionId: "connection_1",
-            sites: [{ id: "site_1" }, { id: "site_2" }],
+            site: { id: "site_1" },
+          },
+        },
+        {
+          id: "sharepoint_site_site_2",
+          type: AgentKnowledgeSourceType.SHAREPOINT,
+          config: {
+            connectionId: "connection_1",
+            site: { id: "site_2" },
           },
         },
       ],
@@ -227,11 +235,11 @@ describe("sharepointSyncQueue", () => {
             aiconfig: "default",
             knowledgeSources: [
               {
-                id: "sharepoint_default",
+                id: "sharepoint_site_site_1",
                 type: AgentKnowledgeSourceType.SHAREPOINT,
                 config: {
                   connectionId: "connection_1",
-                  sites: [{ id: "site_1" }],
+                  site: { id: "site_1" },
                 },
               },
             ],

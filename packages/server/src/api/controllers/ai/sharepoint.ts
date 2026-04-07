@@ -1,29 +1,25 @@
 import {
   Agent,
+  AgentKnowledgeSource,
   AgentKnowledgeSourceType,
   KnowledgeBaseFile,
 } from "@budibase/types"
 import sdk from "../../../sdk"
 
-export const getSharePointSource = (agent?: Agent) =>
-  (agent?.knowledgeSources || []).find(
+export const getSharePointSources = (agent?: Agent): AgentKnowledgeSource[] =>
+  (agent?.knowledgeSources || []).filter(
     item => item.type === AgentKnowledgeSourceType.SHAREPOINT
   )
 
 export const getSharePointSiteIds = (agent?: Agent): Set<string> => {
-  const source = getSharePointSource(agent)
-  if (!source) {
-    return new Set<string>()
-  }
-
-  const ids = (source.config.sites || [])
-    .map(site => site.id?.trim())
+  const ids = getSharePointSources(agent)
+    .map(source => source.config.site?.id?.trim())
     .filter((id): id is string => !!id)
   return new Set(ids)
 }
 
 export const hasSharePointConnection = (agent?: Agent) =>
-  !!getSharePointSource(agent)?.config.connectionId?.trim()
+  getSharePointSources(agent).some(source => !!source.config.connectionId?.trim())
 
 const isSharePointFile = (
   file: Pick<KnowledgeBaseFile, "externalSourceId" | "uploadedBy">
