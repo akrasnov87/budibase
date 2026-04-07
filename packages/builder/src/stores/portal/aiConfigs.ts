@@ -30,6 +30,7 @@ export class AIConfigStore extends DerivedBudiStore<
           DerivedAIConfigState["customConfigsPerType"]
         >(
           (acc, config) => {
+            acc[config.configType] ??= []
             acc[config.configType].push(config)
             return acc
           },

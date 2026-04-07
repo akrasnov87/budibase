@@ -1,16 +1,10 @@
 <script lang="ts">
   import { Helpers } from "@budibase/bbui"
   import { KnowledgeBaseFileStatus } from "@budibase/types"
+  import type { KnowledgeTableRow } from "./types"
 
   export interface Props {
-    row: {
-      kind?: "sharepoint_connection" | "file"
-      filename: string
-      mimetype?: string
-      subtitle?: string
-      errorMessage?: string
-      status?: KnowledgeBaseFileStatus
-    }
+    row: KnowledgeTableRow
   }
 
   let { row }: Props = $props()

@@ -4,24 +4,28 @@
     AgentSharePointSyncRunStatus,
     KnowledgeBaseFileStatus,
   } from "@budibase/types"
+  import type { KnowledgeTableRow, SharePointConnectionTableRow } from "./types"
+  import { utils } from "@budibase/shared-core"
 
   export interface Props {
-    row: {
-      kind?: "sharepoint_connection" | "file"
-      displayStatus: string
-      status?: KnowledgeBaseFileStatus
-      syncedCount?: number
-      totalCount?: number
-      failedCount?: number
-      processingCount?: number
-      hasSynced?: boolean
-      runStatus?: AgentSharePointSyncRunStatus
-    }
+    row: KnowledgeTableRow
   }
 
   let { row }: Props = $props()
 
-  const getStatusProps = (status?: KnowledgeBaseFileStatus) => {
+  const getStatusProps = (row: KnowledgeTableRow) => {
+    const { kind } = row
+    switch (kind) {
+      case "sharepoint_connection":
+        return getSharePointStatusProps(row)
+      case "file":
+        return getFileStatusProps(row.status)
+      default:
+        throw utils.unreachable(kind)
+    }
+  }
+
+  const getFileStatusProps = (status?: KnowledgeBaseFileStatus) => {
     switch (status) {
       case KnowledgeBaseFileStatus.READY:
         return { positive: true }
@@ -32,7 +36,7 @@
     }
   }
 
-  const getSharePointStatusProps = (row: Props["row"]) => {
+  const getSharePointStatusProps = (row: SharePointConnectionTableRow) => {
     if (!row.hasSynced) {
       return { notice: true }
     }
@@ -65,11 +69,6 @@
   }
 </script>
 
-<StatusLight
-  size="S"
-  {...row.kind === "sharepoint_connection"
-    ? getSharePointStatusProps(row)
-    : getStatusProps(row.status)}
->
+<StatusLight size="S" {...getStatusProps(row)}>
   {row.displayStatus}
 </StatusLight>

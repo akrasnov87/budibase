@@ -1,11 +1,10 @@
 <script lang="ts">
   import { Icon } from "@budibase/bbui"
   import MicrosoftSharepointLogo from "assets/rest-template-icons/microsoft-sharepoint.svg"
+  import type { KnowledgeTableRow } from "./types"
 
   interface Props {
-    row: {
-      kind?: "sharepoint_connection" | "file"
-    }
+    row: KnowledgeTableRow
   }
 
   let { row }: Props = $props()

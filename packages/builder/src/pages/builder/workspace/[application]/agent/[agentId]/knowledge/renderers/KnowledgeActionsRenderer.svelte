@@ -1,13 +1,9 @@
 <script lang="ts">
   import { AbsTooltip, ActionButton } from "@budibase/bbui"
+  import type { KnowledgeTableRow, SharePointConnectionTableRow } from "./types"
 
   export interface Props {
-    row: {
-      kind?: "sharepoint_connection" | "file"
-      _id?: string
-      onDelete?: () => Promise<void>
-      onSync?: () => Promise<void>
-    }
+    row: KnowledgeTableRow
   }
 
   let { row }: Props = $props()
@@ -36,7 +32,7 @@
     }
   }
 
-  const sync = async () => {
+  const sync = async (row: SharePointConnectionTableRow) => {
     try {
       syncing = true
       await row.onSync?.()
@@ -53,7 +49,7 @@
         icon={"arrows-clockwise"}
         size="M"
         quiet
-        on:click={sync}
+        on:click={() => sync(row)}
         disabled={processing}
         loading={syncing}
       ></ActionButton>

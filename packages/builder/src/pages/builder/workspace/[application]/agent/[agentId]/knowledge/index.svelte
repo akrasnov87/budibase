@@ -8,7 +8,6 @@
   } from "@budibase/bbui"
   import { confirm } from "@/helpers"
   import { helpers } from "@budibase/shared-core"
-  import type { AgentSharePointSyncRunStatus } from "@budibase/types"
   import {
     AgentKnowledgeSourceType,
     KnowledgeBaseFileStatus,
@@ -27,45 +26,16 @@
   import SelectSharePointSiteModal from "./SelectSharePointSiteModal.svelte"
   import SharePointFilesStatusModal from "./SharePointFilesStatusModal.svelte"
   import { onDestroy, onMount } from "svelte"
+  import type {
+    FileKnowledgeTableRow,
+    KnowledgeTableRow,
+    SharePointConnectionTableRow,
+  } from "./renderers/types"
 
   interface ModalHandle {
     show: () => void
     hide: () => void
   }
-
-  interface FileKnowledgeTableRow {
-    kind: "file"
-    __clickable?: boolean
-    _id?: string
-    filename: string
-    status: KnowledgeBaseFileStatus
-    displayStatus: string
-    size: string
-    updatedAt: string | number
-    mimetype?: string
-    onDelete: () => Promise<void>
-    errorMessage?: string
-  }
-
-  interface SharePointConnectionTableRow {
-    kind: "sharepoint_connection"
-    __clickable: boolean
-    _id: string
-    siteId: string
-    filename: string
-    subtitle: string
-    displayStatus: string
-    syncedCount: number
-    totalCount: number
-    failedCount: number
-    processingCount: number
-    hasSynced: boolean
-    runStatus?: AgentSharePointSyncRunStatus
-    onDelete: () => Promise<void>
-    onSync: () => Promise<void>
-  }
-
-  type KnowledgeTableRow = FileKnowledgeTableRow | SharePointConnectionTableRow
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let sharePointSources = $derived.by(() =>
