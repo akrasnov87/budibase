@@ -1,3 +1,4 @@
+import { AgentKnowledgeSourceType } from "@budibase/types"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
 describe("agent duplicate", () => {
@@ -133,5 +134,75 @@ describe("agent duplicate", () => {
       live: false,
     })
     expect(stopped.publishedAt).toEqual(published.publishedAt)
+  })
+
+  it("supports creating an agent with SharePoint knowledge sources", async () => {
+    const created = await config.api.agent.create({
+      name: "Agent With SharePoint Source",
+      aiconfig: "default",
+      knowledgeSources: [
+        {
+          id: "sharepoint_default",
+          type: AgentKnowledgeSourceType.SHAREPOINT,
+          name: "SharePoint",
+          config: {
+            connectionId: "conn_1",
+            sites: [{ id: "site-1" }],
+          },
+        },
+      ],
+    })
+
+    expect(created.knowledgeSources?.[0]).toMatchObject({
+      id: "sharepoint_default",
+      type: AgentKnowledgeSourceType.SHAREPOINT,
+      config: {
+        connectionId: "conn_1",
+        sites: [{ id: "site-1" }],
+      },
+    })
+  })
+
+  it("rejects SharePoint knowledge source without sites on create", async () => {
+    await config.api.agent.create(
+      {
+        name: "Agent Invalid SharePoint Source",
+        aiconfig: "default",
+        knowledgeSources: [
+          {
+            id: "sharepoint_default",
+            type: AgentKnowledgeSourceType.SHAREPOINT,
+            config: {
+              connectionId: "conn_1",
+            },
+          } as any,
+        ],
+      },
+      { status: 400 }
+    )
+  })
+
+  it("rejects SharePoint knowledge source with invalid site entries on update", async () => {
+    const created = await config.api.agent.create({
+      name: "Agent Invalid Site Update",
+      aiconfig: "default",
+    })
+
+    await config.api.agent.update(
+      {
+        ...created,
+        knowledgeSources: [
+          {
+            id: "sharepoint_default",
+            type: AgentKnowledgeSourceType.SHAREPOINT,
+            config: {
+              connectionId: "conn_1",
+              sites: [{}],
+            },
+          } as any,
+        ],
+      },
+      { status: 400 }
+    )
   })
 })

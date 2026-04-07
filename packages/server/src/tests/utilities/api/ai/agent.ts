@@ -1,15 +1,20 @@
 import {
   Agent,
   AgentFileUploadResponse,
+  CompleteAgentSharePointConnectionRequest,
+  CompleteAgentSharePointConnectionResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentFilesResponse,
+  FetchAgentSharePointSitesResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
+  SyncAgentSharePointRequest,
+  SyncAgentSharePointResponse,
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
   UpdateAgentRequest,
@@ -164,6 +169,46 @@ export class AgentAPI extends TestAPI {
     return await this._delete<{ deleted: true }>(
       `/api/agent/${agentId}/files/${fileId}`,
       {
+        expectations,
+      }
+    )
+  }
+
+  completeSharePointConnection = async (
+    agentId: string,
+    body: CompleteAgentSharePointConnectionRequest,
+    expectations?: Expectations
+  ): Promise<CompleteAgentSharePointConnectionResponse> => {
+    return await this._post<CompleteAgentSharePointConnectionResponse>(
+      `/api/agent/${agentId}/sharepoint/connect/complete`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
+  fetchSharePointSites = async (
+    agentId: string,
+    expectations?: Expectations
+  ): Promise<FetchAgentSharePointSitesResponse> => {
+    return await this._get<FetchAgentSharePointSitesResponse>(
+      `/api/agent/${agentId}/sharepoint/sites`,
+      {
+        expectations,
+      }
+    )
+  }
+
+  syncSharePoint = async (
+    agentId: string,
+    body?: SyncAgentSharePointRequest,
+    expectations?: Expectations
+  ): Promise<SyncAgentSharePointResponse> => {
+    return await this._post<SyncAgentSharePointResponse>(
+      `/api/agent/${agentId}/sharepoint/sync`,
+      {
+        body,
         expectations,
       }
     )
