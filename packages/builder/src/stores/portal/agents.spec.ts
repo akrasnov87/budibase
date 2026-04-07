@@ -2,29 +2,31 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 import { get } from "svelte/store"
 import {
   KnowledgeBaseFileStatus,
+  type Agent,
+  type AgentFileUploadResponse,
   type KnowledgeBaseFile,
 } from "@budibase/types"
+import { API } from "@/api"
+import { AgentsStore } from "./agents"
 
 vi.mock("@/api", () => {
-  const fetchAgentFiles = vi.fn()
-  const syncAgentKnowledgeSources = vi.fn()
-  const completeAgentKnowledgeSourceConnection = vi.fn()
-  const fetchAgentKnowledgeSourceOptions = vi.fn()
-
   return {
     API: {
-      fetchAgentFiles,
-      syncAgentKnowledgeSources,
-      completeAgentKnowledgeSourceConnection,
-      fetchAgentKnowledgeSourceOptions,
+      fetchAgents: vi.fn(),
+      fetchAgentFiles: vi.fn(),
+      uploadAgentFile: vi.fn(),
+      deleteAgentFile: vi.fn(),
+      syncAgentKnowledgeSources: vi.fn(),
+      completeAgentKnowledgeSourceConnection: vi.fn(),
+      fetchAgentKnowledgeSourceOptions: vi.fn(),
     },
   }
 })
 
-import { API } from "@/api"
-import { AgentsStore } from "./agents"
-
+const fetchAgents = vi.mocked(API.fetchAgents)
 const fetchAgentFiles = vi.mocked(API.fetchAgentFiles)
+const uploadAgentFile = vi.mocked(API.uploadAgentFile)
+const deleteAgentFile = vi.mocked(API.deleteAgentFile)
 const syncAgentKnowledgeSources = vi.mocked(API.syncAgentKnowledgeSources)
 const completeAgentKnowledgeSourceConnection = vi.mocked(
   API.completeAgentKnowledgeSourceConnection
@@ -37,11 +39,8 @@ describe("agentsStore sharepoint and file syncing", () => {
   let store: AgentsStore
 
   beforeEach(() => {
+    vi.clearAllMocks()
     store = new AgentsStore()
-    fetchAgentFiles.mockReset()
-    syncAgentKnowledgeSources.mockReset()
-    completeAgentKnowledgeSourceConnection.mockReset()
-    fetchAgentKnowledgeSourceOptions.mockReset()
     store.set({
       agents: [],
       tools: [],
@@ -200,5 +199,54 @@ describe("agentsStore sharepoint and file syncing", () => {
     await vi.advanceTimersByTimeAsync(80)
 
     expect(fetchAgentFiles).not.toHaveBeenCalled()
+  })
+})
+
+describe("AgentsStore file operations", () => {
+  let store: AgentsStore
+
+  beforeEach(() => {
+    vi.clearAllMocks()
+    store = new AgentsStore()
+  })
+
+  it("refreshes agents after uploading a file", async () => {
+    const agents: Agent[] = [
+      {
+        _id: "agent_1",
+        _rev: "2-rev",
+        name: "Support bot",
+      } as Agent,
+    ]
+    const uploadResponse: AgentFileUploadResponse = {
+      file: {
+        _id: "kb_file_1",
+      } as AgentFileUploadResponse["file"],
+    }
+    uploadAgentFile.mockResolvedValue(uploadResponse)
+    fetchAgents.mockResolvedValue({ agents })
+
+    await store.uploadAgentFile("agent_1", {} as File)
+
+    expect(uploadAgentFile).toHaveBeenCalledWith("agent_1", expect.anything())
+    expect(fetchAgents).toHaveBeenCalledTimes(1)
+    expect(get(store.store).agents).toEqual(agents)
+  })
+
+  it("does not refresh agents after deleting a file", async () => {
+    const agents: Agent[] = [
+      {
+        _id: "agent_1",
+        _rev: "3-rev",
+        name: "Support bot",
+      } as Agent,
+    ]
+
+    fetchAgents.mockResolvedValue({ agents })
+
+    await store.deleteAgentFile("agent_1", "file_1")
+
+    expect(deleteAgentFile).toHaveBeenCalledWith("agent_1", "file_1")
+    expect(fetchAgents).not.toHaveBeenCalled()
   })
 })

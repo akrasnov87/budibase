@@ -245,7 +245,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     agentId: string,
     file: File
   ): Promise<AgentFileUploadResponse> =>
-    await API.uploadAgentFile(agentId, file)
+    await this.runAndRefreshAgents(() => API.uploadAgentFile(agentId, file))
 
   deleteAgentFile = async (agentId: string, fileId: string) =>
     await API.deleteAgentFile(agentId, fileId)

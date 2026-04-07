@@ -64,6 +64,9 @@
   }
 
   type KnowledgeTableRow = FileKnowledgeTableRow | SharePointConnectionTableRow
+  const BYTES_IN_MB = 1024 * 1024
+  const MAX_FILE_SIZE_BYTES = 100 * BYTES_IN_MB
+  const MAX_FILE_SIZE_LABEL = "100MB"
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let sharePointSources = $derived.by(() =>
@@ -126,6 +129,18 @@
     } catch (error) {
       return value
     }
+  }
+
+  const getUploadErrorMessage = (error: any) => {
+    const status = error?.status
+    const message = error?.message || "Failed to upload file"
+    const isFileTooLargeError = status === 413
+
+    if (isFileTooLargeError) {
+      return `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
+    }
+
+    return message
   }
 
   const showSharePointSyncResult = (result: {
@@ -423,13 +438,23 @@
       return
     }
 
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      notifications.error(
+        `Files cannot exceed ${MAX_FILE_SIZE_LABEL}. Please try again with a smaller file.`
+      )
+      if (target) {
+        target.value = ""
+      }
+      return
+    }
+
     try {
       await agentsStore.uploadAgentFile(agentId, file)
       await fetchFiles(agentId)
       notifications.success("File uploaded")
     } catch (error: any) {
       console.error(error)
-      notifications.error("Failed to upload file")
+      notifications.error(getUploadErrorMessage(error))
     }
   }
 
@@ -613,6 +638,10 @@
   </div>
 
   <div class="section">
+    <div class="file-limit-note">
+      <Body size="S">Max file size: {MAX_FILE_SIZE_LABEL} per file.</Body>
+    </div>
+
     {#if loading}
       <div class="loading-state">
         <ProgressCircle size="S" />
@@ -697,5 +726,9 @@
     text-align: center;
     border: 1px dashed var(--spectrum-global-color-gray-400);
     border-radius: var(--radius-l);
+  }
+
+  .file-limit-note {
+    color: var(--spectrum-global-color-gray-700);
   }
 </style>
