@@ -132,9 +132,15 @@
       }
     }
 
-    notifications.success(
-      `SharePoint sync complete (${result.synced} synced, ${result.failed} failed${skipped > 0 ? `, ${skipped} skipped` : ""})`
-    )
+    const message = `SharePoint sync complete (${result.synced} synced${result.failed > 0 ? `, ${result.failed} failed` : ""}${skipped > 0 ? `, ${skipped} skipped` : ""})`
+
+    if (result.failed > 0 && result.synced === 0) {
+      notifications.error(message)
+    } else if (result.failed > 0) {
+      notifications.warning(message)
+    } else {
+      notifications.success(message)
+    }
   }
 
   const fetchFiles = async (agentId: string) => {
