@@ -59,6 +59,7 @@
     totalCount: number
     failedCount: number
     hasSynced: boolean
+    runStatus?: AgentSharePointSyncRunStatus
     onDelete: () => Promise<void>
     onSync: () => Promise<void>
   }
@@ -193,20 +194,6 @@
       }))
       .sort((a, b) => a.filename.localeCompare(b.filename))
 
-  const getSharePointSyncCounts = (siteId: string) => {
-    const siteFiles = files.filter(file =>
-      file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
-    )
-    const total = siteFiles.length
-    const synced = siteFiles.filter(
-      file => file.status === KnowledgeBaseFileStatus.READY
-    ).length
-    const failed = siteFiles.filter(
-      file => file.status === KnowledgeBaseFileStatus.FAILED
-    ).length
-    return { synced, total, failed }
-  }
-
   const getSharePointFilesForSite = (siteId: string) =>
     files.filter(file =>
       file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
@@ -260,13 +247,21 @@
             sharePointSites.find(entry => entry.id === siteId)
           const run = sharePointSyncRunsBySiteId[siteId]
           const hasSynced = !!run?.lastRunAt
-          const { synced, total, failed } = getSharePointSyncCounts(siteId)
+          const synced = run?.synced || 0
+          const skipped = run?.skipped || 0
+          const total = run?.totalDiscovered || 0
+          const failed = run?.failed || 0
           const siteDisplayName =
             site?.name ||
             site?.webUrl ||
             (loadingSharePointSites
               ? "Loading SharePoint site..."
               : "SharePoint site")
+          const displayStatus = !hasSynced
+            ? "Not synced"
+            : total === 0
+              ? "No files found"
+              : `${synced + skipped}/${total} files`
           return {
             kind: "sharepoint_connection" as const,
             __clickable: true,
@@ -274,11 +269,12 @@
             siteId,
             filename: siteDisplayName,
             subtitle: getSharePointLastSyncLabel(siteId),
-            displayStatus: hasSynced ? `${synced}/${total} files` : "Syncing",
+            displayStatus,
             syncedCount: synced,
             totalCount: total,
             failedCount: failed,
             hasSynced,
+            runStatus: run?.status,
             onDelete: () => removeSharePointSite(siteId),
             onSync: () => syncSharePointNow([siteId]),
           }

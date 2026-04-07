@@ -1,6 +1,9 @@
 <script lang="ts">
   import { StatusLight } from "@budibase/bbui"
-  import { KnowledgeBaseFileStatus } from "@budibase/types"
+  import {
+    AgentSharePointSyncRunStatus,
+    KnowledgeBaseFileStatus,
+  } from "@budibase/types"
 
   interface Props {
     row: {
@@ -11,6 +14,7 @@
       totalCount?: number
       failedCount?: number
       hasSynced?: boolean
+      runStatus?: AgentSharePointSyncRunStatus
     }
   }
 
@@ -31,18 +35,14 @@
     if (!row.hasSynced) {
       return { notice: true }
     }
-
-    const failed = row.failedCount || 0
-    const total = row.totalCount || 0
-    const synced = row.syncedCount || 0
-
-    if (failed > 0) {
-      return { negative: true }
+    switch (row.runStatus) {
+      case AgentSharePointSyncRunStatus.SUCCESS:
+        return { positive: true }
+      case AgentSharePointSyncRunStatus.FAILED:
+        return { negative: true }
+      default:
+        return { notice: true }
     }
-    if (synced === total) {
-      return { positive: true }
-    }
-    return { notice: true }
   }
 </script>
 
