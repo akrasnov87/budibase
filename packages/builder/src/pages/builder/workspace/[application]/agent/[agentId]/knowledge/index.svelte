@@ -485,6 +485,7 @@
     if (!agent?._id || !hasSharePointConnection) {
       return
     }
+    const agentId = agent._id
     const siteName =
       sharePointSources
         .map(source => source.config.site)
@@ -505,17 +506,17 @@
         const nextSiteIds = nextSites.map(site => site.id)
         try {
           if (nextSiteIds.length === 0) {
-            await agentsStore.disconnectAgentKnowledgeSources(agent._id)
+            await agentsStore.disconnectAgentKnowledgeSources(agentId)
           } else {
-            await agentsStore.setAgentKnowledgeSources(agent._id, {
+            await agentsStore.setAgentKnowledgeSources(agentId, {
               sourceIds: nextSiteIds,
             })
           }
           await agentsStore.fetchAgents()
           pendingSiteIds = []
-          await fetchFiles(agent._id)
+          await fetchFiles(agentId)
           if (nextSiteIds.length === 0) {
-            await loadSharePointSites(agent._id)
+            await loadSharePointSites(agentId)
           }
           notifications.success("SharePoint site removed")
         } catch (error) {
