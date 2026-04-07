@@ -1,44 +1,73 @@
 <script lang="ts">
-  import { AbsTooltip, ActionButton, ProgressCircle } from "@budibase/bbui"
+  import { AbsTooltip, ActionButton } from "@budibase/bbui"
 
-  export let row: {
-    kind?: "sharepoint_connection" | "file"
-    _id?: string
-    onDelete?: () => void
-    onSync?: () => void
-    syncing?: boolean
+  interface Props {
+    row: {
+      kind?: "sharepoint_connection" | "file"
+      _id?: string
+      onDelete?: () => Promise<void>
+      onSync?: () => Promise<void>
+    }
   }
 
-  const remove = () => {
-    row.onDelete?.()
+  let { row }: Props = $props()
+
+  let deleting = $state(false)
+  let syncing = $state(false)
+
+  let processing = $derived(deleting || syncing)
+
+  const remove = async () => {
+    try {
+      deleting = true
+      await row.onDelete?.()
+    } finally {
+      deleting = false
+    }
   }
 
-  const sync = () => {
-    row.onSync?.()
+  const sync = async () => {
+    try {
+      syncing = true
+      await row.onSync?.()
+    } finally {
+      syncing = false
+    }
   }
 </script>
 
-<div class="file-actions" class:loading={row.syncing}>
+<div class="file-actions" class:loading={processing}>
   {#if row.kind === "sharepoint_connection"}
     <AbsTooltip text="Sync SharePoint">
       <ActionButton
-        icon={row.syncing ? "" : "arrows-clockwise"}
+        icon={"arrows-clockwise"}
         size="M"
         quiet
         on:click={sync}
-        disabled={row.syncing}
-      >
-        {#if row.syncing}
-          <ProgressCircle size="S" />
-        {/if}
-      </ActionButton>
+        disabled={processing}
+        loading={syncing}
+      ></ActionButton>
     </AbsTooltip>
     <AbsTooltip text="Disconnect SharePoint">
-      <ActionButton icon="trash" size="M" quiet on:click={remove} />
+      <ActionButton
+        icon="trash"
+        size="M"
+        quiet
+        on:click={remove}
+        disabled={processing}
+        loading={deleting}
+      />
     </AbsTooltip>
   {:else}
     <AbsTooltip text="Remove file">
-      <ActionButton icon="trash" size="M" quiet on:click={remove} />
+      <ActionButton
+        icon="trash"
+        size="M"
+        quiet
+        on:click={remove}
+        disabled={processing}
+        loading={deleting}
+      />
     </AbsTooltip>
   {/if}
 </div>

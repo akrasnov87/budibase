@@ -4,6 +4,7 @@
   import Icon from "../Icon/Icon.svelte"
   import { fade } from "svelte/transition"
   import { hexToRGBA } from "../helpers"
+  import ProgressCircle from "../ProgressCircle/ProgressCircle.svelte"
 
   export let quiet: boolean = false
   export let selected: boolean = false
@@ -15,6 +16,7 @@
   export let noPadding: boolean = false
   export let tooltip: string = ""
   export let accentColor: string | null = null
+  export let loading: boolean = false
 
   let showTooltip = false
 
@@ -58,7 +60,7 @@
   {disabled}
   style={accentStyle}
 >
-  {#if icon}
+  {#if icon && !loading}
     {#if isCustomIconSource}
       <img
         class="custom-icon custom-icon-{size}"
@@ -74,7 +76,9 @@
       />
     {/if}
   {/if}
-  {#if $$slots}
+  {#if loading}
+    <ProgressCircle size="S" />
+  {:else if $$slots}
     <span class="spectrum-ActionButton-label"><slot /></span>
   {/if}
   {#if tooltip && showTooltip}

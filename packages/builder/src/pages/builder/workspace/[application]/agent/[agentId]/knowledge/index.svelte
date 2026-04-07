@@ -61,7 +61,6 @@
     hasSynced: boolean
     onDelete: () => Promise<void>
     onSync: () => Promise<void>
-    syncing: boolean
   }
 
   type KnowledgeTableRow = FileKnowledgeTableRow | SharePointConnectionTableRow
@@ -104,7 +103,6 @@
   let selectedSiteIds = $state<string[]>([])
   let storedSharePointSites = $state<KnowledgeSourceOption[]>([])
   let loadingSharePointSites = $state(false)
-  let syncingSharePointSiteId = $state<string | undefined>()
   let sharePointSitesLoadedForAgent = $state<string | undefined>()
   let sharePointSiteModal = $state<ModalHandle>()
   let sharePointFilesStatusModal = $state<ModalHandle>()
@@ -283,7 +281,6 @@
             hasSynced,
             onDelete: () => removeSharePointSite(siteId),
             onSync: () => syncSharePointNow([siteId]),
-            syncing: syncingSharePointSiteId === siteId,
           }
         })
         .sort((a, b) => a.filename.localeCompare(b.filename))
@@ -536,7 +533,7 @@
       notifications.error("Please select at least one SharePoint site")
       return
     }
-    syncingSharePointSiteId = siteIds.length === 1 ? siteIds[0] : "__multiple__"
+
     try {
       const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
         sourceIds: siteIds,
@@ -548,8 +545,6 @@
     } catch (error) {
       console.error(error)
       notifications.error("Failed to sync SharePoint")
-    } finally {
-      syncingSharePointSiteId = undefined
     }
   }
 
