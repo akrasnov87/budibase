@@ -285,8 +285,11 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
   setAgentKnowledgeSources = async (
     agentId: string,
     body: SetAgentKnowledgeSourcesRequest
-  ): Promise<SetAgentKnowledgeSourcesResponse> =>
-    await API.setAgentKnowledgeSources(agentId, body)
+  ): Promise<SetAgentKnowledgeSourcesResponse> => {
+    const response = await API.setAgentKnowledgeSources(agentId, body)
+    this.setAgentKnowledgeSourceOptions(agentId, response.options, response.runs)
+    return response
+  }
 
   disconnectAgentKnowledgeSources = async (
     agentId: string

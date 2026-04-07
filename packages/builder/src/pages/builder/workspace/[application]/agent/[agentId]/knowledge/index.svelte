@@ -104,8 +104,15 @@
       ])
     ) as Record<string, KnowledgeSourceSyncRun>
   })
-  let selectedSiteIds = $state<string[]>([])
-  let storedSharePointSites = $state<KnowledgeSourceOption[]>([])
+  let selectedSiteIds = $derived.by(() =>
+    sharePointSources
+      .map(source => source.config.site?.id)
+      .filter((siteId): siteId is string => !!siteId)
+  )
+  let pendingSiteIds = $state<string[]>([])
+  let effectiveSelectedSiteIds = $derived.by(() =>
+    Array.from(new Set([...selectedSiteIds, ...pendingSiteIds]))
+  )
   let loadingSharePointSites = $state(false)
   let sharePointSiteModal = $state<ModalHandle>()
   let sharePointFilesStatusModal = $state<ModalHandle>()
@@ -244,10 +251,12 @@
       if (!hasSharePointConnection) {
         return []
       }
-      return selectedSiteIds
+      return effectiveSelectedSiteIds
         .map(siteId => {
           const site =
-            storedSharePointSites.find(entry => entry.id === siteId) ||
+            sharePointSources
+              .map(source => source.config.site)
+              .find(entry => entry?.id === siteId) ||
             sharePointSites.find(entry => entry.id === siteId)
           const run = sharePointSyncRunsBySiteId[siteId]
           const hasSynced = !!run?.lastRunAt
@@ -338,23 +347,6 @@
   $effect(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
-      selectedSiteIds = []
-      storedSharePointSites = []
-      return
-    }
-    const sites = sharePointSources
-      .map(source => source.config.site)
-      .filter(
-        (site): site is { id: string; name?: string; webUrl?: string } =>
-          !!site?.id
-      )
-    storedSharePointSites = sites
-    selectedSiteIds = sites.map(site => site.id)
-  })
-
-  $effect(() => {
-    const agentId = currentAgent?._id
-    if (!agentId) {
       agentsStore.stopAgentFilePolling()
       return
     }
@@ -423,7 +415,7 @@
       return
     }
     await loadSharePointSites(agentId)
-    const selectedSiteIdSet = new Set(selectedSiteIds)
+    const selectedSiteIdSet = new Set(effectiveSelectedSiteIds)
     const availableSites = sharePointSites.filter(
       site => !selectedSiteIdSet.has(site.id)
     )
@@ -442,30 +434,23 @@
     }
     try {
       const nextSiteIds = Array.from(
-        new Set([...selectedSiteIds, selectedSharePointSiteId])
+        new Set([...effectiveSelectedSiteIds, selectedSharePointSiteId])
       )
-      const setSitesResponse = await agentsStore.setAgentKnowledgeSources(
-        agentId,
-        {
-          sourceIds: nextSiteIds,
-        }
-      )
+      await agentsStore.setAgentKnowledgeSources(agentId, {
+        sourceIds: nextSiteIds,
+      })
+      pendingSiteIds = nextSiteIds.filter(id => !selectedSiteIds.includes(id))
       sharePointSiteModal?.hide()
-
-      selectedSiteIds = nextSiteIds
-      storedSharePointSites = nextSiteIds
-        .map(siteId =>
-          setSitesResponse.options.find(site => site.id === siteId)
-        )
-        .filter((site): site is KnowledgeSourceOption => !!site)
       const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
         sourceIds: nextSiteIds,
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
       await agentsStore.fetchAgents()
+      pendingSiteIds = []
       showSharePointSyncResult(result)
     } catch (error) {
+      pendingSiteIds = []
       console.error(error)
       notifications.error("Failed to sync SharePoint")
     }
@@ -500,6 +485,7 @@
     if (!agent?._id || !hasSharePointConnection) {
       return
     }
+    pendingSiteIds = pendingSiteIds.filter(id => id !== siteId)
     const nextSites = sharePointSources
       .map(source => source.config.site)
       .filter(
@@ -511,20 +497,12 @@
       if (nextSiteIds.length === 0) {
         await agentsStore.disconnectAgentKnowledgeSources(agent._id)
       } else {
-        const setSitesResponse = await agentsStore.setAgentKnowledgeSources(
-          agent._id,
-          {
-            sourceIds: nextSiteIds,
-          }
-        )
-        selectedSiteIds = nextSiteIds
-        storedSharePointSites = nextSiteIds
-          .map(siteId =>
-            setSitesResponse.options.find(site => site.id === siteId)
-          )
-          .filter((site): site is KnowledgeSourceOption => !!site)
+        await agentsStore.setAgentKnowledgeSources(agent._id, {
+          sourceIds: nextSiteIds,
+        })
       }
       await agentsStore.fetchAgents()
+      pendingSiteIds = []
       await fetchFiles(agent._id)
       if (nextSiteIds.length === 0) {
         await loadSharePointSites(agent._id)
