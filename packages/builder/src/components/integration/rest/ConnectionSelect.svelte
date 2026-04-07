@@ -39,6 +39,7 @@
   export let restTemplateId: string | undefined = undefined
   export let datasourceId: string | undefined = undefined
   export let disabled: boolean = false
+  export let editText: string | undefined = "Edit"
 
   const dispatch = createEventDispatcher()
 
@@ -272,7 +273,8 @@
             {#if connection}
               <!-- svelte-ignore a11y-click-events-have-key-events -->
               <!-- svelte-ignore a11y-no-static-element-interactions -->
-              <span class="edit-link" on:click={editConnection}>Edit</span>
+              <span class="edit-link" on:click={editConnection}>{editText}</span
+              >
             {/if}
             {#if !disabled}<Icon
                 name={open ? "ChevronUp" : "ChevronDown"}
@@ -507,20 +509,23 @@
 
   .picker-button {
     border-radius: 6px;
-    border: 1px solid var(--spectrum-global-color-gray-200);
+    border: 1px solid var(--spectrum-alias-border-color);
     height: 40px;
     box-sizing: border-box;
     transition:
       background 130ms ease-out,
       border-color 130ms ease-out;
-    background: transparent;
+    background: var(--spectrum-alias-background-color-default);
   }
   .picker-button.has-value {
-    background: var(--spectrum-global-color-gray-75);
+    background: var(--spectrum-alias-background-color-default);
   }
   .picker-button:not(.disabled):hover {
     background: var(--spectrum-global-color-gray-200);
     cursor: pointer;
+  }
+  .picker-button:focus-within {
+    border-color: var(--spectrum-alias-border-color-focus);
   }
   .picker-button.disabled :global(*:not(.edit-link)) {
     cursor: default;
@@ -536,8 +541,8 @@
 
   .selected-option {
     transition: opacity 130ms ease-out;
-    min-width: 300px;
-    max-width: 300px;
+    min-width: 375px;
+    max-width: 375px;
     justify-content: space-between;
   }
 

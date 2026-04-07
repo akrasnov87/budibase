@@ -473,8 +473,6 @@
     return options
   }
 
-  const compareEndpoints = (option: any, value: any) => option.id === value?.id
-
   /**
    * This initialises the query data with either the actual query or a default
    * For queries without request metadata, it will also perform a sync
@@ -1078,6 +1076,7 @@
         restTemplateId={datasource?.restTemplateId}
         datasourceId={datasourceLookupId}
         disabled={!isNewQuery}
+        editText="Edit connection + auth"
         on:change={onConnectionChange}
       />
       {#if isCustomMode}

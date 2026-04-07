@@ -142,8 +142,9 @@
   $: spec = (childTemplate ?? template)?.specs?.[0]
 
   // Fetch OpenAPI info from the active spec, then seed derived values from it
+  // selectedChildId is referenced here to re-trigger when the child selection changes
   $: if (spec?.url) {
-    void selectedChildId
+    selectedChildId
     fetchOpenApiInfo()
   }
   $: serverOptions = openApiInfo?.servers?.length
