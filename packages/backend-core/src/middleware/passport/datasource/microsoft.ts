@@ -83,9 +83,13 @@ export async function postAuth(
   if (!state) {
     throw new Error("Microsoft OAuth callback is missing state")
   }
-  const stateExists = await cache.get(`datasource:microsoft:state:${state}`)
+  const statePayload = (await cache.get(
+    `datasource:microsoft:state:${state}`
+  )) as { appId?: string }
   await cache.destroy(`datasource:microsoft:state:${state}`)
-  if (!stateExists) {
+  const stateAppId =
+    typeof statePayload?.appId === "string" ? statePayload.appId.trim() : ""
+  if (!statePayload || !stateAppId || stateAppId !== appId) {
     throw new Error("Microsoft OAuth state is invalid or expired")
   }
 
