@@ -9,7 +9,7 @@
   import KnowledgeNameRenderer from "./renderers/KnowledgeNameRenderer.svelte"
   import KnowledgeStatusRenderer from "./renderers/KnowledgeStatusRenderer.svelte"
 
-  interface Props {
+  export interface Props {
     siteName?: string
     files?: KnowledgeBaseFile[]
   }

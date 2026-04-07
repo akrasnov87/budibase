@@ -3,7 +3,7 @@
   import { ActionButton, Body, Modal, ModalContent } from "@budibase/bbui"
   import MicrosoftSharepointLogo from "assets/rest-template-icons/microsoft-sharepoint.svg"
 
-  interface Props {
+  export interface Props {
     MAX_FILE_SIZE_LABEL: string
     onUpload?: () => void
     onSharePoint?: () => Promise<void>

@@ -2,7 +2,7 @@
   import { Body, Modal, ModalContent, Select } from "@budibase/bbui"
   import type { KnowledgeSourceOption } from "@budibase/types"
 
-  interface Props {
+  export interface Props {
     loadingSharePointSites: boolean
     sharePointSites?: KnowledgeSourceOption[]
     selectedSiteId?: string

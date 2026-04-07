@@ -8,7 +8,7 @@
   const MAX_FILE_SIZE_BYTES = 100 * BYTES_IN_MB
   const MAX_FILE_SIZE_LABEL = "100MB"
 
-  interface Props {
+  export interface Props {
     agentId?: string
     hasSharePointConnection: boolean
     onUploaded?: () => Promise<void>

@@ -5,7 +5,7 @@
     KnowledgeBaseFileStatus,
   } from "@budibase/types"
 
-  interface Props {
+  export interface Props {
     row: {
       kind?: "sharepoint_connection" | "file"
       displayStatus: string

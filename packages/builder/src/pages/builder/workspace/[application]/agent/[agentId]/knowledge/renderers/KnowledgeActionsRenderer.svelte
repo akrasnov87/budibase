@@ -1,7 +1,7 @@
 <script lang="ts">
   import { AbsTooltip, ActionButton } from "@budibase/bbui"
 
-  interface Props {
+  export interface Props {
     row: {
       kind?: "sharepoint_connection" | "file"
       _id?: string
