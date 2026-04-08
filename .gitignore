@@ -54,6 +54,7 @@ dist/
 
 # TypeScript v1 declaration files
 typings/
+*.tsbuildinfo
 
 # Optional npm cache directory
 .npm
