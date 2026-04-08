@@ -11,7 +11,7 @@ import type {
 } from "./renderers/types"
 
 export const formatTimestamp = (value?: string | number) => {
-  if (!value) {
+  if (value == null || value === "") {
     return "—"
   }
   try {
