@@ -29,8 +29,7 @@ export const buildMatcherRegex = (
 
 export const matches = (ctx: Ctx, options: RegexMatcher[]) => {
   return options.find(({ regex, method }) => {
-    const path = ctx.path || ctx.request.path || ctx.request.url.split("?")[0]
-    const urlMatch = regex.test(path)
+    const urlMatch = regex.test(ctx.path)
     const methodMatch =
       method === "ALL"
         ? true
