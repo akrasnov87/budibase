@@ -205,7 +205,7 @@
   .dropdown:not(.left) a.sublink.active,
   .dropdown:not(.left) a.sublink.builderActive {
     background: var(--navLinkActiveBackground, rgba(0, 0, 0, 0.15));
-    color: var(--navLinkActiveTextColor, var(--navTextColor));
+    color: var(--navLinkActiveTextColor, var(--spectrum-alias-text-color));
     opacity: 1;
   }
   a:hover,
@@ -221,10 +221,7 @@
   }
   a:hover.collapsed,
   .text:hover.collapsed {
-    background-color: var(
-      --navLinkHoverBackground,
-      rgba(255, 255, 255, 0.25)
-    );
+    background-color: var(--navLinkHoverBackground, rgba(255, 255, 255, 0.25));
   }
 
   .nav-item-letter {
