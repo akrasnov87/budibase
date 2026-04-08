@@ -36,13 +36,24 @@
   }
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
+  let activeAgentId = $derived(currentAgent?._id)
   let loading = $state(true)
   let files = $state<KnowledgeBaseFile[]>([])
-  let pendingUploads = $state<PendingUpload[]>([])
-  let uploadingFiles = $state(false)
-  let uploadProgress = $state("")
+  let pendingUploadsByAgent = $state<Record<string, PendingUpload[]>>({})
+  let uploadingByAgent = $state<Record<string, boolean>>({})
+  let uploadProgressByAgent = $state<Record<string, string>>({})
   let fileInput = $state<HTMLInputElement>()
   let loadedAgentId = $state<string | undefined>()
+
+  let activePendingUploads = $derived(
+    activeAgentId ? pendingUploadsByAgent[activeAgentId] || [] : []
+  )
+  let isUploadingActiveAgent = $derived(
+    activeAgentId ? !!uploadingByAgent[activeAgentId] : false
+  )
+  let activeUploadProgress = $derived(
+    activeAgentId ? uploadProgressByAgent[activeAgentId] || "" : ""
+  )
 
   const readableStatus: Record<KnowledgeBaseFileStatus, string> = {
     [KnowledgeBaseFileStatus.PROCESSING]: "Processing",
@@ -72,8 +83,36 @@
   const shouldPoll = () =>
     files.some(file => file.status === KnowledgeBaseFileStatus.PROCESSING)
 
-  const removePendingUpload = (tempId: string) => {
-    pendingUploads = pendingUploads.filter(upload => upload.tempId !== tempId)
+  const setPendingUploadsForAgent = (
+    agentId: string,
+    pendingUploads: PendingUpload[]
+  ) => {
+    pendingUploadsByAgent = {
+      ...pendingUploadsByAgent,
+      [agentId]: pendingUploads,
+    }
+  }
+
+  const removePendingUpload = (agentId: string, tempId: string) => {
+    const pendingUploads = pendingUploadsByAgent[agentId] || []
+    setPendingUploadsForAgent(
+      agentId,
+      pendingUploads.filter(upload => upload.tempId !== tempId)
+    )
+  }
+
+  const setUploadingForAgent = (agentId: string, uploading: boolean) => {
+    uploadingByAgent = {
+      ...uploadingByAgent,
+      [agentId]: uploading,
+    }
+  }
+
+  const setUploadProgressForAgent = (agentId: string, progress: string) => {
+    uploadProgressByAgent = {
+      ...uploadProgressByAgent,
+      [agentId]: progress,
+    }
   }
 
   const poller = createPolling({
@@ -89,7 +128,7 @@
 
   let tableRows = $derived.by(() =>
     [
-      ...pendingUploads.map(upload => ({
+      ...activePendingUploads.map(upload => ({
         _id: upload.tempId,
         filename: upload.filename,
         status: KnowledgeBaseFileStatus.PROCESSING,
@@ -173,8 +212,8 @@
   })
 
   async function handleFileUpload(event: Event) {
-    const agentId = currentAgent?._id
-    if (!agentId) {
+    const uploadAgentId = currentAgent?._id
+    if (!uploadAgentId) {
       return
     }
     const target = event.currentTarget as HTMLInputElement
@@ -189,7 +228,7 @@
       createdAt: new Date().toISOString(),
     }))
 
-    pendingUploads = [
+    setPendingUploadsForAgent(uploadAgentId, [
       ...uploads.map(upload => ({
         tempId: upload.tempId,
         filename: upload.file.name,
@@ -197,11 +236,11 @@
         mimetype: upload.file.type || undefined,
         createdAt: upload.createdAt,
       })),
-      ...pendingUploads,
-    ]
+      ...(pendingUploadsByAgent[uploadAgentId] || []),
+    ])
 
-    uploadingFiles = true
-    uploadProgress = ""
+    setUploadingForAgent(uploadAgentId, true)
+    setUploadProgressForAgent(uploadAgentId, "")
     let successfulUploads = 0
     const failedUploads: string[] = []
     const oversizedUploads: string[] = []
@@ -209,33 +248,40 @@
     try {
       for (const [index, upload] of uploads.entries()) {
         const file = upload.file
-        uploadProgress = `Uploading ${index + 1}/${uploads.length}...`
+        setUploadProgressForAgent(
+          uploadAgentId,
+          `Uploading ${index + 1}/${uploads.length}...`
+        )
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
           oversizedUploads.push(file.name)
-          removePendingUpload(upload.tempId)
+          removePendingUpload(uploadAgentId, upload.tempId)
           continue
         }
 
         try {
           const { file: uploadedFile } = await agentsStore.uploadAgentFile(
-            agentId,
+            uploadAgentId,
             file
           )
-          files = [
-            uploadedFile,
-            ...files.filter(existing => existing._id !== uploadedFile._id),
-          ]
+          if (currentAgent?._id === uploadAgentId) {
+            files = [
+              uploadedFile,
+              ...files.filter(existing => existing._id !== uploadedFile._id),
+            ]
+          }
           successfulUploads += 1
         } catch (error) {
           console.error(error)
           failedUploads.push(file.name)
         } finally {
-          removePendingUpload(upload.tempId)
+          removePendingUpload(uploadAgentId, upload.tempId)
         }
       }
 
-      await fetchFiles(agentId)
+      if (currentAgent?._id === uploadAgentId) {
+        await fetchFiles(uploadAgentId)
+      }
 
       if (failedUploads.length === 0 && oversizedUploads.length === 0) {
         notifications.success(
@@ -274,8 +320,8 @@
           : "Failed to upload files"
       )
     } finally {
-      uploadingFiles = false
-      uploadProgress = ""
+      setUploadingForAgent(uploadAgentId, false)
+      setUploadProgressForAgent(uploadAgentId, "")
       if (target) {
         target.value = ""
       }
@@ -283,7 +329,7 @@
   }
 
   function handleUploadClick() {
-    if (uploadingFiles) {
+    if (isUploadingActiveAgent) {
       return
     }
     fileInput?.click()
@@ -327,10 +373,10 @@
       icon="plus"
       size="S"
       secondary
-      disabled={uploadingFiles}
+      disabled={isUploadingActiveAgent}
       on:click={handleUploadClick}
-      >{uploadingFiles
-        ? uploadProgress || "Uploading..."
+      >{isUploadingActiveAgent
+        ? activeUploadProgress || "Uploading..."
         : "Add knowledge"}</Button
     >
 
