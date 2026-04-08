@@ -161,7 +161,7 @@
           <QueryNavItem {datasource} {query} />
         {/if}
       {/each}
-      {#if datasource.source === "REST" && canCreateDatasourceQuery(datasource)}
+      {#if datasource.source === "REST" && datasource._id !== "__draft__" && canCreateDatasourceQuery(datasource)}
         <span class="add-operation">
           <NavItem
             indentLevel={0}
