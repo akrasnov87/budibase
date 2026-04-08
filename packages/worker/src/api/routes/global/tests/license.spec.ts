@@ -44,6 +44,19 @@ describe("/api/global/license", () => {
       expect(res.status).toBe(200)
       expect(res.body).toEqual(usage)
     })
+
+    it("allows non-admin access", async () => {
+      const user = await createNonAdminUser()
+      const usage = structures.quotas.usage()
+      quotas.getQuotaUsage.mockResolvedValue(usage)
+
+      const res = await config.withUser(user, () =>
+        config.api.license.getUsage()
+      )
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual(usage)
+    })
   })
 
   describe("POST /api/global/license/key", () => {
@@ -63,6 +76,21 @@ describe("/api/global/license", () => {
       const res = await config.api.license.getLicenseKey()
       expect(res.status).toBe(404)
     })
+
+    it("allows non-admin access", async () => {
+      const user = await createNonAdminUser()
+      licensing.keys.getLicenseKey.mockResolvedValue("licenseKey")
+
+      const res = await config.withUser(user, () =>
+        config.api.license.getLicenseKey()
+      )
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual({
+        licenseKey: "*",
+      })
+    })
+
     it("returns 200 + license key", async () => {
       licensing.keys.getLicenseKey.mockResolvedValue("licenseKey")
       const res = await config.api.license.getLicenseKey()
@@ -134,7 +162,6 @@ describe("/api/global/license", () => {
   describe("authorisation", () => {
     it.each([
       ["POST /api/global/license/refresh", () => config.api.license.refresh()],
-      ["GET /api/global/license/usage", () => config.api.license.getUsage(403)],
       ["GET /api/global/install", () => config.api.license.getInstallInfo()],
       [
         "POST /api/global/license/key",
@@ -143,7 +170,6 @@ describe("/api/global/license", () => {
             licenseKey: "licenseKey",
           }),
       ],
-      ["GET /api/global/license/key", () => config.api.license.getLicenseKey()],
       [
         "DELETE /api/global/license/key",
         () => config.api.license.deleteLicenseKey(),

@@ -1,7 +1,7 @@
 import * as controller from "../../controllers/global/license"
 import { middleware } from "@budibase/backend-core"
 import Joi from "joi"
-import { adminRoutes } from "../endpointGroups"
+import { adminRoutes, loggedInRoutes } from "../endpointGroups"
 
 const activateLicenseKeyValidator = middleware.joiValidator.body(
   Joi.object({
@@ -15,9 +15,12 @@ const activateOfflineLicenseValidator = middleware.joiValidator.body(
   }).required()
 )
 
+loggedInRoutes
+  .get("/api/global/license/usage", controller.getQuotaUsage)
+  .get("/api/global/license/key", controller.getLicenseKey)
+
 adminRoutes
   .post("/api/global/license/refresh", controller.refresh)
-  .get("/api/global/license/usage", controller.getQuotaUsage)
   .get("/api/global/install", controller.getInstallInfo)
   // LICENSE KEY
   .post(
@@ -25,7 +28,6 @@ adminRoutes
     activateLicenseKeyValidator,
     controller.activateLicenseKey
   )
-  .get("/api/global/license/key", controller.getLicenseKey)
   .delete("/api/global/license/key", controller.deleteLicenseKey)
   // OFFLINE LICENSE
   .post(
