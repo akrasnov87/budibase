@@ -6,12 +6,22 @@ const quotas = mocks.pro.quotas
 describe("/api/global/license", () => {
   const config = new TestConfiguration()
 
+  async function createNonAdminUser() {
+    const user = await config.createUser()
+    await config.login(user)
+    return user
+  }
+
   beforeAll(async () => {
     await config.beforeAll()
   })
 
   afterAll(async () => {
     await config.afterAll()
+  })
+
+  beforeEach(() => {
+    mocks.licenses.useUnlimited()
   })
 
   afterEach(() => {
@@ -118,6 +128,52 @@ describe("/api/global/license", () => {
       expect(res.body).toEqual({
         identifierBase64: "base64",
       })
+    })
+  })
+
+  describe("authorisation", () => {
+    it.each([
+      ["POST /api/global/license/refresh", () => config.api.license.refresh()],
+      ["GET /api/global/license/usage", () => config.api.license.getUsage(403)],
+      ["GET /api/global/install", () => config.api.license.getInstallInfo()],
+      [
+        "POST /api/global/license/key",
+        () =>
+          config.api.license.activateLicenseKey({
+            licenseKey: "licenseKey",
+          }),
+      ],
+      ["GET /api/global/license/key", () => config.api.license.getLicenseKey()],
+      [
+        "DELETE /api/global/license/key",
+        () => config.api.license.deleteLicenseKey(),
+      ],
+      [
+        "POST /api/global/license/offline",
+        () =>
+          config.api.license.activateOfflineLicense({
+            offlineLicenseToken: "offlineLicenseToken",
+          }),
+      ],
+      [
+        "GET /api/global/license/offline",
+        () => config.api.license.getOfflineLicense(),
+      ],
+      [
+        "DELETE /api/global/license/offline",
+        () => config.api.license.deleteOfflineLicense(),
+      ],
+      [
+        "GET /api/global/license/offline/identifier",
+        () => config.api.license.getOfflineLicenseIdentifier(),
+      ],
+    ])("returns 403 for non-admin access to %s", async (_path, request) => {
+      const user = await createNonAdminUser()
+
+      const res = await config.withUser(user, () => request())
+
+      expect(res.status).toBe(403)
+      expect(res.body).toEqual(config.adminOnlyResponse())
     })
   })
 })
