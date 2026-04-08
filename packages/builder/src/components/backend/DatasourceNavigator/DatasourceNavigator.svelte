@@ -162,16 +162,18 @@
         {/if}
       {/each}
       {#if datasource.source === "REST" && canCreateDatasourceQuery(datasource)}
-        <NavItem
-          indentLevel={0}
-          icon="plus"
-          text="New API operation"
-          on:click={() =>
-            $goto(`/builder/workspace/:application/apis/query/new/:id`, {
-              application: $params.application,
-              id: datasource._id,
-            })}
-        />
+        <span class="add-operation">
+          <NavItem
+            indentLevel={0}
+            icon="plus"
+            text="New API operation"
+            on:click={() =>
+              $goto(`/builder/workspace/:application/apis/query/new/:id`, {
+                application: $params.application,
+                id: datasource._id,
+              })}
+          />
+        </span>
       {/if}
     {/if}
   {/each}
@@ -192,5 +194,10 @@
 
   .no-results {
     color: var(--spectrum-global-color-gray-600);
+  }
+
+  .add-operation :global(.nav-item-body .text) {
+    font-size: 0.95em;
+    color: var(--spectrum-global-color-gray-700);
   }
 </style>
