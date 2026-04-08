@@ -23,13 +23,14 @@ export const buildMatcherRegex = (
       }
     }
 
-    return { regex: new RegExp(route), method, route }
+    return { regex: new RegExp(`^${route}`), method, route }
   })
 }
 
 export const matches = (ctx: Ctx, options: RegexMatcher[]) => {
   return options.find(({ regex, method }) => {
-    const urlMatch = regex.test(ctx.request.url)
+    const path = ctx.path || ctx.request.path || ctx.request.url.split("?")[0]
+    const urlMatch = regex.test(path)
     const methodMatch =
       method === "ALL"
         ? true
