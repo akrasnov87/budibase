@@ -53,7 +53,6 @@ export interface AgentSharePointKnowledgeSource {
   id: string
   type: AgentKnowledgeSourceType.SHAREPOINT
   config: {
-    connectionId: string
     site?: {
       id: string
       name?: string

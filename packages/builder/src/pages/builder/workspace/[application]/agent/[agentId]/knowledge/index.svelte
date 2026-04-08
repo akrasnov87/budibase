@@ -43,9 +43,7 @@
       source => source.type === AgentKnowledgeSourceType.SHAREPOINT
     )
   )
-  let hasSharePointConnection = $derived(
-    sharePointSources.some(source => !!source.config.connectionId)
-  )
+  let hasSharePointConnection = $derived(sharePointSources.length > 0)
   let loading = $state(true)
   let files = $derived.by(() => {
     const agentId = currentAgent?._id

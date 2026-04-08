@@ -40,13 +40,10 @@ const hasSchedulableSharePointSource = (agent: Agent) => {
   if (sources.length === 0) {
     return false
   }
-  const connectionId = sources
-    .map(source => source.config.connectionId?.trim())
-    .find(Boolean)
   const sites = sources
     .map(source => source.config.site?.id?.trim())
     .filter((siteId): siteId is string => !!siteId)
-  return !!connectionId && sites.length > 0
+  return sites.length > 0
 }
 
 const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {

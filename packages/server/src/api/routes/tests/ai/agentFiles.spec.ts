@@ -114,7 +114,6 @@ describe("agent files", () => {
           id: `sharepoint_site_${siteId}`,
           type: AgentKnowledgeSourceType.SHAREPOINT,
           config: {
-            connectionId: agentId,
             site: { id: siteId },
           },
         })),

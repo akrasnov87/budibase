@@ -131,7 +131,6 @@ describe("knowledgeSourceSyncQueue", () => {
           id: "sharepoint_site_site_1",
           type: AgentKnowledgeSourceType.SHAREPOINT,
           config: {
-            connectionId: "connection_1",
             site: { id: "site_1" },
           },
         },
@@ -139,7 +138,6 @@ describe("knowledgeSourceSyncQueue", () => {
           id: "sharepoint_site_site_2",
           type: AgentKnowledgeSourceType.SHAREPOINT,
           config: {
-            connectionId: "connection_1",
             site: { id: "site_2" },
           },
         },
@@ -242,7 +240,6 @@ describe("knowledgeSourceSyncQueue", () => {
                 id: "sharepoint_site_site_1",
                 type: AgentKnowledgeSourceType.SHAREPOINT,
                 config: {
-                  connectionId: "connection_1",
                   site: { id: "site_1" },
                 },
               },

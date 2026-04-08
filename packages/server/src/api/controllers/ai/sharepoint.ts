@@ -19,9 +19,7 @@ export const getSharePointSiteIds = (agent?: Agent): Set<string> => {
 }
 
 export const hasSharePointConnection = (agent?: Agent) =>
-  getSharePointSources(agent).some(
-    source => !!source.config.connectionId?.trim()
-  )
+  getSharePointSources(agent).length > 0
 
 const isSharePointFile = (
   file: Pick<KnowledgeBaseFile, "externalSourceId" | "uploadedBy">

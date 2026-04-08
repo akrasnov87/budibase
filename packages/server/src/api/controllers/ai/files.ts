@@ -17,6 +17,7 @@ import {
 import sdk from "../../../sdk"
 import {
   cleanupSharePointFilesForAgent,
+  hasSharePointConnection,
   getSharePointSiteIds,
   getSharePointSources,
 } from "./sharepoint"
@@ -175,14 +176,10 @@ export async function setAgentKnowledgeSources(
   )
 
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
-  const sharePointSources = getSharePointSources(existingAgent)
-  const connectionId = sharePointSources.find(source =>
-    source.config.connectionId?.trim()
-  )?.config.connectionId
-  if (!connectionId) {
+  if (!hasSharePointConnection(existingAgent)) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
-  const trimmedConnectionId = connectionId.trim()
+  const sharePointSources = getSharePointSources(existingAgent)
 
   const previousSiteIds = getSharePointSiteIds(existingAgent)
   const availableSites = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
@@ -209,7 +206,6 @@ export async function setAgentKnowledgeSources(
       id: `sharepoint_site_${sourceSiteId}`,
       type: AgentKnowledgeSourceType.SHAREPOINT,
       config: {
-        connectionId: trimmedConnectionId,
         site: {
           id: siteId,
           name: fetchedSite?.name || existingSite?.name,

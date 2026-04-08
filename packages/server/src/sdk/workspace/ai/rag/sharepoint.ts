@@ -54,8 +54,8 @@ type SharePointSourceSite = {
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
-const connectionCacheKey = (connectionId: string) =>
-  sharePointConnectionCacheKey("connection", connectionId)
+const connectionCacheKeyForAgent = (agentId: string) =>
+  sharePointConnectionCacheKey("connection", agentId)
 
 const normalizeSites = (
   sites: Array<SharePointSourceSite | KnowledgeSourceOption>
@@ -79,12 +79,6 @@ const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
   return (agent.knowledgeSources || []).filter(
     source => source.type === AgentKnowledgeSourceType.SHAREPOINT
   )
-}
-
-const getSharePointConnectionId = (agent: Agent): string | undefined => {
-  return getSharePointSources(agent)
-    .map(source => trimString(source.config.connectionId))
-    .find(Boolean)
 }
 
 const getSharePointSitesFromSources = (
@@ -151,28 +145,19 @@ const saveSharePointSyncRunState = async ({
   })
 }
 
-const upsertSharePointConnection = async (
-  agent: Agent,
-  connectionId: string
-) => {
+const upsertSharePointConnection = async (agent: Agent) => {
   const nonSharePointSources = (agent.knowledgeSources || []).filter(
     source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
   )
   const existingSharePointSources = getSharePointSources(agent)
   const nextSharePointSources =
     existingSharePointSources.length > 0
-      ? existingSharePointSources.map(source => ({
-          ...source,
-          config: {
-            ...source.config,
-            connectionId,
-          },
-        }))
+      ? existingSharePointSources
       : [
           {
             id: SHAREPOINT_CONNECTION_SOURCE_ID,
             type: AgentKnowledgeSourceType.SHAREPOINT,
-            config: { connectionId },
+            config: {},
           } satisfies AgentKnowledgeSource,
         ]
 
@@ -331,13 +316,12 @@ export const completeSharePointConnectionForAgent = async ({
   }
 
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  const connectionId = trimmedAgentId
   await storeSharePointConnectionFromSetup({
     appId: trimmedAppId,
     setupId: trimmedSetupId,
-    connectionKey: connectionCacheKey(connectionId),
+    connectionKey: connectionCacheKeyForAgent(trimmedAgentId),
   })
-  await upsertSharePointConnection(agent, connectionId)
+  await upsertSharePointConnection(agent)
 
   return {
     agentId: trimmedAgentId,
@@ -354,14 +338,13 @@ export const fetchSharePointSitesForAgent = async (
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
   const { runs } = await fetchSharePointSyncStateForAgent(trimmedAgentId)
-  const connectionId = trimString(getSharePointConnectionId(agent))
-  if (!connectionId) {
+  if (getSharePointSources(agent).length === 0) {
     return { options: [], runs }
   }
 
   return {
     options: await fetchSharePointSitesByConnection(
-      connectionCacheKey(connectionId)
+      connectionCacheKeyForAgent(trimmedAgentId)
     ),
     runs,
   }
@@ -441,8 +424,7 @@ export const syncSharePointForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  const connectionId = trimString(getSharePointConnectionId(agent))
-  if (!connectionId) {
+  if (getSharePointSources(agent).length === 0) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
 
@@ -463,7 +445,7 @@ export const syncSharePointForAgent = async (
   }
 
   const bearerToken = await getSharePointBearerToken(
-    connectionCacheKey(connectionId)
+    connectionCacheKeyForAgent(trimmedAgentId)
   )
   const knowledgeBase = await ensureKnowledgeBaseForAgent(trimmedAgentId)
   const knowledgeBaseId = knowledgeBase._id
