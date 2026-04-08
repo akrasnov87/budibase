@@ -51,16 +51,6 @@ jest.mock("@budibase/backend-core", () => {
   }
 })
 
-jest.mock("../../../../environment", () => ({
-  __esModule: true,
-  default: {
-    isInThread: jest.fn(() => false),
-    SELF_HOSTED: true,
-    MULTI_TENANCY: false,
-    SHAREPOINT_SYNC_INTERVAL_MS: 86_400_000,
-  },
-}))
-
 jest.mock("./sharepoint", () => ({
   syncSharePointForAgent: (...args: any[]) =>
     mockSyncSharePointForAgent(...args),
@@ -73,6 +63,7 @@ import {
   removeAllAgentJobs,
   scheduleJob,
 } from "./knowledgeSourceSyncQueue"
+import { withEnv } from "../../../../environment"
 
 describe("knowledgeSourceSyncQueue", () => {
   beforeEach(() => {
@@ -249,7 +240,14 @@ describe("knowledgeSourceSyncQueue", () => {
       ],
     })
 
-    await rehydrateScheduledJobs()
+    await withEnv(
+      {
+        SELF_HOSTED: "1",
+        MULTI_TENANCY: undefined,
+        FORKED_PROCESS_NAME: undefined,
+      },
+      () => rehydrateScheduledJobs()
+    )
 
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:orphan")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
