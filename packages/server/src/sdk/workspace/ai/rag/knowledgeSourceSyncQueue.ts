@@ -12,6 +12,9 @@ const DEFAULT_CONCURRENCY = 2
 const DEFAULT_BACKOFF_MS = utils.Duration.fromSeconds(10).toMs()
 const DEFAULT_TIMEOUT_MS = utils.Duration.fromMinutes(15).toMs()
 
+const getScheduleWorkspaceNamespace = (workspaceId: string) =>
+  db.getProdWorkspaceID(workspaceId)
+
 export interface KnowledgeSourceSyncJob {
   workspaceId: string
   agentId: string
@@ -19,16 +22,21 @@ export interface KnowledgeSourceSyncJob {
   sourceId: string
 }
 
+interface ReconcileAgentJobsSummary {
+  clearedSchedules: number
+  enabledSchedules: number
+}
+
 let knowledgeSourceSyncQueue:
   | queue.BudibaseQueue<KnowledgeSourceSyncJob>
   | undefined
 let knowledgeSourceSyncQueueInitialised = false
 
-const getJobId = (job: KnowledgeSourceSyncJob) =>
-  `${job.workspaceId}_knowledge_source_sync_${job.agentId}_${job.sourceType}_${job.sourceId}`
-
 const getAgentJobPrefix = (workspaceId: string, agentId: string) =>
-  `${workspaceId}_knowledge_source_sync_${agentId}_`
+  `${getScheduleWorkspaceNamespace(workspaceId)}_knowledge_source_sync_${agentId}_`
+
+const getJobId = (job: KnowledgeSourceSyncJob) =>
+  `${getAgentJobPrefix(job.workspaceId, job.agentId)}${job.sourceType}_${job.sourceId}`
 
 const getAgentSharePointSources = (agent: Agent) =>
   (agent.knowledgeSources || []).filter(
@@ -179,13 +187,22 @@ export async function removeAllAgentJobs(agentId: string) {
   )
 }
 
-export async function reconcileAgentJobs(agent: Agent, workspaceId?: string) {
+export async function reconcileAgentJobs(
+  agent: Agent,
+  workspaceId?: string
+): Promise<ReconcileAgentJobsSummary> {
   if (!agent._id) {
-    return
+    return {
+      clearedSchedules: 0,
+      enabledSchedules: 0,
+    }
   }
   const resolvedWorkspaceId = workspaceId || context.getWorkspaceId()
   if (!resolvedWorkspaceId) {
-    return
+    return {
+      clearedSchedules: 0,
+      enabledSchedules: 0,
+    }
   }
   const desiredJobs = getDesiredJobsForAgent(resolvedWorkspaceId, agent)
   const desiredIds = new Set(desiredJobs.map(getJobId))
@@ -196,27 +213,32 @@ export async function reconcileAgentJobs(agent: Agent, workspaceId?: string) {
   const existingAgentJobs = repeatableJobs.filter(
     repeatable => repeatable.id && repeatable.id.startsWith(prefix)
   )
+  const staleAgentJobs = existingAgentJobs.filter(
+    repeatable => !desiredIds.has(repeatable.id!)
+  )
 
   await Promise.all(
-    existingAgentJobs
-      .filter(repeatable => !desiredIds.has(repeatable.id!))
-      .flatMap(repeatable => {
-        const tasks: Promise<any>[] = [
-          bullQueue.removeRepeatableByKey(repeatable.key),
-        ]
-        if (repeatable.id) {
-          tasks.push(bullQueue.removeJobs(repeatable.id))
-        }
-        return tasks
-      })
+    staleAgentJobs.flatMap(repeatable => {
+      const tasks: Promise<any>[] = [
+        bullQueue.removeRepeatableByKey(repeatable.key),
+      ]
+      if (repeatable.id) {
+        tasks.push(bullQueue.removeJobs(repeatable.id))
+      }
+      return tasks
+    })
   )
 
   const existingIds = new Set(existingAgentJobs.map(job => job.id))
-  await Promise.all(
-    desiredJobs
-      .filter(job => !existingIds.has(getJobId(job)))
-      .map(job => scheduleJob(job))
+  const jobsToEnable = desiredJobs.filter(
+    job => !existingIds.has(getJobId(job))
   )
+  await Promise.all(jobsToEnable.map(job => scheduleJob(job)))
+
+  return {
+    clearedSchedules: staleAgentJobs.length,
+    enabledSchedules: jobsToEnable.length,
+  }
 }
 
 export async function rehydrateScheduledJobs() {
@@ -231,9 +253,17 @@ export async function rehydrateScheduledJobs() {
 
   const bullQueue = getQueue().getBullQueue()
   const repeatableJobs = await bullQueue.getRepeatableJobs()
+  let workspaceCount = 0
+  let reconciledAgents = 0
+  let desiredSchedules = 0
+  let staleRepeatablesRemoved = 0
+  let staleQueuedJobsRemoved = 0
+  let clearedSchedules = 0
+  let enabledSchedules = 0
 
   for (const workspaceId of workspaceIds) {
     await context.doInWorkspaceContext(workspaceId, async () => {
+      workspaceCount++
       const workspaceDb = context.getWorkspaceDB()
       const result = await workspaceDb.allDocs<Agent>(
         docIds.getDocParams(DocumentType.AGENT, undefined, {
@@ -247,7 +277,7 @@ export async function rehydrateScheduledJobs() {
         getDesiredJobsForAgent(workspaceId, agent)
       )
       const desiredIds = new Set(desiredJobs.map(getJobId))
-      const workspacePrefix = `${workspaceId}_knowledge_source_sync_`
+      const workspacePrefix = `${getScheduleWorkspaceNamespace(workspaceId)}_knowledge_source_sync_`
       const staleWorkspaceJobs = repeatableJobs.filter(
         repeatable =>
           repeatable.id &&
@@ -255,41 +285,50 @@ export async function rehydrateScheduledJobs() {
           !desiredIds.has(repeatable.id)
       )
 
-      let removedRepeatables = 0
-      let removedQueuedJobs = 0
       await Promise.all(
         staleWorkspaceJobs.flatMap(repeatable => {
           const tasks: Promise<any>[] = [
-            bullQueue.removeRepeatableByKey(repeatable.key).then(() => {
-              removedRepeatables++
-            }),
+            bullQueue.removeRepeatableByKey(repeatable.key),
           ]
           if (repeatable.id) {
-            tasks.push(
-              bullQueue.removeJobs(repeatable.id).then(() => {
-                removedQueuedJobs++
-              })
-            )
+            tasks.push(bullQueue.removeJobs(repeatable.id))
           }
           return tasks
         })
       )
+      staleRepeatablesRemoved += staleWorkspaceJobs.length
+      staleQueuedJobsRemoved += staleWorkspaceJobs.filter(
+        repeatable => !!repeatable.id
+      ).length
 
       const reconcileTargets = agents.filter(agent =>
         (agent.knowledgeSources || []).some(
           source => source.type === AgentKnowledgeSourceType.SHAREPOINT
         )
       )
-      console.log("SharePoint sync rehydration summary", {
-        workspaceId,
-        reconciledAgents: reconcileTargets.length,
-        desiredSchedules: desiredJobs.length,
-        staleRepeatablesRemoved: removedRepeatables,
-        staleQueuedJobsRemoved: removedQueuedJobs,
-      })
-      await Promise.all(
+      const reconcileResults = await Promise.all(
         reconcileTargets.map(agent => reconcileAgentJobs(agent, workspaceId))
+      )
+      reconciledAgents += reconcileTargets.length
+      desiredSchedules += desiredJobs.length
+      clearedSchedules += reconcileResults.reduce(
+        (total, summary) => total + summary.clearedSchedules,
+        0
+      )
+      enabledSchedules += reconcileResults.reduce(
+        (total, summary) => total + summary.enabledSchedules,
+        0
       )
     })
   }
+
+  console.log("Knowledge source sync rehydration summary", {
+    workspaceCount,
+    reconciledAgents,
+    desiredSchedules,
+    staleRepeatablesRemoved,
+    staleQueuedJobsRemoved,
+    clearedSchedules,
+    enabledSchedules,
+  })
 }

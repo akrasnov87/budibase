@@ -105,7 +105,7 @@ describe("knowledgeSourceSyncQueue", () => {
       },
       {
         repeat: { every: 86_400_000 },
-        jobId: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        jobId: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
       }
     )
   })
@@ -113,11 +113,11 @@ describe("knowledgeSourceSyncQueue", () => {
   it("reconciles repeatable jobs for an agent", async () => {
     mockGetRepeatableJobs.mockResolvedValue([
       {
-        id: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_old",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_old",
         key: "repeat:old",
       },
       {
-        id: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
         key: "repeat:site-1",
       },
     ])
@@ -148,7 +148,7 @@ describe("knowledgeSourceSyncQueue", () => {
 
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:old")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_old"
+      "app_test_knowledge_source_sync_agent_1_sharepoint_site_old"
     )
     expect(mockQueueAdd).toHaveBeenCalledWith(
       {
@@ -158,7 +158,7 @@ describe("knowledgeSourceSyncQueue", () => {
         sourceId: "site_2",
       },
       expect.objectContaining({
-        jobId: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_2",
+        jobId: "app_test_knowledge_source_sync_agent_1_sharepoint_site_2",
       })
     )
   })
@@ -166,15 +166,15 @@ describe("knowledgeSourceSyncQueue", () => {
   it("removes all repeatable jobs for an agent", async () => {
     mockGetRepeatableJobs.mockResolvedValue([
       {
-        id: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
         key: "repeat:site-1",
       },
       {
-        id: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_2",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_2",
         key: "repeat:site-2",
       },
       {
-        id: "app_dev_test_knowledge_source_sync_agent_2_sharepoint_site_9",
+        id: "app_test_knowledge_source_sync_agent_2_sharepoint_site_9",
         key: "repeat:other-agent",
       },
     ])
@@ -186,10 +186,10 @@ describe("knowledgeSourceSyncQueue", () => {
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:site-1")
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:site-2")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_1"
+      "app_test_knowledge_source_sync_agent_1_sharepoint_site_1"
     )
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_2"
+      "app_test_knowledge_source_sync_agent_1_sharepoint_site_2"
     )
   })
 
@@ -220,11 +220,11 @@ describe("knowledgeSourceSyncQueue", () => {
   it("removes orphan jobs during rehydration", async () => {
     mockGetRepeatableJobs.mockResolvedValue([
       {
-        id: "app_dev_test_knowledge_source_sync_agent_deleted_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_deleted_sharepoint_site_1",
         key: "repeat:orphan",
       },
       {
-        id: "app_dev_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
         key: "repeat:valid",
       },
     ])
@@ -253,7 +253,7 @@ describe("knowledgeSourceSyncQueue", () => {
 
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:orphan")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_dev_test_knowledge_source_sync_agent_deleted_sharepoint_site_1"
+      "app_test_knowledge_source_sync_agent_deleted_sharepoint_site_1"
     )
     expect(mockRemoveRepeatableByKey).not.toHaveBeenCalledWith("repeat:valid")
   })
