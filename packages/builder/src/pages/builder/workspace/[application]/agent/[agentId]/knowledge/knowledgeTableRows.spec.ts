@@ -14,7 +14,9 @@ import {
   toSharePointConnectionRows,
 } from "./knowledgeTableRows"
 
-const makeFile = (overrides: Partial<KnowledgeBaseFile>): KnowledgeBaseFile => ({
+const makeFile = (
+  overrides: Partial<KnowledgeBaseFile>
+): KnowledgeBaseFile => ({
   _id: "file_1",
   knowledgeBaseId: "kb_1",
   filename: "file.txt",
@@ -33,7 +35,10 @@ describe("knowledgeTableRows", () => {
   it("builds and sorts file rows", async () => {
     const onDelete = vi.fn(async () => {})
     const rows = toFileTableRows(
-      [makeFile({ _id: "2", filename: "z.md" }), makeFile({ _id: "1", filename: "a.md" })],
+      [
+        makeFile({ _id: "2", filename: "z.md" }),
+        makeFile({ _id: "1", filename: "a.md" }),
+      ],
       onDelete
     )
 
@@ -61,10 +66,9 @@ describe("knowledgeTableRows", () => {
       }),
     ]
 
-    expect(getSharePointFilesForSite(files, "site-1").map(file => file._id)).toEqual([
-      "f1",
-      "f2",
-    ])
+    expect(
+      getSharePointFilesForSite(files, "site-1").map(file => file._id)
+    ).toEqual(["f1", "f2"])
     expect(getSharePointFileProcessingCounts(files, "site-1")).toEqual({
       ready: 1,
       failed: 0,
@@ -94,8 +98,12 @@ describe("knowledgeTableRows", () => {
     const rows = toSharePointConnectionRows({
       hasSharePointConnection: true,
       selectedSiteIds: ["site-1", "site-2"],
-      sharePointSources: [{ config: { site: { id: "site-1", name: "Team docs" } } }],
-      sharePointSites: [{ id: "site-2", webUrl: "https://contoso.sharepoint.com/sites/a" }],
+      sharePointSources: [
+        { config: { site: { id: "site-1", name: "Team docs" } } },
+      ],
+      sharePointSites: [
+        { id: "site-2", webUrl: "https://contoso.sharepoint.com/sites/a" },
+      ],
       sharePointSyncRunsBySiteId: {
         "site-1": {
           sourceId: "site-1",
@@ -114,11 +122,17 @@ describe("knowledgeTableRows", () => {
     })
 
     expect(rows).toHaveLength(2)
-    expect(rows.find(row => row.siteId === "site-1")?.filename).toBe("Team docs")
-    expect(rows.find(row => row.siteId === "site-1")?.displayStatus).toBe("No files found")
+    expect(rows.find(row => row.siteId === "site-1")?.filename).toBe(
+      "Team docs"
+    )
+    expect(rows.find(row => row.siteId === "site-1")?.displayStatus).toBe(
+      "No files found"
+    )
     expect(rows.find(row => row.siteId === "site-2")?.filename).toContain(
       "https://contoso.sharepoint.com/sites/a"
     )
-    expect(rows.find(row => row.siteId === "site-2")?.displayStatus).toBe("Processing")
+    expect(rows.find(row => row.siteId === "site-2")?.displayStatus).toBe(
+      "Processing"
+    )
   })
 })

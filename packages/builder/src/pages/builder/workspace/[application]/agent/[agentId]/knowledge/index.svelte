@@ -126,18 +126,15 @@
     if (row.kind !== "sharepoint_connection") {
       return
     }
-    openSharePointFilesStatusModal(
-      row.siteId,
-      row.filename
-    )
+    openSharePointFilesStatusModal(row.siteId, row.filename)
   }
 
   let selectedStatusSiteFiles = $derived.by(() => {
     if (!selectedStatusSiteId) {
       return [] as KnowledgeBaseFile[]
     }
-    return getSharePointFilesForSite(files, selectedStatusSiteId).sort(
-      (a, b) => a.filename.localeCompare(b.filename)
+    return getSharePointFilesForSite(files, selectedStatusSiteId).sort((a, b) =>
+      a.filename.localeCompare(b.filename)
     )
   })
 
@@ -147,23 +144,21 @@
       removeFile
     )
   )
-  let sharePointConnectionRows = $derived.by(
-    () => {
-      return toSharePointConnectionRows({
-        hasSharePointConnection,
-        selectedSiteIds: effectiveSelectedSiteIds,
-        sharePointSources,
-        sharePointSites,
-        sharePointSyncRunsBySiteId,
-        files,
-        loadingSharePointSites,
-        onDelete: removeSharePointSite,
-        onSync: async siteId => {
-          await syncSharePointNow([siteId])
-        },
-      })
-    }
-  )
+  let sharePointConnectionRows = $derived.by(() => {
+    return toSharePointConnectionRows({
+      hasSharePointConnection,
+      selectedSiteIds: effectiveSelectedSiteIds,
+      sharePointSources,
+      sharePointSites,
+      sharePointSyncRunsBySiteId,
+      files,
+      loadingSharePointSites,
+      onDelete: removeSharePointSite,
+      onSync: async siteId => {
+        await syncSharePointNow([siteId])
+      },
+    })
+  })
   let knowledgeTableRows: KnowledgeTableRow[] = $derived.by(() => {
     return [...sharePointConnectionRows, ...fileTableRows]
   })
