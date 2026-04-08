@@ -24,6 +24,7 @@
     customQueryIconText,
     customQueryIconColor,
   } from "@/helpers/data/utils"
+  import { canCreateDatasourceQuery } from "./datasourceUtils"
 
   $goto
   $isActive
@@ -160,8 +161,21 @@
           <QueryNavItem {datasource} {query} />
         {/if}
       {/each}
+      {#if datasource.source === "REST" && canCreateDatasourceQuery(datasource)}
+        <NavItem
+          indentLevel={0}
+          icon="plus"
+          text="New API operation"
+          on:click={() =>
+            $goto(`/builder/workspace/:application/apis/query/new/:id`, {
+              application: $params.application,
+              id: datasource._id,
+            })}
+        />
+      {/if}
     {/if}
   {/each}
+
   {#if showNoResults}
     <Layout paddingY="none" paddingX="L">
       <div class="no-results">
