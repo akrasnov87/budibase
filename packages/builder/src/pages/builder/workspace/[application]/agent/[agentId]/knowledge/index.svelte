@@ -167,9 +167,7 @@
     loading = true
     try {
       await agentsStore.fetchAgentFiles(agentId)
-      if (hasSharePointConnection) {
-        await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
-      }
+      await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
       initialKnowledgeLoadedForAgent = agentId
     } finally {
       loading = false
@@ -177,7 +175,6 @@
   }
 
   const loadSharePointSites = async (agentId: string) => {
-    if (!hasSharePointConnection) return
     loadingSharePointSites = true
     try {
       await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
@@ -284,7 +281,7 @@
 
   async function openSharePointSiteModal() {
     const agentId = currentAgent?._id
-    if (!agentId || !hasSharePointConnection) {
+    if (!agentId) {
       return
     }
     await loadSharePointSites(agentId)
@@ -434,7 +431,8 @@
     <Body size="S">Knowledge</Body>
     <KnowledgeAddControls
       agentId={currentAgent?._id}
-      {hasSharePointConnection}
+      hasSharePointConnection={hasSharePointConnection ||
+        sharePointSites.length > 0}
       onUploaded={async () => {
         if (!currentAgent?._id) {
           return

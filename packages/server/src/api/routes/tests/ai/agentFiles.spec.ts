@@ -1,5 +1,5 @@
 import nock from "nock"
-import { cache, context, features } from "@budibase/backend-core"
+import { cache, context, db, features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
 import type { MockAgent } from "undici"
 import {
@@ -121,20 +121,25 @@ describe("agent files", () => {
     })
   }
 
-  const setSharePointConnectionInCache = async (agentId: string) => {
+  const setSharePointConnectionInCache = async (_agentId: string) => {
     await config.doInContext(config.getDevWorkspaceId(), async () => {
-      await cache.store(sharePointConnectionCacheKey("connection", agentId), {
-        tenantId: config.getTenantId(),
-        tokenEndpoint:
-          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        scope: "offline_access https://graph.microsoft.com/Sites.Read.All",
-        accessToken: "header.payload.signature",
-        refreshToken: "refresh-token",
-        tokenType: "Bearer",
-        expiresAt: Date.now() + 60_000,
-        clientId: "client-id",
-        clientSecret: "client-secret",
-      })
+      const workspaceId = context.getOrThrowWorkspaceId()
+      const workspaceConnectionId = db.getProdWorkspaceID(workspaceId)
+      await cache.store(
+        sharePointConnectionCacheKey("connection", workspaceConnectionId),
+        {
+          tenantId: config.getTenantId(),
+          tokenEndpoint:
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+          scope: "offline_access https://graph.microsoft.com/Sites.Read.All",
+          accessToken: "header.payload.signature",
+          refreshToken: "refresh-token",
+          tokenType: "Bearer",
+          expiresAt: Date.now() + 60_000,
+          clientId: "client-id",
+          clientSecret: "client-secret",
+        }
+      )
     })
   }
 

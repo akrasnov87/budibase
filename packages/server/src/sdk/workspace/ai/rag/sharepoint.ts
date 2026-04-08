@@ -1,4 +1,4 @@
-import { context, docIds, HTTPError } from "@budibase/backend-core"
+import { cache, context, db, docIds, HTTPError } from "@budibase/backend-core"
 import {
   type Agent,
   type AgentSharePointSyncState,
@@ -54,8 +54,19 @@ type SharePointSourceSite = {
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
-const connectionCacheKeyForAgent = (agentId: string) =>
-  sharePointConnectionCacheKey("connection", agentId)
+
+export const getSharePointWorkspaceConnectionKey = (workspaceId: string) =>
+  sharePointConnectionCacheKey("connection", db.getProdWorkspaceID(workspaceId))
+
+const getSharePointCurrentWorkspaceConnectionKey = () =>
+  getSharePointWorkspaceConnectionKey(context.getOrThrowWorkspaceId())
+
+export const hasSharePointWorkspaceConnection = async (): Promise<boolean> => {
+  const cachedConnection = await cache.get(
+    getSharePointCurrentWorkspaceConnectionKey()
+  )
+  return !!cachedConnection?.refreshToken
+}
 
 const normalizeSites = (
   sites: Array<SharePointSourceSite | KnowledgeSourceOption>
@@ -319,7 +330,7 @@ export const completeSharePointConnectionForAgent = async ({
   await storeSharePointConnectionFromSetup({
     appId: trimmedAppId,
     setupId: trimmedSetupId,
-    connectionKey: connectionCacheKeyForAgent(trimmedAgentId),
+    connectionKey: getSharePointCurrentWorkspaceConnectionKey(),
   })
   await upsertSharePointConnection(agent)
 
@@ -337,14 +348,14 @@ export const fetchSharePointSitesForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  const { runs } = await fetchSharePointSyncStateForAgent(trimmedAgentId)
-  if (getSharePointSources(agent).length === 0) {
+  const { runs } = await fetchSharePointSyncStateForAgent(agent._id!)
+  if (!(await hasSharePointWorkspaceConnection())) {
     return { options: [], runs }
   }
 
   return {
     options: await fetchSharePointSitesByConnection(
-      connectionCacheKeyForAgent(trimmedAgentId)
+      getSharePointCurrentWorkspaceConnectionKey()
     ),
     runs,
   }
@@ -445,7 +456,7 @@ export const syncSharePointForAgent = async (
   }
 
   const bearerToken = await getSharePointBearerToken(
-    connectionCacheKeyForAgent(trimmedAgentId)
+    getSharePointCurrentWorkspaceConnectionKey()
   )
   const knowledgeBase = await ensureKnowledgeBaseForAgent(trimmedAgentId)
   const knowledgeBaseId = knowledgeBase._id
