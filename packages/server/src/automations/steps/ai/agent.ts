@@ -224,7 +224,7 @@ export async function run({
           metadata: { stepCount: assistantMessage?.parts?.length ?? 0 },
         })
 
-        await events.action.aiAgentExecuted({ agentId })
+        events.action.aiAgentExecuted({ agentId })
 
         return {
           success: true,
