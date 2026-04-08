@@ -6,8 +6,6 @@ import {
   createAIConfigValidator,
   updateAIConfigValidator,
 } from "./utils/validators/aiConfig"
-import { auth } from "@budibase/backend-core"
-import { aiRagEnabled } from "../../middleware/aiRagEnabled"
 
 export const licensedRoutes = endpointGroupList.group(middleware.licenseAuth)
 
@@ -24,14 +22,6 @@ builderAdminRoutes
   .delete("/api/configs/:id", ai.deleteAIConfig)
   .post("/api/ai/cron", ai.generateCronExpression)
   .post("/api/ai/js", ai.generateJs)
-
-const aiRagBuilderAdminRoutes = endpointGroupList
-  .group(auth.builderOrAdmin)
-  .addGroupMiddleware(aiRagEnabled)
-aiRagBuilderAdminRoutes
-  .get("/api/agent/:agentId/files", ai.fetchAgentFiles)
-  .post("/api/agent/:agentId/files", ai.uploadAgentFile)
-  .delete("/api/agent/:agentId/files/:fileId", ai.deleteAgentFile)
 
 builderAdminRoutes.get("/api/configs/providers", ai.fetchAIProviders)
 
