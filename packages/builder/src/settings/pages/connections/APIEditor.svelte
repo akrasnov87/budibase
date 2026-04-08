@@ -259,8 +259,11 @@
   async function fetchOpenApiInfo() {
     if (!spec?.url) return
     loadingOpenApiInfo = true
-    openApiInfo = await API.getImportInfo({ url: spec.url })
-    loadingOpenApiInfo = false
+    try {
+      openApiInfo = await API.getImportInfo({ url: spec.url })
+    } finally {
+      loadingOpenApiInfo = false
+    }
   }
 
   const asHTTPAuth = (auth: RestAuthConfig): HTTPRestAuthConfig =>

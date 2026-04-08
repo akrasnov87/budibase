@@ -984,7 +984,7 @@
       cancelText: "Discard and continue",
       size: "M",
       onConfirm: async () => {
-        const saveResult = await saveQuery(isNewQuery)
+        const saveResult = await saveQuery(false)
         if (!saveResult?.ok) {
           return false
         }

@@ -46,13 +46,34 @@ vi.mock("@/api", () => ({
   },
 }))
 
+vi.mock("@/helpers", async () => {
+  const actual = await vi.importActual<typeof import("@/helpers")>("@/helpers")
+  return { ...actual, confirm: vi.fn().mockResolvedValue(true) }
+})
+
+let navGuard: (() => Promise<boolean>) | null = null
+let gotoFn = vi.fn()
+
 vi.mock("@roxi/routify", () => ({
   params: writable({
     datasourceId: "datasource_c190e3055ae643b4b3bb66ee15ad12c9",
   }),
-  goto: writable(vi.fn()),
-  beforeUrlChange: writable(() => () => true),
+  goto: writable((...args: any[]) => gotoFn(...args)),
+  beforeUrlChange: writable((handler: () => Promise<boolean>) => {
+    navGuard = handler
+    return () => true
+  }),
 }))
+
+// Simulates routify navigation: runs the registered beforeUrlChange guard then calls goto.
+const navigateTo = async (path: string) => {
+  if (navGuard) {
+    const allowed = await navGuard()
+    if (!allowed) return false
+  }
+  gotoFn(path)
+  return true
+}
 
 // Real class instances are needed for .store.update()/.init()/.set(). vi.importActual
 // is used (not bare import()) to avoid circular resolution inside vi.mock factories.
@@ -69,6 +90,7 @@ vi.mock("@/stores/builder/queries", async () => {
     QueryStore,
     removeDatasourceQueries: vi.fn(),
     saveQuery: vi.fn(),
+    consumeSkipUnsavedPrompt: vi.fn().mockReturnValue(false),
   }
 })
 
@@ -188,6 +210,8 @@ import { restTemplates } from "@/stores/builder/restTemplates"
 import { queries } from "@/stores/builder/queries"
 import { oauth2 } from "@/stores/builder/oauth2"
 import { screenStore } from "@/stores/builder"
+import { workspaceConnections } from "@/stores/builder/workspaceConnection"
+import { confirm } from "@/helpers"
 
 const REST_DS_ID = "datasource_c190e3055ae643b4b3bb66ee15ad12c9"
 const REST_DS_ID_2 = "datasource_aaaabbbbccccdddd1111222233334444"
@@ -322,7 +346,6 @@ const getSaveButton = (container: Element) =>
     b.textContent?.includes("Save")
   )
 
-// ---- Setup ----
 beforeEach(async () => {
   vi.clearAllMocks()
   // Re-establish notification spies after clearAllMocks wipes their history
@@ -1364,6 +1387,10 @@ describe("API Endpoint Viewer", () => {
     })
 
     afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    afterEach(() => {
       vi.mocked(hasRestTemplate).mockReturnValue(false)
     })
 
@@ -1937,6 +1964,78 @@ describe("API Endpoint Viewer", () => {
         ) as HTMLInputElement | null
         expect(urlInput?.value).toBe("https://other.example.com")
       })
+    })
+  })
+
+  describe("Navigation guard", () => {
+    const dirtyNewQuery = async (container: Element) => {
+      await waitFor(() =>
+        expect(container.querySelector(".url-input")).not.toBeNull()
+      )
+      const urlInput = container.querySelector(".url-input") as HTMLInputElement
+      await fireEvent.input(urlInput, {
+        target: { value: "https://api.example.com/users" },
+      })
+      await fireEvent.blur(urlInput)
+    }
+
+    beforeEach(() => {
+      navGuard = null
+      gotoFn.mockReset()
+      vi.mocked(confirm).mockResolvedValue(true)
+    })
+
+    it("allows navigation without prompting when the query is not dirty", async () => {
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await waitFor(() =>
+        expect(container.querySelector(".url-input")).not.toBeNull()
+      )
+      await navigateTo("/some/other/page")
+      expect(confirm).not.toHaveBeenCalled()
+      expect(gotoFn).toHaveBeenCalledWith("/some/other/page")
+    })
+
+    it("prompts when navigating away from a dirty new query", async () => {
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await dirtyNewQuery(container)
+      await navigateTo("/some/other/page")
+      expect(confirm).toHaveBeenCalled()
+    })
+
+    it("saves without redirecting (saveQuery(false)) when user confirms", async () => {
+      vi.mocked(API).saveQuery.mockResolvedValue({ _id: "new_id" } as any)
+      vi.mocked(confirm).mockImplementation(async ({ onConfirm }) => {
+        return (await onConfirm?.()) ?? true
+      })
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await dirtyNewQuery(container)
+      await navigateTo("/some/other/page")
+      expect(vi.mocked(API).saveQuery).toHaveBeenCalled()
+      expect(gotoFn).toHaveBeenCalledWith("/some/other/page")
+    })
+
+    it("blocks navigation when save fails", async () => {
+      vi.mocked(API).saveQuery.mockRejectedValue(new Error("network error"))
+      vi.mocked(confirm).mockImplementation(async ({ onConfirm }) => {
+        return (await onConfirm?.()) ?? true
+      })
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await dirtyNewQuery(container)
+      const allowed = await navigateTo("/some/other/page")
+      expect(allowed).toBe(false)
+      expect(gotoFn).not.toHaveBeenCalled()
+    })
+
+    it("discards the draft and navigates when user cancels", async () => {
+      vi.spyOn(workspaceConnections, "discardDraft")
+      vi.mocked(confirm).mockImplementation(async ({ onCancel }) => {
+        return onCancel?.() ?? false
+      })
+      const { container } = setupDOM({ datasourceId: REST_DS_ID })
+      await dirtyNewQuery(container)
+      await navigateTo("/some/other/page")
+      expect(workspaceConnections.discardDraft).toHaveBeenCalled()
+      expect(gotoFn).toHaveBeenCalledWith("/some/other/page")
     })
   })
 })

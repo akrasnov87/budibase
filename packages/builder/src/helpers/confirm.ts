@@ -43,7 +43,7 @@ export async function confirm(props: {
           await tick()
           const result = await props.onConfirm?.()
           cleanup()
-          resolve(result || true)
+          resolve(result ?? true)
         },
         onCancel: () => {
           if (!mounted) return
