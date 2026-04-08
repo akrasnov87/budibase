@@ -1,16 +1,8 @@
 <script lang="ts">
-  import {
-    Body,
-    Layout,
-    ProgressCircle,
-    notifications,
-    Table,
-  } from "@budibase/bbui"
+  import { Body, Layout, notifications } from "@budibase/bbui"
   import { confirm } from "@/helpers"
-  import { helpers } from "@budibase/shared-core"
   import {
     AgentKnowledgeSourceType,
-    KnowledgeBaseFileStatus,
     type Agent,
     type KnowledgeSourceOption,
     type KnowledgeBaseFile,
@@ -18,19 +10,17 @@
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
   import { agentsStore, auth, selectedAgent } from "@/stores/portal"
-  import KnowledgeIconRenderer from "./renderers/KnowledgeIconRenderer.svelte"
-  import KnowledgeNameRenderer from "./renderers/KnowledgeNameRenderer.svelte"
-  import KnowledgeStatusRenderer from "./renderers/KnowledgeStatusRenderer.svelte"
-  import KnowledgeActionsRenderer from "./renderers/KnowledgeActionsRenderer.svelte"
+  import KnowledgeTable from "./KnowledgeTable.svelte"
   import KnowledgeAddControls from "./KnowledgeAddControls.svelte"
   import SelectSharePointSiteModal from "./SelectSharePointSiteModal.svelte"
   import SharePointFilesStatusModal from "./SharePointFilesStatusModal.svelte"
   import { onDestroy, onMount } from "svelte"
-  import type {
-    FileKnowledgeTableRow,
-    KnowledgeTableRow,
-    SharePointConnectionTableRow,
-  } from "./renderers/types"
+  import type { KnowledgeTableRow } from "./renderers/types"
+  import {
+    getSharePointFilesForSite,
+    toFileTableRows,
+    toSharePointConnectionRows,
+  } from "./knowledgeTableRows"
 
   interface ModalHandle {
     show: () => void
@@ -89,26 +79,6 @@
   let selectedStatusSiteName = $state<string | undefined>()
   let shouldOpenSharePointPickerAfterOauth = $state(false)
 
-  const readableStatus: Record<KnowledgeBaseFileStatus, string> = {
-    [KnowledgeBaseFileStatus.PROCESSING]: "Processing",
-    [KnowledgeBaseFileStatus.READY]: "Ready",
-    [KnowledgeBaseFileStatus.FAILED]: "Failed",
-  }
-
-  const formatFileStatus = (file: KnowledgeBaseFile) =>
-    readableStatus[file.status] || file.status
-
-  const formatTimestamp = (value?: string | number) => {
-    if (!value) {
-      return "—"
-    }
-    try {
-      return new Date(value).toLocaleString()
-    } catch (error) {
-      return value
-    }
-  }
-
   const showSharePointSyncResult = (result: {
     synced: number
     failed: number
@@ -146,63 +116,18 @@
     await agentsStore.fetchAgentFiles(agentId)
   }
 
-  const toFileTableRows = (
-    list: KnowledgeBaseFile[]
-  ): FileKnowledgeTableRow[] =>
-    list
-      .map(file => ({
-        kind: "file" as const,
-        _id: file._id,
-        filename: file.filename,
-        status: file.status,
-        displayStatus: formatFileStatus(file),
-        size: helpers.formatBytes(file.size, " "),
-        updatedAt: formatTimestamp(
-          file.processedAt || file.updatedAt || file.createdAt
-        ),
-        mimetype: file.mimetype,
-        onDelete: () => removeFile(file),
-        errorMessage: file.errorMessage,
-      }))
-      .sort((a, b) => a.filename.localeCompare(b.filename))
-
-  const getSharePointFilesForSite = (siteId: string) =>
-    files.filter(file =>
-      file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
-    )
-
-  const getSharePointFileProcessingCounts = (siteId: string) => {
-    const siteFiles = getSharePointFilesForSite(siteId)
-    const ready = siteFiles.filter(
-      file => file.status === KnowledgeBaseFileStatus.READY
-    ).length
-    const failed = siteFiles.filter(
-      file => file.status === KnowledgeBaseFileStatus.FAILED
-    ).length
-    const processing = siteFiles.filter(
-      file => file.status === KnowledgeBaseFileStatus.PROCESSING
-    ).length
-    return { ready, failed, processing }
-  }
-
-  const getSharePointLastSyncLabel = (siteId: string) => {
-    const run = sharePointSyncRunsBySiteId[siteId]
-    if (!run?.lastRunAt) {
-      return "SharePoint"
-    }
-    return `Last sync at ${formatTimestamp(run.lastRunAt)} - SharePoint`
-  }
-
   const openSharePointFilesStatusModal = (siteId: string, siteName: string) => {
     selectedStatusSiteId = siteId
     selectedStatusSiteName = siteName
     sharePointFilesStatusModal?.show()
   }
 
-  const handleKnowledgeRowClick = (event: CustomEvent<KnowledgeTableRow>) => {
-    const row = event.detail
+  const handleKnowledgeRowClick = (row: KnowledgeTableRow) => {
+    if (row.kind !== "sharepoint_connection") {
+      return
+    }
     openSharePointFilesStatusModal(
-      (row as SharePointConnectionTableRow).siteId,
+      row.siteId,
       row.filename
     )
   }
@@ -211,75 +136,37 @@
     if (!selectedStatusSiteId) {
       return [] as KnowledgeBaseFile[]
     }
-    return getSharePointFilesForSite(selectedStatusSiteId).sort((a, b) =>
-      a.filename.localeCompare(b.filename)
+    return getSharePointFilesForSite(files, selectedStatusSiteId).sort(
+      (a, b) => a.filename.localeCompare(b.filename)
     )
   })
 
-  let fileTableRows: FileKnowledgeTableRow[] = $derived.by(() =>
+  let fileTableRows = $derived.by(() =>
     toFileTableRows(
-      files.filter(file => !file.externalSourceId?.startsWith("sharepoint:"))
+      files.filter(file => !file.externalSourceId?.startsWith("sharepoint:")),
+      removeFile
     )
   )
-  let sharePointConnectionRows: SharePointConnectionTableRow[] = $derived.by(
+  let sharePointConnectionRows = $derived.by(
     () => {
-      if (!hasSharePointConnection) {
-        return []
-      }
-      return effectiveSelectedSiteIds
-        .map(siteId => {
-          const site =
-            sharePointSources
-              .map(source => source.config.site)
-              .find(entry => entry?.id === siteId) ||
-            sharePointSites.find(entry => entry.id === siteId)
-          const run = sharePointSyncRunsBySiteId[siteId]
-          const hasSynced = !!run?.lastRunAt
-          const { ready, failed, processing } =
-            getSharePointFileProcessingCounts(siteId)
-          const total = run?.totalDiscovered || 0
-          const completed = Math.min(ready + failed, total)
-          const siteDisplayName =
-            site?.name ||
-            site?.webUrl ||
-            (loadingSharePointSites
-              ? "Loading SharePoint site..."
-              : "SharePoint site")
-          const displayStatus = !hasSynced
-            ? "Processing"
-            : total === 0
-              ? "No files found"
-              : `${completed}/${total} files`
-          return {
-            kind: "sharepoint_connection" as const,
-            __clickable: true,
-            _id: `sharepoint-site-${siteId}`,
-            siteId,
-            filename: siteDisplayName,
-            subtitle: getSharePointLastSyncLabel(siteId),
-            displayStatus,
-            syncedCount: ready,
-            totalCount: total,
-            failedCount: failed,
-            processingCount: processing,
-            hasSynced,
-            runStatus: run?.status,
-            onDelete: () => removeSharePointSite(siteId),
-            onSync: () => syncSharePointNow([siteId]),
-          }
-        })
-        .sort((a, b) => a.filename.localeCompare(b.filename))
+      return toSharePointConnectionRows({
+        hasSharePointConnection,
+        selectedSiteIds: effectiveSelectedSiteIds,
+        sharePointSources,
+        sharePointSites,
+        sharePointSyncRunsBySiteId,
+        files,
+        loadingSharePointSites,
+        onDelete: removeSharePointSite,
+        onSync: async siteId => {
+          await syncSharePointNow([siteId])
+        },
+      })
     }
   )
   let knowledgeTableRows: KnowledgeTableRow[] = $derived.by(() => {
     return [...sharePointConnectionRows, ...fileTableRows]
   })
-  const customRenderers = [
-    { column: "icon", component: KnowledgeIconRenderer },
-    { column: "filename", component: KnowledgeNameRenderer },
-    { column: "displayStatus", component: KnowledgeStatusRenderer },
-    { column: "actions", component: KnowledgeActionsRenderer },
-  ]
 
   const loadInitialKnowledge = async (agentId: string) => {
     loading = true
@@ -568,42 +455,11 @@
     />
   </div>
 
-  <div class="section">
-    {#if loading}
-      <div class="loading-state">
-        <ProgressCircle size="S" />
-        <Body size="S">Loading knowledge...</Body>
-      </div>
-    {:else if knowledgeTableRows.length === 0}
-      <div class="empty-state">
-        <Body size="S">No files uploaded yet</Body>
-      </div>
-    {:else}
-      <Table
-        compact
-        quiet
-        rounded
-        hideHeader
-        allowClickRows={false}
-        allowEditRows={false}
-        allowEditColumns={false}
-        on:click={handleKnowledgeRowClick}
-        data={knowledgeTableRows}
-        schema={{
-          icon: { width: "36px" },
-          filename: { displayName: "Name", width: "minmax(0, 2fr)" },
-          displayStatus: { displayName: "Status", width: "130px" },
-          actions: {
-            displayName: "",
-            width: "90px",
-            align: "Right",
-            preventSelectRow: true,
-          },
-        }}
-        {customRenderers}
-      />
-    {/if}
-  </div>
+  <KnowledgeTable
+    {loading}
+    rows={knowledgeTableRows}
+    onRowClick={handleKnowledgeRowClick}
+  />
 </Layout>
 
 <SelectSharePointSiteModal
@@ -621,37 +477,10 @@
 />
 
 <style>
-  .section {
-    display: flex;
-    flex-direction: column;
-    gap: var(--spacing-s);
-    margin-top: var(--spacing-m);
-  }
-
   .section-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: var(--spacing-m);
-  }
-
-  .loading-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-s);
-    padding: 24px 0;
-  }
-
-  .empty-state {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: var(--spacing-s);
-    padding: 24px 16px;
-    text-align: center;
-    border: 1px dashed var(--spectrum-global-color-gray-400);
-    border-radius: var(--radius-l);
   }
 </style>
