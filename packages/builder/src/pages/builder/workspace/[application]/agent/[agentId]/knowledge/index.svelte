@@ -87,6 +87,7 @@
   let selectedSharePointSiteId = $state("")
   let selectedStatusSiteId = $state<string | undefined>()
   let selectedStatusSiteName = $state<string | undefined>()
+  let shouldOpenSharePointPickerAfterOauth = $state(false)
 
   const readableStatus: Record<KnowledgeBaseFileStatus, string> = {
     [KnowledgeBaseFileStatus.PROCESSING]: "Processing",
@@ -331,6 +332,21 @@
     }
   })
 
+  $effect(() => {
+    if (!shouldOpenSharePointPickerAfterOauth) {
+      return
+    }
+    const agentId = currentAgent?._id
+    if (!agentId || !hasSharePointConnection || loading) {
+      return
+    }
+    shouldOpenSharePointPickerAfterOauth = false
+    openSharePointSiteModal().catch(error => {
+      console.error(error)
+      notifications.error("Failed to fetch SharePoint sites")
+    })
+  })
+
   onMount(async () => {
     try {
       if (!$agentsStore.agentsLoaded) {
@@ -360,6 +376,7 @@
           : currentUrl.pathname
         window.history.replaceState({}, "", path)
         notifications.success("SharePoint connected")
+        shouldOpenSharePointPickerAfterOauth = true
       }
       if (currentAgent?._id) {
         initialKnowledgeLoadedForAgent = undefined
