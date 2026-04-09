@@ -50,6 +50,7 @@ export interface KnowledgeSourceSyncRun {
   synced: number
   failed: number
   skipped: number
+  unsupported: number
   totalDiscovered: number
   status: AgentKnowledgeSourceSyncRunStatus
 }
@@ -63,6 +64,7 @@ export interface SyncAgentKnowledgeSourcesResponse {
   synced: number
   failed: number
   skipped: number
+  unsupported: number
   totalDiscovered: number
 }
 

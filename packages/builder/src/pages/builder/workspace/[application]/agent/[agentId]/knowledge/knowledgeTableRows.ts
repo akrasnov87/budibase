@@ -136,7 +136,7 @@ export const toSharePointConnectionRows = ({
         files,
         siteId
       )
-      const total = run?.totalDiscovered || 0
+      const total = (run?.totalDiscovered || 0) - (run?.unsupported || 0)
       const completed = Math.min(ready + failed, total)
       const siteDisplayName =
         site.name ||

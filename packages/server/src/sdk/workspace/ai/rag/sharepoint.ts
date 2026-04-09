@@ -356,6 +356,7 @@ export const fetchKnowledgeSourceSyncStateForAgent = async (
       synced: doc.synced,
       failed: doc.failed,
       skipped: doc.skipped,
+      unsupported: doc.unsupported,
       totalDiscovered: doc.totalDiscovered,
       status: doc.status,
     }))
@@ -446,6 +447,7 @@ export const syncSharePointSourcesForAgent = async (
       synced: 0,
       failed: 0,
       skipped: 0,
+      unsupported: 0,
       totalDiscovered: 0,
     }
   }
@@ -585,6 +587,8 @@ export const syncSharePointSourcesForAgent = async (
     synced,
     failed,
     skipped,
+    unsupported,
+
     totalDiscovered,
   }
 }
