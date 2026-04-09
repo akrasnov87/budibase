@@ -167,7 +167,8 @@ export async function createBucketIfNotExists(
     })
     return { created: false, exists: true }
   } catch (err: any) {
-    const statusCode = err.statusCode || err.$response?.statusCode
+    const statusCode =
+      err.statusCode || err.$response?.statusCode || err.$metadata?.httpStatusCode
     const promises: Record<string, Promise<any> | undefined> =
       STATE.bucketCreationPromises
     const doesntExist = statusCode === 404,
@@ -183,7 +184,10 @@ export async function createBucketIfNotExists(
           })
           .catch((err: any) => {
             // bucket was created in the meantime by another process
-            if (err.Code !== "BucketAlreadyOwnedByYou") {
+            if (
+              err.Code !== "BucketAlreadyOwnedByYou" &&
+              err.name !== "BucketAlreadyOwnedByYou"
+            ) {
               throw err
             }
           })
@@ -796,7 +800,8 @@ export async function objectExists(
     await client.headObject(params)
     return true
   } catch (err: any) {
-    const statusCode = err.statusCode || err.$response?.statusCode
+    const statusCode =
+      err.statusCode || err.$response?.statusCode || err.$metadata?.httpStatusCode
     if (statusCode === 404) {
       return false
     }
