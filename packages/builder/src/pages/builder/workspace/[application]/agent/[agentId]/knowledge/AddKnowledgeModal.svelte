@@ -7,11 +7,17 @@
 
   export interface Props {
     MAX_FILE_SIZE_LABEL: string
+    isUploading?: boolean
     onUpload?: () => void
     onSharePoint?: () => Promise<void>
   }
 
-  let { onUpload, onSharePoint, MAX_FILE_SIZE_LABEL }: Props = $props()
+  let {
+    onUpload,
+    onSharePoint,
+    MAX_FILE_SIZE_LABEL,
+    isUploading = false,
+  }: Props = $props()
 
   let modal = $state<Modal>()
   let loading = $state(false)
@@ -25,6 +31,9 @@
   }
 
   const handleUpload = () => {
+    if (isUploading) {
+      return
+    }
     onUpload?.()
     hide()
   }
@@ -60,11 +69,11 @@
         quiet
         icon="paperclip"
         fullWidth
-        disabled={loading}
+        disabled={loading || isUploading}
         on:click={handleUpload}
       >
-        Add files <span class="file-limit-note"
-          >(max {MAX_FILE_SIZE_LABEL} per file)</span
+        {isUploading ? "Uploading..." : "Add files"}
+        <span class="file-limit-note">(max {MAX_FILE_SIZE_LABEL} per file)</span
         >
       </ActionButton>
       {#if $featureFlags[FeatureFlag.AI_RAG_SHAREPOINT]}

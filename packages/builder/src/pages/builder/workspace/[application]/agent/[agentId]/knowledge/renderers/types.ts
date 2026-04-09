@@ -13,7 +13,8 @@ export interface FileKnowledgeTableRow {
   size: string
   updatedAt: string | number
   mimetype?: string
-  onDelete: () => Promise<void>
+  isUploading?: boolean
+  onDelete?: () => Promise<void>
   errorMessage?: string
 }
 

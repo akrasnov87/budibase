@@ -9,6 +9,14 @@ import type {
   SharePointConnectionTableRow,
 } from "./renderers/types"
 
+export interface PendingUpload {
+  tempId: string
+  filename: string
+  size?: number
+  mimetype?: string
+  createdAt: string
+}
+
 export const formatTimestamp = (value?: string | number) => {
   if (value == null || value === "") {
     return "—"
@@ -31,10 +39,24 @@ const formatFileStatus = (file: KnowledgeBaseFile) =>
 
 export const toFileTableRows = (
   list: KnowledgeBaseFile[],
-  onDelete: (file: KnowledgeBaseFile) => Promise<void>
-): FileKnowledgeTableRow[] =>
-  list
-    .map(file => ({
+  onDelete: (file: KnowledgeBaseFile) => Promise<void>,
+  activePendingUploads?: PendingUpload[]
+): FileKnowledgeTableRow[] => {
+  return [
+    ...(activePendingUploads || []).map(upload => ({
+      kind: "file" as const,
+      _id: upload.tempId,
+      filename: upload.filename,
+      status: KnowledgeBaseFileStatus.PROCESSING,
+      displayStatus: "Uploading",
+      isUploading: true,
+      size: helpers.formatBytes(upload.size, " "),
+      updatedAt: formatTimestamp(upload.createdAt),
+      onDelete: undefined,
+      errorMessage: undefined,
+      mimetype: upload.mimetype,
+    })),
+    ...list.map(file => ({
       kind: "file" as const,
       _id: file._id,
       filename: file.filename,
@@ -47,15 +69,16 @@ export const toFileTableRows = (
       mimetype: file.mimetype,
       onDelete: () => onDelete(file),
       errorMessage: file.errorMessage,
-    }))
-    .sort((a, b) => a.filename.localeCompare(b.filename))
+    })),
+  ].sort((a, b) => a.filename.localeCompare(b.filename))
+}
 
 type ReadOnlyFileKnowledgeTableRow = Omit<FileKnowledgeTableRow, "onDelete">
 
 export const toReadOnlyFileTableRows = (
   list: KnowledgeBaseFile[]
 ): ReadOnlyFileKnowledgeTableRow[] =>
-  toFileTableRows(list, async () => {}).map(
+  toFileTableRows(list, async () => {}, undefined).map(
     ({ onDelete: _onDelete, ...row }) => row
   )
 

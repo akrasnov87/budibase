@@ -17,18 +17,15 @@
   import SharePointFilesStatusModal from "./SharePointFilesStatusModal.svelte"
   import { onDestroy, onMount } from "svelte"
   import type { KnowledgeTableRow } from "./renderers/types"
+  import type { PendingUpload } from "./knowledgeTableRows"
   import {
     getSharePointFilesForSite,
     toFileTableRows,
     toSharePointConnectionRows,
   } from "./knowledgeTableRows"
 
-  interface ModalHandle {
-    show: () => void
-    hide: () => void
-  }
-
   let currentAgent: Agent | undefined = $derived($selectedAgent)
+  let activeAgentId = $derived(currentAgent?._id)
   let sharePointSources = $derived.by(() =>
     (currentAgent?.knowledgeSources || []).filter(
       source => source.type === AgentKnowledgeSourceType.SHAREPOINT
@@ -36,6 +33,9 @@
   )
   let hasSharePointConnection = $derived(sharePointSources.length > 0)
   let loading = $state(true)
+  let pendingUploadsByAgent = $state<Record<string, PendingUpload[]>>({})
+  let uploadingByAgent = $state<Record<string, boolean>>({})
+  let uploadProgressByAgent = $state<Record<string, string>>({})
   let files = $derived.by(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
@@ -43,6 +43,7 @@
     }
     return $agentsStore.filesByAgentId[agentId] || []
   })
+
   let initialKnowledgeLoadedForAgent = $state<string | undefined>()
   let sharePointSites = $derived.by(() => {
     const agentId = currentAgent?._id
@@ -73,12 +74,53 @@
     Array.from(new Set([...selectedSiteIds, ...pendingSiteIds]))
   )
   let loadingSharePointSites = $state(false)
-  let sharePointSiteModal = $state<ModalHandle>()
-  let sharePointFilesStatusModal = $state<ModalHandle>()
+  let sharePointSiteModal = $state<SelectSharePointSiteModal>()
+  let sharePointFilesStatusModal = $state<SharePointFilesStatusModal>()
   let selectedSharePointSiteId = $state("")
   let selectedStatusSiteId = $state<string | undefined>()
   let selectedStatusSiteName = $state<string | undefined>()
   let shouldOpenSharePointPickerAfterOauth = $state(false)
+  let activePendingUploads = $derived(
+    activeAgentId ? pendingUploadsByAgent[activeAgentId] || [] : []
+  )
+  let isUploadingActiveAgent = $derived(
+    activeAgentId ? !!uploadingByAgent[activeAgentId] : false
+  )
+  let activeUploadProgress = $derived(
+    activeAgentId ? uploadProgressByAgent[activeAgentId] || "" : ""
+  )
+
+  const setPendingUploadsForAgent = (
+    agentId: string,
+    pendingUploads: PendingUpload[]
+  ) => {
+    pendingUploadsByAgent = {
+      ...pendingUploadsByAgent,
+      [agentId]: pendingUploads,
+    }
+  }
+
+  const removePendingUpload = (agentId: string, tempId: string) => {
+    const pendingUploads = pendingUploadsByAgent[agentId] || []
+    setPendingUploadsForAgent(
+      agentId,
+      pendingUploads.filter(upload => upload.tempId !== tempId)
+    )
+  }
+
+  const setUploadingForAgent = (agentId: string, uploading: boolean) => {
+    uploadingByAgent = {
+      ...uploadingByAgent,
+      [agentId]: uploading,
+    }
+  }
+
+  const setUploadProgressForAgent = (agentId: string, progress: string) => {
+    uploadProgressByAgent = {
+      ...uploadProgressByAgent,
+      [agentId]: progress,
+    }
+  }
 
   const showSharePointSyncResult = (
     result: SyncAgentKnowledgeSourcesResponse
@@ -139,7 +181,8 @@
   let fileTableRows = $derived.by(() =>
     toFileTableRows(
       files.filter(file => !file.externalSourceId?.startsWith("sharepoint:")),
-      removeFile
+      removeFile,
+      activePendingUploads
     )
   )
   let sharePointConnectionRows = $derived.by(() => {
@@ -418,11 +461,23 @@
     <Body size="S">Knowledge</Body>
     <KnowledgeAddControls
       agentId={currentAgent?._id}
-      onUploaded={async () => {
-        if (!currentAgent?._id) {
-          return
-        }
-        await fetchFiles(currentAgent._id)
+      isUploading={isUploadingActiveAgent}
+      uploadProgress={activeUploadProgress}
+      onPendingUploadsAdded={(agentId, uploads) => {
+        setPendingUploadsForAgent(agentId, [
+          ...uploads,
+          ...(pendingUploadsByAgent[agentId] || []),
+        ])
+      }}
+      onPendingUploadRemoved={(agentId, tempId) => {
+        removePendingUpload(agentId, tempId)
+      }}
+      onUploadingChange={(agentId, uploading, progress) => {
+        setUploadingForAgent(agentId, uploading)
+        setUploadProgressForAgent(agentId, progress)
+      }}
+      onUploaded={async agentId => {
+        await fetchFiles(agentId)
       }}
       onSharePoint={() =>
         handleAddSharePointKnowledge().catch(error => {

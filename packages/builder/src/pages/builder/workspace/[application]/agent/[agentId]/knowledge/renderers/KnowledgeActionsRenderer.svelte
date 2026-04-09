@@ -56,7 +56,7 @@
         disabled={processing}
       />
     </AbsTooltip>
-  {:else}
+  {:else if row.onDelete}
     <AbsTooltip text="Remove file">
       <ActionButton
         icon="trash"

@@ -4,7 +4,11 @@
     AgentKnowledgeSourceSyncRunStatus,
     KnowledgeBaseFileStatus,
   } from "@budibase/types"
-  import type { KnowledgeTableRow, SharePointConnectionTableRow } from "./types"
+  import type {
+    FileKnowledgeTableRow,
+    KnowledgeTableRow,
+    SharePointConnectionTableRow,
+  } from "./types"
   import { utils } from "@budibase/shared-core"
 
   export interface Props {
@@ -19,14 +23,18 @@
       case "sharepoint_connection":
         return getSharePointStatusProps(row)
       case "file":
-        return getFileStatusProps(row.status)
+        return getFileStatusProps(row)
       default:
         throw utils.unreachable(kind)
     }
   }
 
-  const getFileStatusProps = (status?: KnowledgeBaseFileStatus) => {
-    switch (status) {
+  const getFileStatusProps = (row: FileKnowledgeTableRow) => {
+    if (row.isUploading) {
+      return { info: true }
+    }
+
+    switch (row.status) {
       case KnowledgeBaseFileStatus.READY:
         return { positive: true }
       case KnowledgeBaseFileStatus.FAILED:
