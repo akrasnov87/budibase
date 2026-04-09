@@ -98,7 +98,7 @@
 
   {#if !loading && rows.length === 0}
     <div class="empty-state">
-      <Body size="S">No SharePoint sources are currently connected.</Body>
+      <Body size="S">No knowledge sources are currently connected.</Body>
     </div>
   {:else}
     <Table
