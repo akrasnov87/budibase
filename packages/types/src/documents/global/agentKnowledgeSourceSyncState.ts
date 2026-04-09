@@ -14,6 +14,7 @@ export interface AgentKnowledgeSourceSyncState extends Document {
   synced: number
   failed: number
   skipped: number
+  unsupported: number
   totalDiscovered: number
   status: AgentKnowledgeSourceSyncRunStatus
 }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { Body, Layout, notifications } from "@budibase/bbui"
   import { confirm } from "@/helpers"
+  import type { SyncAgentKnowledgeSourcesResponse } from "@budibase/types"
   import {
     AgentKnowledgeSourceType,
     type Agent,
@@ -79,13 +80,10 @@
   let selectedStatusSiteName = $state<string | undefined>()
   let shouldOpenSharePointPickerAfterOauth = $state(false)
 
-  const showSharePointSyncResult = (result: {
-    synced: number
-    failed: number
-    skipped?: number
-    totalDiscovered?: number
-  }) => {
-    const skipped = result.skipped ?? 0
+  const showSharePointSyncResult = (
+    result: SyncAgentKnowledgeSourcesResponse
+  ) => {
+    const skipped = result.skipped - result.unsupported
     const discovered = result.totalDiscovered ?? result.synced + skipped
 
     if (result.synced === 0 && result.failed === 0) {

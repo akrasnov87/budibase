@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Button } from "@budibase/bbui"
+  import { KNOWLEDGE_FILE_ACCEPT_ATTRIBUTE } from "@budibase/types"
   import { notifications } from "@budibase/bbui"
   import { agentsStore } from "@/stores/portal"
   import AddKnowledgeModal from "./AddKnowledgeModal.svelte"
@@ -15,9 +16,6 @@
   }
 
   let { agentId, onUploaded, onSharePoint }: Props = $props()
-
-  const ACCEPTED_KNOWLEDGE_FILE_TYPES =
-    ".txt,.md,.markdown,.json,.yaml,.yml,.csv,.tsv,.pdf,.html,.htm,.xml,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf"
 
   let fileInput = $state<HTMLInputElement>()
   let addKnowledgeModal = $state<AddKnowledgeModal>()
@@ -78,7 +76,7 @@
 
 <input
   type="file"
-  accept={ACCEPTED_KNOWLEDGE_FILE_TYPES}
+  accept={KNOWLEDGE_FILE_ACCEPT_ATTRIBUTE}
   hidden
   bind:this={fileInput}
   onchange={handleFileUpload}
