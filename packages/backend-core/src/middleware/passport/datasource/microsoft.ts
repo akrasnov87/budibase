@@ -12,6 +12,8 @@ type Passport = {
 const DEFAULT_SCOPE =
   "offline_access https://graph.microsoft.com/Sites.Read.All"
 const CREATION_CACHE_TTL_SECONDS = 600
+const STATE_CACHE_TTL_SECONDS = 600
+const MICROSOFT_PROVIDER = "microsoft"
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -41,6 +43,7 @@ export async function preAuth(
   _next: Function
 ) {
   const appId = String(ctx.query.appId || "").trim()
+  const tenantIdFromRoute = String(ctx.params?.tenantId || "").trim()
   if (!appId) {
     ctx.throw(400, "appId query param not present.")
   }
@@ -50,7 +53,15 @@ export async function preAuth(
   const callbackUrl = `${platformUrl}/api/global/auth/datasource/microsoft/callback`
 
   const state = utils.newid()
-  await cache.store(`datasource:microsoft:state:${state}`, { appId }, 600)
+  await cache.store(
+    `datasource:${MICROSOFT_PROVIDER}:state:${state}`,
+    {
+      appId,
+      provider: MICROSOFT_PROVIDER,
+      tenantId: tenantIdFromRoute || undefined,
+    },
+    STATE_CACHE_TTL_SECONDS
+  )
 
   const authorizeUrl = new URL(
     `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/authorize`
@@ -82,25 +93,44 @@ export async function postAuth(
   if (!appId) {
     throw new Error("Missing app id from datasource auth cookie")
   }
+  if (authStateCookie.provider !== MICROSOFT_PROVIDER) {
+    throw new Error("Invalid datasource provider for Microsoft OAuth callback")
+  }
 
   const state = String(ctx.query.state || "").trim()
   if (!state) {
     throw new Error("Microsoft OAuth callback is missing state")
   }
   const statePayload = (await cache.get(
-    `datasource:microsoft:state:${state}`
-  )) as { appId?: string }
-  await cache.destroy(`datasource:microsoft:state:${state}`)
+    `datasource:${MICROSOFT_PROVIDER}:state:${state}`
+  )) as { appId?: string; provider?: string; tenantId?: string }
+  await cache.destroy(`datasource:${MICROSOFT_PROVIDER}:state:${state}`)
   const stateAppId =
     typeof statePayload?.appId === "string" ? statePayload.appId.trim() : ""
-  if (!statePayload || !stateAppId || stateAppId !== appId) {
+  const stateTenantId =
+    typeof statePayload?.tenantId === "string"
+      ? statePayload.tenantId.trim()
+      : ""
+  const callbackTenantId = String(ctx.params?.tenantId || "").trim()
+  if (
+    !statePayload ||
+    !stateAppId ||
+    stateAppId !== appId ||
+    statePayload.provider !== MICROSOFT_PROVIDER ||
+    (stateTenantId && callbackTenantId && stateTenantId !== callbackTenantId)
+  ) {
     throw new Error("Microsoft OAuth state is invalid or expired")
   }
 
   const oauthError = String(ctx.query.error || "").trim()
   if (oauthError) {
     const description = String(ctx.query.error_description || "").trim()
-    throw new Error(description || oauthError)
+    console.error("Microsoft OAuth authorization failed", {
+      appId,
+      error: oauthError,
+      hasDescription: !!description,
+    })
+    throw new Error("Microsoft OAuth authorization failed")
   }
 
   const code = String(ctx.query.code || "").trim()
@@ -131,11 +161,13 @@ export async function postAuth(
   })
   const tokenPayload = await tokenResponse.json()
   if (!tokenResponse.ok) {
-    const message =
-      tokenPayload?.error_description ||
-      tokenPayload?.error ||
-      "Failed to exchange Microsoft OAuth code"
-    throw new Error(message)
+    console.error("Microsoft OAuth token exchange failed", {
+      appId,
+      status: tokenResponse.status,
+      error: tokenPayload?.error,
+      hasDescription: !!tokenPayload?.error_description,
+    })
+    throw new Error("Failed to exchange Microsoft OAuth code")
   }
 
   const refreshToken = tokenPayload?.refresh_token

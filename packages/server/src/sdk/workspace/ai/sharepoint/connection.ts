@@ -16,9 +16,25 @@ interface SharePointConnectionCacheRecord {
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const DEFAULT_SCOPE =
   "offline_access https://graph.microsoft.com/Sites.Read.All"
+const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
+
+export const isAllowedSharePointNextLink = (value: string): boolean => {
+  try {
+    const nextUrl = new URL(value)
+    return (
+      nextUrl.protocol === SHAREPOINT_API_BASE_URL.protocol &&
+      nextUrl.hostname === SHAREPOINT_API_BASE_URL.hostname &&
+      nextUrl.port === SHAREPOINT_API_BASE_URL.port &&
+      (nextUrl.pathname === SHAREPOINT_API_BASE_URL.pathname ||
+        nextUrl.pathname.startsWith(`${SHAREPOINT_API_BASE_URL.pathname}/`))
+    )
+  } catch {
+    return false
+  }
+}
 
 export const sharePointSetupCacheKey = (appId: string, setupId: string) =>
   utils.microsoftDatasourceCreationCacheKey(appId, setupId)
@@ -58,12 +74,12 @@ const refreshConnection = async (
   })
   const payload = await response.json()
   if (!response.ok) {
-    throw new HTTPError(
-      payload?.error_description ||
-        payload?.error ||
-        "Failed to refresh SharePoint OAuth credentials",
-      400
-    )
+    console.error("Failed to refresh SharePoint OAuth credentials", {
+      status: response.status,
+      error: payload?.error,
+      hasDescription: !!payload?.error_description,
+    })
+    throw new HTTPError("Failed to refresh SharePoint OAuth credentials", 400)
   }
 
   const expiresIn = Number(payload?.expires_in || 0)
@@ -138,9 +154,13 @@ export const fetchSharePointSitesByBearerToken = async (
       }
     )
     if (!response.ok) {
-      const body = await response.text()
+      console.error("Failed to fetch SharePoint sites", {
+        status: response.status,
+      })
       throw new HTTPError(
-        `Failed to fetch SharePoint sites (${response.status}): ${body}`,
+        response.status === 401 || response.status === 403
+          ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+          : `Failed to fetch SharePoint sites (${response.status})`,
         400
       )
     }
@@ -163,8 +183,11 @@ export const fetchSharePointSitesByBearerToken = async (
     }
 
     const nextLink = trimString(payload?.["@odata.nextLink"])
-    if (!nextLink || !nextLink.startsWith(SHAREPOINT_API_BASE)) {
+    if (!nextLink) {
       break
+    }
+    if (!isAllowedSharePointNextLink(nextLink)) {
+      throw new HTTPError("Invalid SharePoint pagination URL", 400)
     }
 
     const nextUrl = new URL(nextLink)

@@ -16,6 +16,7 @@ import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
 import {
   fetchSharePointSitesByConnection,
   getSharePointBearerToken,
+  isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
   storeSharePointConnectionFromSetup,
 } from "../sharepoint"
@@ -191,9 +192,14 @@ const listDrives = async (
     }
   )
   if (!response.ok) {
-    const body = await response.text()
+    console.error("Failed to list SharePoint drives", {
+      status: response.status,
+      siteId,
+    })
     throw new HTTPError(
-      `Failed to list SharePoint drives (${response.status}): ${body}`,
+      response.status === 401 || response.status === 403
+        ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+        : `Failed to list SharePoint drives (${response.status})`,
       400
     )
   }
@@ -222,9 +228,15 @@ const listDriveItems = async (
       },
     })
     if (!response.ok) {
-      const body = await response.text()
+      console.error("Failed to list SharePoint drive items", {
+        status: response.status,
+        driveId,
+        hasItemId: !!itemId,
+      })
       throw new HTTPError(
-        `Failed to list SharePoint drive items (${response.status}): ${body}`,
+        response.status === 401 || response.status === 403
+          ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+          : `Failed to list SharePoint drive items (${response.status})`,
         400
       )
     }
@@ -237,7 +249,7 @@ const listDriveItems = async (
       continue
     }
 
-    if (!nextPageLink.startsWith(SHAREPOINT_API_BASE)) {
+    if (!isAllowedSharePointNextLink(nextPageLink)) {
       throw new HTTPError("Invalid SharePoint pagination URL", 400)
     }
     nextLink = nextPageLink
@@ -302,9 +314,15 @@ const downloadFileBuffer = async (
     }
   )
   if (!response.ok) {
-    const body = await response.text()
+    console.error("Failed to download SharePoint file", {
+      status: response.status,
+      driveId,
+      itemId,
+    })
     throw new HTTPError(
-      `Failed to download SharePoint file (${response.status}): ${body}`,
+      response.status === 401 || response.status === 403
+        ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+        : `Failed to download SharePoint file (${response.status})`,
       400
     )
   }
