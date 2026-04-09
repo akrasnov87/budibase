@@ -4,7 +4,7 @@ const mockGetRepeatableJobs = jest.fn()
 const mockRemoveRepeatableByKey = jest.fn()
 const mockRemoveJobs = jest.fn()
 const mockDoInWorkspaceContext = jest.fn()
-const mockSyncSharePointForAgent = jest.fn()
+const mockSyncSharePointSourcesForAgent = jest.fn()
 const mockGetAllWorkspaces = jest.fn()
 const mockWorkspaceAllDocs = jest.fn()
 
@@ -52,8 +52,8 @@ jest.mock("@budibase/backend-core", () => {
 })
 
 jest.mock("./sharepoint", () => ({
-  syncSharePointForAgent: (...args: any[]) =>
-    mockSyncSharePointForAgent(...args),
+  syncSharePointSourcesForAgent: (...args: any[]) =>
+    mockSyncSharePointSourcesForAgent(...args),
 }))
 
 import { AgentKnowledgeSourceType, type Agent } from "@budibase/types"
@@ -205,7 +205,7 @@ describe("knowledgeSourceSyncQueue", () => {
       "app_dev_test",
       expect.any(Function)
     )
-    expect(mockSyncSharePointForAgent).toHaveBeenCalledWith("agent_1", [
+    expect(mockSyncSharePointSourcesForAgent).toHaveBeenCalledWith("agent_1", [
       "sharepoint_site_site_1",
     ])
   })

@@ -443,9 +443,9 @@ export const deleteSharePointSyncStateForAgent = async (
   }
 }
 
-export const syncSharePointForAgent = async (
+export const syncSharePointSourcesForAgent = async (
   agentId: string,
-  sourceIdsInput?: string[]
+  sourceIds?: string[]
 ): Promise<SyncAgentKnowledgeSourcesResponse> => {
   const lastRunAt = new Date().toISOString()
   const trimmedAgentId = trimString(agentId)
@@ -458,19 +458,20 @@ export const syncSharePointForAgent = async (
   }
 
   const existingSites = getSharePointSitesFromSources(agent)
-  const sourceIdSet =
-    sourceIdsInput && sourceIdsInput.length > 0
-      ? new Set(sourceIdsInput.map(id => trimString(id)).filter(Boolean))
-      : null
-  const sites = sourceIdSet
-    ? normalizeSites(
-        getSharePointSources(agent)
-          .filter(source => sourceIdSet.has(trimString(source.id)))
-          .map(source => source.config.site)
-          .filter((site): site is SharePointSourceSite => !!site?.id)
-      )
-    : normalizeSites(existingSites)
-  const siteIds = sites.map(site => site.id)
+  const sourceIdSet = new Set(
+    sourceIds?.map(id => trimString(id)).filter(Boolean)
+  )
+  const sites =
+    sourceIdSet.size > 0
+      ? normalizeSites(
+          getSharePointSources(agent)
+            .filter(source => sourceIdSet.has(trimString(source.id)))
+            .map(source => source.config.site)
+            .filter((site): site is SharePointSourceSite => !!site?.id)
+        )
+      : []
+  const runSites = sites.length > 0 ? sites : normalizeSites(existingSites)
+  const siteIds = runSites.map(site => site.id)
 
   if (siteIds.length === 0) {
     return {

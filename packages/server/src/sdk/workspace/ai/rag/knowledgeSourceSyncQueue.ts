@@ -6,7 +6,7 @@ import {
   type Agent,
 } from "@budibase/types"
 import env from "../../../../environment"
-import { syncSharePointForAgent } from "./sharepoint"
+import { syncSharePointSourcesForAgent } from "./sharepoint"
 
 const DEFAULT_CONCURRENCY = 2
 const DEFAULT_BACKOFF_MS = utils.Duration.fromSeconds(10).toMs()
@@ -110,7 +110,7 @@ export function init(concurrency = DEFAULT_CONCURRENCY) {
         await context.doInWorkspaceContext(workspaceId, async () => {
           switch (sourceType) {
             case AgentKnowledgeSourceType.SHAREPOINT:
-              await syncSharePointForAgent(agentId, [sourceId])
+              await syncSharePointSourcesForAgent(agentId, [sourceId])
               break
             default:
               throw new Error(

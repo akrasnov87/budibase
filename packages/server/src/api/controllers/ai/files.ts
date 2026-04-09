@@ -149,7 +149,9 @@ export async function syncAgentKnowledgeSources(
   const sourceIds = Array.isArray(ctx.request.body?.sourceIds)
     ? ctx.request.body.sourceIds
     : undefined
-  const response = await sdk.ai.rag.syncSharePointForAgent(agentId, sourceIds)
+  const response = sourceIds
+    ? await sdk.ai.rag.syncSharePointSourcesForAgent(agentId, sourceIds)
+    : await sdk.ai.rag.syncSharePointSourcesForAgent(agentId)
   ctx.body = response
   ctx.status = 200
 }
@@ -233,6 +235,11 @@ export async function setAgentKnowledgeSources(
     agentId,
     removedSharePointSiteIds
   )
+
+  const nextSourceIds = nextSources.map(source => source.id)
+  if (nextSourceIds.length > 0) {
+    await sdk.ai.rag.syncSharePointSourcesForAgent(agentId, nextSourceIds)
+  }
 
   ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   ctx.status = 200

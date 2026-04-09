@@ -143,16 +143,18 @@ describe("agent files", () => {
     })
   }
 
-  const mockSharePointSitesFetch = (siteIds: string[]) => {
+  const mockSharePointSitesFetch = (siteIds: string[], times = 6) => {
     const graphPool = mockAgent.get("https://graph.microsoft.com")
-    graphPool
-      .intercept({
-        method: "GET",
-        path: /.*/,
-      })
-      .reply(200, {
-        value: siteIds.map(id => ({ id })),
-      })
+    for (let i = 0; i < times; i++) {
+      graphPool
+        .intercept({
+          method: "GET",
+          path: /.*/,
+        })
+        .reply(200, {
+          value: siteIds.map(id => ({ id })),
+        })
+    }
   }
 
   it("uploads and lists files attached to an agent", async () => {

@@ -319,25 +319,11 @@
       })
       pendingSiteIds = nextSiteIds.filter(id => !selectedSiteIds.includes(id))
       sharePointSiteModal?.hide()
-      const refreshedAgents = await agentsStore.fetchAgents()
-      const refreshedAgent = refreshedAgents.find(
-        agent => agent._id === agentId
-      )
-      const sourceIds =
-        refreshedAgent?.knowledgeSources
-          ?.filter(
-            source =>
-              source.type === AgentKnowledgeSourceType.SHAREPOINT &&
-              nextSiteIds.includes(source.config.site?.id || "")
-          )
-          .map(source => source.id) || []
-      const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
-        sourceIds,
-      })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
+      await agentsStore.fetchAgents()
       pendingSiteIds = []
-      showSharePointSyncResult(result)
+      notifications.success("SharePoint site added")
     } catch (error) {
       pendingSiteIds = []
       console.error(error)
