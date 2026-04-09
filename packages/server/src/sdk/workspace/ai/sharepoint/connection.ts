@@ -23,8 +23,6 @@ interface SharePointConnectionCacheRecord {
 }
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
-const DEFAULT_SCOPE =
-  "offline_access https://graph.microsoft.com/Sites.Read.All"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
 
 const trimString = (value: unknown) =>

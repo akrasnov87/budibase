@@ -3,12 +3,11 @@ import {
   configs,
   constants,
   context,
-  db,
   env,
   utils,
 } from "@budibase/backend-core"
 import { DatasourceAuthCookie, UserCtx } from "@budibase/types"
-import { sharePointConnectionCacheKey } from "../../../sdk/workspace/ai/sharepoint"
+import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/sharepoint"
 import sdk from "../../../sdk"
 
 const DEFAULT_SCOPE =
@@ -35,9 +34,6 @@ const appendQueryParam = (path: string, key: string, value: string) => {
   const qs = url.searchParams.toString()
   return `${url.pathname}${qs ? `?${qs}` : ""}`
 }
-
-const getSharePointWorkspaceConnectionKey = (appId: string) =>
-  sharePointConnectionCacheKey("connection", db.getProdWorkspaceID(appId))
 
 export async function startSharePointAuth(ctx: UserCtx<void, void>) {
   const appId = String(ctx.query.appId || "").trim()
