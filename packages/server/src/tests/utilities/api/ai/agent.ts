@@ -1,8 +1,6 @@
 import {
   Agent,
   AgentFileUploadResponse,
-  CompleteAgentKnowledgeSourceConnectionRequest,
-  CompleteAgentKnowledgeSourceConnectionResponse,
   DisconnectAgentKnowledgeSourcesResponse,
   CreateAgentRequest,
   CreateAgentResponse,
@@ -172,20 +170,6 @@ export class AgentAPI extends TestAPI {
     return await this._delete<{ deleted: true }>(
       `/api/agent/${agentId}/files/${fileId}`,
       {
-        expectations,
-      }
-    )
-  }
-
-  completeKnowledgeSourceConnection = async (
-    agentId: string,
-    body: CompleteAgentKnowledgeSourceConnectionRequest,
-    expectations?: Expectations
-  ): Promise<CompleteAgentKnowledgeSourceConnectionResponse> => {
-    return await this._post<CompleteAgentKnowledgeSourceConnectionResponse>(
-      `/api/agent/${agentId}/knowledge-sources/connect/complete`,
-      {
-        body,
         expectations,
       }
     )

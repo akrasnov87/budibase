@@ -1,7 +1,5 @@
 import {
   AgentFileUploadResponse,
-  CompleteAgentKnowledgeSourceConnectionRequest,
-  CompleteAgentKnowledgeSourceConnectionResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   DisconnectAgentKnowledgeSourcesResponse,
@@ -68,10 +66,6 @@ export interface AgentEndpoints {
     agentId: string,
     fileId: string
   ) => Promise<{ deleted: true }>
-  completeAgentKnowledgeSourceConnection: (
-    agentId: string,
-    body: CompleteAgentKnowledgeSourceConnectionRequest
-  ) => Promise<CompleteAgentKnowledgeSourceConnectionResponse>
   fetchAgentKnowledgeSourceOptions: (
     agentId: string
   ) => Promise<FetchAgentKnowledgeSourceOptionsResponse>
@@ -208,16 +202,6 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
   deleteAgentFile: async (agentId: string, fileId: string) => {
     return await API.delete({
       url: `/api/agent/${agentId}/files/${fileId}`,
-    })
-  },
-
-  completeAgentKnowledgeSourceConnection: async (agentId: string, body) => {
-    return await API.post<
-      CompleteAgentKnowledgeSourceConnectionRequest,
-      CompleteAgentKnowledgeSourceConnectionResponse
-    >({
-      url: `/api/agent/${agentId}/knowledge-sources/connect/complete`,
-      body,
     })
   },
 

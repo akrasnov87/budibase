@@ -1,4 +1,4 @@
-import { cache, HTTPError, utils } from "@budibase/backend-core"
+import { HTTPError } from "@budibase/backend-core"
 import type {
   AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
@@ -44,9 +44,6 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
     return false
   }
 }
-
-export const sharePointSetupCacheKey = (appId: string, setupId: string) =>
-  utils.microsoftDatasourceCreationCacheKey(appId, setupId)
 
 export const sharePointConnectionCacheKey = (scope: string, scopeId: string) =>
   `sharepoint:${scope}:${scopeId}:connection`
@@ -166,32 +163,6 @@ export const getSharePointBearerToken = async (
   }
   const tokenType = connection.tokenType?.trim() || "Bearer"
   return `${tokenType} ${connection.accessToken}`
-}
-
-export const storeSharePointConnectionFromSetup = async ({
-  appId,
-  setupId,
-  connectionKey,
-}: {
-  appId: string
-  setupId: string
-  connectionKey: string
-}) => {
-  const cachedConnection = await cache.get(
-    sharePointSetupCacheKey(appId, setupId)
-  )
-  if (!cachedConnection?.refreshToken) {
-    throw new HTTPError(
-      "SharePoint setup token is invalid or expired. Please connect again.",
-      400
-    )
-  }
-
-  await persistConnection(
-    connectionKey,
-    cachedConnection as SharePointConnectionCacheRecord
-  )
-  await cache.destroy(sharePointSetupCacheKey(appId, setupId))
 }
 
 export const clearSharePointConnection = async (connectionKey: string) => {

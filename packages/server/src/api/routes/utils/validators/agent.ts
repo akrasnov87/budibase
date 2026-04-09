@@ -133,15 +133,6 @@ export function generateAgentInstructionsValidator() {
   )
 }
 
-export function completeAgentKnowledgeSourceConnectionValidator() {
-  return auth.joiValidator.body(
-    Joi.object({
-      appId: Joi.string().required().trim().disallow(""),
-      continueSetupId: Joi.string().required().trim().disallow(""),
-    }).required()
-  )
-}
-
 export function syncAgentKnowledgeSourcesValidator() {
   return auth.joiValidator.body(
     Joi.object({

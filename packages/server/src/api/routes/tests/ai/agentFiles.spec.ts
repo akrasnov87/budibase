@@ -263,21 +263,6 @@ describe("agent files", () => {
     })
   })
 
-  it("validates complete SharePoint connection payload", async () => {
-    await withRagEnabled(async () => {
-      const created = await config.api.agent.create({
-        name: "SharePoint Invalid Connect Agent",
-        aiconfig: "default",
-      })
-
-      await config.api.agent.completeKnowledgeSourceConnection(
-        created._id!,
-        {} as any,
-        { status: 400 }
-      )
-    })
-  })
-
   it("returns empty SharePoint sites for an agent without a connection", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({

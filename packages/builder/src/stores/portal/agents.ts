@@ -3,8 +3,6 @@ import { BudiStore } from "../BudiStore"
 import {
   Agent,
   AgentFileUploadResponse,
-  CompleteAgentKnowledgeSourceConnectionRequest,
-  CompleteAgentKnowledgeSourceConnectionResponse,
   CreateAgentRequest,
   DisconnectAgentKnowledgeSourcesResponse,
   FetchAgentFilesResponse,
@@ -267,12 +265,6 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
   deleteAgentFile = async (agentId: string, fileId: string) =>
     await API.deleteAgentFile(agentId, fileId)
-
-  completeAgentKnowledgeSourceConnection = async (
-    agentId: string,
-    body: CompleteAgentKnowledgeSourceConnectionRequest
-  ): Promise<CompleteAgentKnowledgeSourceConnectionResponse> =>
-    await API.completeAgentKnowledgeSourceConnection(agentId, body)
 
   fetchAgentKnowledgeSourceOptions = async (
     agentId: string
