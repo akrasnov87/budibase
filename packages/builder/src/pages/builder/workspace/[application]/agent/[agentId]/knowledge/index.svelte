@@ -149,7 +149,6 @@
       hasSharePointConnection,
       selectedSiteIds: effectiveSelectedSiteIds,
       sharePointSources,
-      sharePointSites,
       sharePointSyncRunsBySiteId,
       files,
       loadingSharePointSites,

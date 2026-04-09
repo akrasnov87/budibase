@@ -47,6 +47,8 @@ interface SharePointDriveItemsResponse {
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_CONNECTION_SOURCE_ID = "sharepoint_connection"
 const SHAREPOINT_SOURCE_TYPE = "sharepoint"
+const SHAREPOINT_SITE_ID_REGEX =
+  /^[^,/?#\s]+,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12},[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
 type SharePointSourceSite = {
   id: string
   name?: string
@@ -55,6 +57,10 @@ type SharePointSourceSite = {
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
+
+export const isValidSharePointSiteId = (value: string): boolean => {
+  return SHAREPOINT_SITE_ID_REGEX.test(trimString(value))
+}
 
 export const getSharePointWorkspaceConnectionKey = (workspaceId: string) =>
   sharePointConnectionCacheKey("connection", db.getProdWorkspaceID(workspaceId))
@@ -184,8 +190,15 @@ const listDrives = async (
   bearerToken: string,
   siteId: string
 ): Promise<string[]> => {
+  const normalizedSiteId = trimString(siteId)
+  if (!isValidSharePointSiteId(normalizedSiteId)) {
+    throw new HTTPError("Invalid SharePoint site id", 400)
+  }
+
   const response = await fetch(
-    `${SHAREPOINT_API_BASE}/sites/${siteId}/drives?$top=200&$select=id`,
+    `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
+      normalizedSiteId
+    )}/drives?$top=200&$select=id`,
     {
       headers: {
         Authorization: bearerToken,
@@ -195,7 +208,7 @@ const listDrives = async (
   if (!response.ok) {
     console.error("Failed to list SharePoint drives", {
       status: response.status,
-      siteId,
+      siteId: normalizedSiteId,
     })
     throw new HTTPError(
       response.status === 401 || response.status === 403
