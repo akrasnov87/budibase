@@ -1,4 +1,4 @@
-import { Document } from "../../"
+import { AgentKnowledgeSourceType, Document } from "../../"
 
 export enum AgentKnowledgeSourceSyncRunStatus {
   SUCCESS = "success",
@@ -8,7 +8,7 @@ export enum AgentKnowledgeSourceSyncRunStatus {
 
 export interface AgentKnowledgeSourceSyncState extends Document {
   agentId: string
-  sourceType: string
+  sourceType: AgentKnowledgeSourceType
   sourceId: string
   lastRunAt: string
   synced: number

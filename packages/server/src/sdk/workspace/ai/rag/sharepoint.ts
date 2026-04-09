@@ -1,4 +1,4 @@
-import { cache, context, db, docIds, HTTPError } from "@budibase/backend-core"
+import { context, db, docIds, HTTPError } from "@budibase/backend-core"
 import {
   type Agent,
   type AgentKnowledgeSourceSyncState,
@@ -16,6 +16,7 @@ import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
 import {
   fetchSharePointSitesByConnection,
   getSharePointBearerToken,
+  hasSharePointConnection,
   isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
   storeSharePointConnectionFromSetup,
@@ -63,10 +64,7 @@ const getSharePointCurrentWorkspaceConnectionKey = () =>
   getSharePointWorkspaceConnectionKey(context.getOrThrowWorkspaceId())
 
 export const hasSharePointWorkspaceConnection = async (): Promise<boolean> => {
-  const cachedConnection = await cache.get(
-    getSharePointCurrentWorkspaceConnectionKey()
-  )
-  return !!cachedConnection?.refreshToken
+  return hasSharePointConnection(getSharePointCurrentWorkspaceConnectionKey())
 }
 
 const normalizeSites = (
