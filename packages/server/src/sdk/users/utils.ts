@@ -39,7 +39,6 @@ export function combineMetadataAndUser(
   delete user._rev
   const newDoc = {
     ...user,
-    fullName: getUserFullName(user),
     _id: metadataId,
     tableId: InternalTables.USER_METADATA,
   }

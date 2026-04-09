@@ -107,7 +107,6 @@ describe("syncGlobalUsers", () => {
         email: user1.email,
         firstName: user1.firstName,
         lastName: user1.lastName,
-        fullName: `${user1.firstName} ${user1.lastName}`,
         builder: { global: false },
         admin: { global: false },
 
@@ -124,7 +123,7 @@ describe("syncGlobalUsers", () => {
     })
   })
 
-  it("uses email as fullName fallback when first and last names are empty", async () => {
+  it("uses email as computed fullName fallback when first and last names are empty", async () => {
     const user = await config.createUser({
       firstName: "",
       lastName: "",
@@ -138,7 +137,7 @@ describe("syncGlobalUsers", () => {
     await config.doInContext(config.devWorkspaceId, async () => {
       await syncGlobalUsers()
 
-      const metadata = await rawUserMetadata()
+      const metadata = await fetchMetadata()
       expect(metadata).toContainEqual(
         expect.objectContaining({
           _id: db.generateUserMetadataID(user._id!),
@@ -148,7 +147,7 @@ describe("syncGlobalUsers", () => {
     })
   })
 
-  it("uses single-name fullName fallback when only one name part exists", async () => {
+  it("uses single-name computed fullName fallback when only one name part exists", async () => {
     const user = await config.createUser({
       firstName: "Only",
       lastName: "",
@@ -162,7 +161,7 @@ describe("syncGlobalUsers", () => {
     await config.doInContext(config.devWorkspaceId, async () => {
       await syncGlobalUsers()
 
-      const metadata = await rawUserMetadata()
+      const metadata = await fetchMetadata()
       expect(metadata).toContainEqual(
         expect.objectContaining({
           _id: db.generateUserMetadataID(user._id!),
@@ -172,7 +171,7 @@ describe("syncGlobalUsers", () => {
     })
   })
 
-  it("uses single-name fullName fallback when only last name exists", async () => {
+  it("uses single-name computed fullName fallback when only last name exists", async () => {
     const user = await config.createUser({
       firstName: "",
       lastName: "SurnameOnly",
@@ -186,7 +185,7 @@ describe("syncGlobalUsers", () => {
     await config.doInContext(config.devWorkspaceId, async () => {
       await syncGlobalUsers()
 
-      const metadata = await rawUserMetadata()
+      const metadata = await fetchMetadata()
       expect(metadata).toContainEqual(
         expect.objectContaining({
           _id: db.generateUserMetadataID(user._id!),
