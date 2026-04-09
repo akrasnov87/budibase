@@ -133,7 +133,6 @@ describe("agent files", () => {
           tenantId: config.getTenantId(),
           tokenEndpoint:
             "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-          scope: "offline_access https://graph.microsoft.com/Sites.Read.All",
           accessToken: "header.payload.signature",
           refreshToken: "refresh-token",
           tokenType: "Bearer",

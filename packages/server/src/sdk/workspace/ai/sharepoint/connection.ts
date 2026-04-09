@@ -14,7 +14,6 @@ import {
 interface SharePointConnectionCacheRecord {
   tenantId: string
   tokenEndpoint: string
-  scope?: string
   accessToken: string
   refreshToken: string
   tokenType?: string
@@ -68,7 +67,6 @@ const persistConnection = async (
     {
       tenantId: connection.tenantId,
       tokenEndpoint: connection.tokenEndpoint,
-      scope: connection.scope,
       accessToken: connection.accessToken,
       refreshToken: connection.refreshToken,
       tokenType: connection.tokenType,
@@ -85,7 +83,6 @@ const mapPersistedToCacheRecord = (
   return {
     tenantId: doc.tenantId,
     tokenEndpoint: doc.tokenEndpoint,
-    scope: doc.scope,
     accessToken: doc.accessToken,
     refreshToken: doc.refreshToken,
     tokenType: doc.tokenType,
@@ -135,7 +132,6 @@ const refreshConnection = async (
       client_secret: connection.clientSecret,
       grant_type: "refresh_token",
       refresh_token: connection.refreshToken,
-      scope: connection.scope || DEFAULT_SCOPE,
     }),
   })
   const payload = await response.json()
@@ -151,7 +147,6 @@ const refreshConnection = async (
   const expiresIn = Number(payload?.expires_in || 0)
   const updated: SharePointConnectionCacheRecord = {
     ...connection,
-    scope: payload?.scope || connection.scope,
     accessToken: payload?.access_token || connection.accessToken,
     refreshToken: payload?.refresh_token || connection.refreshToken,
     tokenType: payload?.token_type || connection.tokenType || "Bearer",

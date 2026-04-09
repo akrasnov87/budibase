@@ -182,7 +182,7 @@ export async function postAuth(
     {
       tenantId,
       tokenEndpoint,
-      scope: tokenPayload?.scope || DEFAULT_SCOPE,
+      scope: DEFAULT_SCOPE,
       accessToken: tokenPayload?.access_token,
       refreshToken,
       tokenType: tokenPayload?.token_type || "Bearer",
