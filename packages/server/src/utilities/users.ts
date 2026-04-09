@@ -15,7 +15,7 @@ export function getUserFullName(user: {
     return `${firstName} ${lastName}`
   }
 
-  return firstName || lastName || user.email
+  return firstName || lastName
 }
 
 export async function getFullUser(
