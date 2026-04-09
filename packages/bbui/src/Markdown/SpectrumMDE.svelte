@@ -448,6 +448,17 @@
   :global(.EasyMDEContainer .cm-s-easymde .cm-url) {
     color: var(--spectrum-global-color-gray-500);
   }
+  /* Keep inline HTML markup readable across themes */
+  :global(.EasyMDEContainer .cm-s-easymde .cm-tag) {
+    color: var(--spectrum-alias-text-color);
+    opacity: 0.9;
+  }
+  :global(.EasyMDEContainer .cm-s-easymde .cm-attribute) {
+    color: var(--spectrum-global-color-gray-700);
+  }
+  :global(.EasyMDEContainer .cm-s-easymde .cm-string) {
+    color: var(--spectrum-global-color-gray-600);
+  }
   /* Markdown italics in the editor */
   :global(.EasyMDEContainer .cm-s-easymde .cm-em) {
     font-style: italic !important;
