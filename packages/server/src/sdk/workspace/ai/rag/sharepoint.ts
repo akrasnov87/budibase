@@ -421,7 +421,18 @@ export const syncSharePointSourcesForAgent = async (
   const runSites = sites.length > 0 ? sites : normalizeSites(existingSites)
   const siteIds = runSites.map(site => site.id)
 
+  console.log("Starting SharePoint sync for agent", {
+    agentId: trimmedAgentId,
+    sourceIds: sourceIds?.length ? sourceIds : "all",
+    siteCount: siteIds.length,
+    siteIds,
+    lastRunAt,
+  })
+
   if (siteIds.length === 0) {
+    console.log("SharePoint sync skipped for agent (no sites selected)", {
+      agentId: trimmedAgentId,
+    })
     return {
       agentId: trimmedAgentId,
       synced: 0,
@@ -456,8 +467,17 @@ export const syncSharePointSourcesForAgent = async (
     let siteFailed = 0
     let siteSkipped = 0
     let siteTotalDiscovered = 0
+    console.log("Starting SharePoint site sync for agent", {
+      agentId: trimmedAgentId,
+      siteId,
+    })
     try {
       const driveIds = await listDrives(bearerToken, siteId)
+      console.log("Fetched SharePoint drives for site", {
+        agentId: trimmedAgentId,
+        siteId,
+        driveCount: driveIds.length,
+      })
       for (const driveId of driveIds) {
         const files = await collectFilesRecursive(bearerToken, driveId)
         siteTotalDiscovered += files.length
@@ -521,8 +541,25 @@ export const syncSharePointSourcesForAgent = async (
         skipped: siteSkipped,
         totalDiscovered: siteTotalDiscovered,
       })
+      console.log("Completed SharePoint site sync for agent", {
+        agentId: trimmedAgentId,
+        siteId,
+        synced: siteSynced,
+        failed: siteFailed,
+        skipped: siteSkipped,
+        totalDiscovered: siteTotalDiscovered,
+      })
     }
   }
+
+  console.log("Completed SharePoint sync for agent", {
+    agentId: trimmedAgentId,
+    siteCount: siteIds.length,
+    synced,
+    failed,
+    skipped,
+    totalDiscovered,
+  })
 
   return {
     agentId: trimmedAgentId,

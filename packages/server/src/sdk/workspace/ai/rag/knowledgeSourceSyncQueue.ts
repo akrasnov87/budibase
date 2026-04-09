@@ -107,6 +107,13 @@ export function init(concurrency = DEFAULT_CONCURRENCY) {
       concurrency,
       async (job: Job<KnowledgeSourceSyncJob>) => {
         const { workspaceId, agentId, sourceType, sourceId } = job.data
+        console.log("Processing knowledge source sync queue job", {
+          workspaceId,
+          agentId,
+          sourceType,
+          sourceId,
+          jobId: job.id,
+        })
         await context.doInWorkspaceContext(workspaceId, async () => {
           switch (sourceType) {
             case AgentKnowledgeSourceType.SHAREPOINT:
@@ -117,6 +124,13 @@ export function init(concurrency = DEFAULT_CONCURRENCY) {
                 `Unsupported knowledge source type for sync queue: ${sourceType}`
               )
           }
+        })
+        console.log("Completed knowledge source sync queue job", {
+          workspaceId,
+          agentId,
+          sourceType,
+          sourceId,
+          jobId: job.id,
         })
       }
     )
