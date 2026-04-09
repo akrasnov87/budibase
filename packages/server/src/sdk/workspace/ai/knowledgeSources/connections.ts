@@ -61,6 +61,9 @@ export const hasKnowledgeSourceConnection = async (
   sourceType: string,
   connectionKey: string
 ) => {
-  const connection = await getKnowledgeSourceConnection(sourceType, connectionKey)
+  const connection = await getKnowledgeSourceConnection(
+    sourceType,
+    connectionKey
+  )
   return !!connection?.refreshToken
 }
