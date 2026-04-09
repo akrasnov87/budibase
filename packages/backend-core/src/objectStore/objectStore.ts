@@ -168,7 +168,9 @@ export async function createBucketIfNotExists(
     return { created: false, exists: true }
   } catch (err: any) {
     const statusCode =
-      err.statusCode || err.$response?.statusCode || err.$metadata?.httpStatusCode
+      err.statusCode ||
+      err.$response?.statusCode ||
+      err.$metadata?.httpStatusCode
     const promises: Record<string, Promise<any> | undefined> =
       STATE.bucketCreationPromises
     const doesntExist = statusCode === 404,
@@ -801,7 +803,9 @@ export async function objectExists(
     return true
   } catch (err: any) {
     const statusCode =
-      err.statusCode || err.$response?.statusCode || err.$metadata?.httpStatusCode
+      err.statusCode ||
+      err.$response?.statusCode ||
+      err.$metadata?.httpStatusCode
     if (statusCode === 404) {
       return false
     }
