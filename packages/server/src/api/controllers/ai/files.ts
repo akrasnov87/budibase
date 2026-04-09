@@ -141,14 +141,6 @@ export async function syncAgentKnowledgeSources(
   const response = sourceIds
     ? await sdk.ai.rag.syncSharePointSourcesForAgent(agentId, sourceIds)
     : await sdk.ai.rag.syncSharePointSourcesForAgent(agentId)
-  console.log("Agent knowledge source sync completed", {
-    agentId,
-    sourceIds: sourceIds?.length ? sourceIds : "all",
-    synced: response.synced,
-    failed: response.failed,
-    skipped: response.skipped,
-    totalDiscovered: response.totalDiscovered,
-  })
   ctx.body = response
   ctx.status = 200
 }
