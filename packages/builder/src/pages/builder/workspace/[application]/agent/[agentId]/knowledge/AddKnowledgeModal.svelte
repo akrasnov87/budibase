@@ -2,6 +2,8 @@
   import "@spectrum-css/dialog/dist/index-vars.css"
   import { ActionButton, Body, Modal, ModalContent } from "@budibase/bbui"
   import MicrosoftSharepointLogo from "assets/rest-template-icons/microsoft-sharepoint.svg"
+  import { featureFlags } from "@/stores/portal"
+  import { FeatureFlag } from "@budibase/types"
 
   export interface Props {
     MAX_FILE_SIZE_LABEL: string
@@ -65,15 +67,17 @@
           >(max {MAX_FILE_SIZE_LABEL} per file)</span
         >
       </ActionButton>
-      <ActionButton
-        quiet
-        icon={MicrosoftSharepointLogo}
-        fullWidth
-        disabled={loading}
-        on:click={handleSharePoint}
-      >
-        {loading ? "Loading SharePoint..." : "Add from SharePoint"}
-      </ActionButton>
+      {#if $featureFlags[FeatureFlag.AI_RAG_SHAREPOINT]}
+        <ActionButton
+          quiet
+          icon={MicrosoftSharepointLogo}
+          fullWidth
+          disabled={loading}
+          on:click={handleSharePoint}
+        >
+          {loading ? "Loading SharePoint..." : "Add from SharePoint"}
+        </ActionButton>
+      {/if}
     </div>
   </ModalContent>
 </Modal>
