@@ -54,16 +54,6 @@ export interface KnowledgeSourceSyncRun {
   status: AgentKnowledgeSourceSyncRunStatus
 }
 
-export interface CompleteAgentKnowledgeSourceConnectionRequest {
-  appId: string
-  continueSetupId: string
-}
-
-export interface CompleteAgentKnowledgeSourceConnectionResponse {
-  agentId: string
-  connected: true
-}
-
 export interface SyncAgentKnowledgeSourcesRequest {
   sourceIds?: string[]
 }

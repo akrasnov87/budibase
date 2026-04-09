@@ -5,7 +5,6 @@ export interface AgentKnowledgeSourceConnection extends Document {
   connectionKey: string
   tenantId: string
   tokenEndpoint: string
-  scope?: string
   accessToken: string
   refreshToken: string
   tokenType?: string

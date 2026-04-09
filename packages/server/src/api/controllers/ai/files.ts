@@ -3,8 +3,6 @@ import { HTTPError } from "@budibase/backend-core"
 import {
   AgentKnowledgeSourceType,
   AgentFileUploadResponse,
-  CompleteAgentKnowledgeSourceConnectionRequest,
-  CompleteAgentKnowledgeSourceConnectionResponse,
   DisconnectAgentKnowledgeSourcesResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentFilesResponse,
@@ -105,24 +103,6 @@ export async function deleteAgentFile(
   const { agentId, fileId } = ctx.params
   await sdk.ai.rag.deleteFileForAgent(agentId, fileId)
   ctx.body = { deleted: true }
-  ctx.status = 200
-}
-
-export async function completeAgentKnowledgeSourceConnection(
-  ctx: UserCtx<
-    CompleteAgentKnowledgeSourceConnectionRequest,
-    CompleteAgentKnowledgeSourceConnectionResponse,
-    { agentId: string }
-  >
-) {
-  const { agentId } = ctx.params
-  const { appId, continueSetupId } = ctx.request.body
-  const response = await sdk.ai.rag.completeSharePointConnectionForAgent({
-    agentId,
-    appId,
-    continueSetupId,
-  })
-  ctx.body = response
   ctx.status = 200
 }
 

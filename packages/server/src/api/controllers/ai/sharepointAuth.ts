@@ -1,19 +1,20 @@
-import { Cookie } from "../../../constants"
-import * as cache from "../../../cache"
-import * as configs from "../../../configs"
-import env from "../../../environment"
-import * as utils from "../../../utils"
+import {
+  cache,
+  configs,
+  constants,
+  context,
+  env,
+  utils,
+} from "@budibase/backend-core"
 import { DatasourceAuthCookie, UserCtx } from "@budibase/types"
-
-type Passport = {
-  authenticate: any
-}
+import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/sharepoint"
+import sdk from "../../../sdk"
 
 const DEFAULT_SCOPE =
   "offline_access https://graph.microsoft.com/Sites.Read.All"
-const CREATION_CACHE_TTL_SECONDS = 600
 const STATE_CACHE_TTL_SECONDS = 600
 const MICROSOFT_PROVIDER = "microsoft"
+const SHAREPOINT_SOURCE_TYPE = "sharepoint"
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -34,23 +35,18 @@ const appendQueryParam = (path: string, key: string, value: string) => {
   return `${url.pathname}${qs ? `?${qs}` : ""}`
 }
 
-const microsoftCreationCacheKey = (appId: string, setupId: string) =>
-  utils.microsoftDatasourceCreationCacheKey(appId, setupId)
-
-export async function preAuth(
-  _passport: Passport,
-  ctx: UserCtx,
-  _next: Function
-) {
+export async function startSharePointAuth(ctx: UserCtx<void, void>) {
   const appId = String(ctx.query.appId || "").trim()
-  const tenantIdFromRoute = String(ctx.params?.tenantId || "").trim()
+  const returnPath =
+    typeof ctx.query.returnPath === "string" ? ctx.query.returnPath : undefined
+
   if (!appId) {
     ctx.throw(400, "appId query param not present.")
   }
 
   const { clientId, tenantId } = getMicrosoftConfig()
   const platformUrl = await configs.getPlatformUrl({ tenantAware: false })
-  const callbackUrl = `${platformUrl}/api/global/auth/datasource/microsoft/callback`
+  const callbackUrl = `${platformUrl}/api/agent/knowledge-sources/sharepoint/callback`
 
   const state = utils.newid()
   await cache.store(
@@ -58,9 +54,18 @@ export async function preAuth(
     {
       appId,
       provider: MICROSOFT_PROVIDER,
-      tenantId: tenantIdFromRoute || undefined,
     },
     STATE_CACHE_TTL_SECONDS
+  )
+
+  utils.setCookie(
+    ctx,
+    {
+      provider: MICROSOFT_PROVIDER,
+      appId,
+      returnPath,
+    } satisfies DatasourceAuthCookie,
+    constants.Cookie.DatasourceAuth
   )
 
   const authorizeUrl = new URL(
@@ -76,14 +81,10 @@ export async function preAuth(
   ctx.redirect(authorizeUrl.toString())
 }
 
-export async function postAuth(
-  _passport: Passport,
-  ctx: UserCtx,
-  _next: Function
-) {
+export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   const authStateCookie = utils.getCookie<DatasourceAuthCookie>(
     ctx,
-    Cookie.DatasourceAuth
+    constants.Cookie.DatasourceAuth
   )
   if (!authStateCookie) {
     throw new Error("Unable to fetch datasource auth cookie")
@@ -103,21 +104,15 @@ export async function postAuth(
   }
   const statePayload = (await cache.get(
     `datasource:${MICROSOFT_PROVIDER}:state:${state}`
-  )) as { appId?: string; provider?: string; tenantId?: string }
+  )) as { appId?: string; provider?: string }
   await cache.destroy(`datasource:${MICROSOFT_PROVIDER}:state:${state}`)
   const stateAppId =
     typeof statePayload?.appId === "string" ? statePayload.appId.trim() : ""
-  const stateTenantId =
-    typeof statePayload?.tenantId === "string"
-      ? statePayload.tenantId.trim()
-      : ""
-  const callbackTenantId = String(ctx.params?.tenantId || "").trim()
   if (
     !statePayload ||
     !stateAppId ||
     stateAppId !== appId ||
-    statePayload.provider !== MICROSOFT_PROVIDER ||
-    (stateTenantId && callbackTenantId && stateTenantId !== callbackTenantId)
+    statePayload.provider !== MICROSOFT_PROVIDER
   ) {
     throw new Error("Microsoft OAuth state is invalid or expired")
   }
@@ -142,7 +137,7 @@ export async function postAuth(
 
   const { clientId, clientSecret, tenantId } = getMicrosoftConfig()
   const platformUrl = await configs.getPlatformUrl({ tenantAware: false })
-  const callbackUrl = `${platformUrl}/api/global/auth/datasource/microsoft/callback`
+  const callbackUrl = `${platformUrl}/api/agent/knowledge-sources/sharepoint/callback`
   const tokenEndpoint = `https://login.microsoftonline.com/${tenantId}/oauth2/v2.0/token`
 
   const tokenResponse = await fetch(tokenEndpoint, {
@@ -171,30 +166,35 @@ export async function postAuth(
   }
 
   const refreshToken = tokenPayload?.refresh_token
+  const accessToken = tokenPayload?.access_token
   if (!refreshToken) {
     throw new Error("Microsoft OAuth response did not include a refresh token")
   }
+  if (!accessToken) {
+    throw new Error("Microsoft OAuth response did not include an access token")
+  }
 
-  const id = utils.newid()
   const expiresIn = Number(tokenPayload?.expires_in || 0)
-  await cache.store(
-    microsoftCreationCacheKey(appId, id),
-    {
-      tenantId,
-      tokenEndpoint,
-      scope: tokenPayload?.scope || DEFAULT_SCOPE,
-      accessToken: tokenPayload?.access_token,
-      refreshToken,
-      tokenType: tokenPayload?.token_type || "Bearer",
-      expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
-      clientId,
-      clientSecret,
-    },
-    CREATION_CACHE_TTL_SECONDS
+
+  await context.doInContext(appId, () =>
+    sdk.ai.knowledgeSources.upsertKnowledgeSourceConnection(
+      SHAREPOINT_SOURCE_TYPE,
+      getSharePointWorkspaceConnectionKey(appId),
+      {
+        tenantId,
+        tokenEndpoint,
+        accessToken,
+        refreshToken,
+        tokenType: tokenPayload?.token_type || "Bearer",
+        expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
+        clientId,
+        clientSecret,
+      }
+    )
   )
 
-  utils.clearCookie(ctx, Cookie.DatasourceAuth)
+  utils.clearCookie(ctx, constants.Cookie.DatasourceAuth)
 
   const returnPath = authStateCookie.returnPath || `/builder/workspace/${appId}`
-  ctx.redirect(appendQueryParam(returnPath, "continue_microsoft_setup", id))
+  ctx.redirect(appendQueryParam(returnPath, "microsoft_connected", "1"))
 }

@@ -133,7 +133,6 @@ describe("agent files", () => {
           tenantId: config.getTenantId(),
           tokenEndpoint:
             "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-          scope: "offline_access https://graph.microsoft.com/Sites.Read.All",
           accessToken: "header.payload.signature",
           refreshToken: "refresh-token",
           tokenType: "Bearer",
@@ -260,21 +259,6 @@ describe("agent files", () => {
             message: "SharePoint is not connected for this agent",
           },
         }
-      )
-    })
-  })
-
-  it("validates complete SharePoint connection payload", async () => {
-    await withRagEnabled(async () => {
-      const created = await config.api.agent.create({
-        name: "SharePoint Invalid Connect Agent",
-        aiconfig: "default",
-      })
-
-      await config.api.agent.completeKnowledgeSourceConnection(
-        created._id!,
-        {} as any,
-        { status: 400 }
       )
     })
   })

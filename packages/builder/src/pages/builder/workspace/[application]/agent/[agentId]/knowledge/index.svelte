@@ -9,7 +9,7 @@
     type KnowledgeSourceSyncRun,
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
-  import { agentsStore, auth, selectedAgent } from "@/stores/portal"
+  import { agentsStore, selectedAgent } from "@/stores/portal"
   import KnowledgeTable from "./KnowledgeTable.svelte"
   import KnowledgeAddControls from "./KnowledgeAddControls.svelte"
   import SelectSharePointSiteModal from "./SelectSharePointSiteModal.svelte"
@@ -215,7 +215,7 @@
       return
     }
     const agentId = currentAgent?._id
-    if (!agentId || !hasSharePointConnection || loading) {
+    if (!agentId || loading) {
       return
     }
     shouldOpenSharePointPickerAfterOauth = false
@@ -231,23 +231,10 @@
         await agentsStore.init()
       }
       const currentUrl = new URL(window.location.href)
-      const continueSetupId = currentUrl.searchParams.get(
-        "continue_microsoft_setup"
-      )
-      if (continueSetupId && currentAgent?._id) {
-        const appId = $appStore.appId
-        if (!appId) {
-          throw new Error("Missing app id for SharePoint setup completion")
-        }
-        await agentsStore.completeAgentKnowledgeSourceConnection(
-          currentAgent._id,
-          {
-            appId,
-            continueSetupId,
-          }
-        )
-        await agentsStore.fetchAgents()
-        currentUrl.searchParams.delete("continue_microsoft_setup")
+      const microsoftConnected =
+        currentUrl.searchParams.get("microsoft_connected") === "1"
+      if (microsoftConnected) {
+        currentUrl.searchParams.delete("microsoft_connected")
         const query = currentUrl.searchParams.toString()
         const path = query
           ? `${currentUrl.pathname}?${query}`
@@ -256,7 +243,7 @@
         notifications.success("SharePoint connected")
         shouldOpenSharePointPickerAfterOauth = true
       }
-      if (currentAgent?._id && continueSetupId) {
+      if (currentAgent?._id && microsoftConnected) {
         initialKnowledgeLoadedForAgent = undefined
       }
     } catch (error) {
@@ -266,15 +253,13 @@
   })
 
   function connectSharePoint() {
-    const agentId = currentAgent?._id
     const appId = $appStore.appId
-    const tenantId = $auth.tenantId
-    if (!agentId || !appId || !tenantId) {
+    if (!appId) {
       notifications.error("Missing context to connect SharePoint")
       return
     }
     const returnPath = window.location.pathname
-    const oauthUrl = `/api/global/auth/${tenantId}/datasource/microsoft?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
+    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
     window.location.href = oauthUrl
   }
 

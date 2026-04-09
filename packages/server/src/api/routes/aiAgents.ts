@@ -1,9 +1,12 @@
 import { auth } from "@budibase/backend-core"
 import { aiRagEnabled } from "../../middleware/aiRagEnabled"
 import * as ai from "../controllers/ai"
-import { builderAdminRoutes, endpointGroupList } from "./endpointGroups"
 import {
-  completeAgentKnowledgeSourceConnectionValidator,
+  builderAdminRoutes,
+  endpointGroupList,
+  publicRoutes,
+} from "./endpointGroups"
+import {
   createAgentValidator,
   provisionAgentSlackChannelValidator,
   provisionAgentMSTeamsChannelValidator,
@@ -62,14 +65,13 @@ const aiRagBuilderAdminRoutes = endpointGroupList
   .addGroupMiddleware(aiRagEnabled)
 
 aiRagBuilderAdminRoutes
+  .get(
+    "/api/agent/knowledge-sources/sharepoint/connect",
+    ai.startSharePointAuth
+  )
   .get("/api/agent/:agentId/files", ai.fetchAgentFiles)
   .post("/api/agent/:agentId/files", ai.uploadAgentFile)
   .delete("/api/agent/:agentId/files/:fileId", ai.deleteAgentFile)
-  .post(
-    "/api/agent/:agentId/knowledge-sources/connect/complete",
-    completeAgentKnowledgeSourceConnectionValidator(),
-    ai.completeAgentKnowledgeSourceConnection
-  )
   .get(
     "/api/agent/:agentId/knowledge-sources/options",
     ai.fetchAgentKnowledgeSourceOptions
@@ -88,3 +90,8 @@ aiRagBuilderAdminRoutes
     syncAgentKnowledgeSourcesValidator(),
     ai.syncAgentKnowledgeSources
   )
+
+publicRoutes.get(
+  "/api/agent/knowledge-sources/sharepoint/callback",
+  ai.completeSharePointAuth
+)

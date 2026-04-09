@@ -21,9 +21,7 @@ export { tenancy } from "./tenancy"
 export { activeTenant } from "./activation"
 export { workspaceBuilderOrAdmin } from "./workspaceBuilderOrAdmin"
 import * as datasourceGoogle from "./passport/datasource/google"
-import * as datasourceMicrosoft from "./passport/datasource/microsoft"
 
 export const datasource = {
   google: datasourceGoogle,
-  microsoft: datasourceMicrosoft,
 }

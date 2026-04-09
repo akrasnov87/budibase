@@ -17,7 +17,6 @@ vi.mock("@/api", () => {
       uploadAgentFile: vi.fn(),
       deleteAgentFile: vi.fn(),
       syncAgentKnowledgeSources: vi.fn(),
-      completeAgentKnowledgeSourceConnection: vi.fn(),
       fetchAgentKnowledgeSourceOptions: vi.fn(),
     },
   }
@@ -28,9 +27,6 @@ const fetchAgentFiles = vi.mocked(API.fetchAgentFiles)
 const uploadAgentFile = vi.mocked(API.uploadAgentFile)
 const deleteAgentFile = vi.mocked(API.deleteAgentFile)
 const syncAgentKnowledgeSources = vi.mocked(API.syncAgentKnowledgeSources)
-const completeAgentKnowledgeSourceConnection = vi.mocked(
-  API.completeAgentKnowledgeSourceConnection
-)
 const fetchAgentKnowledgeSourceOptions = vi.mocked(
   API.fetchAgentKnowledgeSourceOptions
 )
@@ -96,30 +92,6 @@ describe("agentsStore sharepoint and file syncing", () => {
     expect(fetchAgentFiles).toHaveBeenCalledWith("agent_1")
     expect(response.files).toHaveLength(1)
     expect(get(store.store).filesByAgentId["agent_1"]).toEqual(files)
-  })
-
-  it("completeAgentKnowledgeSourceConnection forwards payload", async () => {
-    completeAgentKnowledgeSourceConnection.mockResolvedValue({
-      agentId: "agent_1",
-      connected: true,
-    })
-
-    const result = await store.completeAgentKnowledgeSourceConnection(
-      "agent_1",
-      {
-        appId: "app_1",
-        continueSetupId: "setup_1",
-      }
-    )
-
-    expect(completeAgentKnowledgeSourceConnection).toHaveBeenCalledWith(
-      "agent_1",
-      {
-        appId: "app_1",
-        continueSetupId: "setup_1",
-      }
-    )
-    expect(result.connected).toBe(true)
   })
 
   it("fetchAgentKnowledgeSourceOptions forwards request", async () => {

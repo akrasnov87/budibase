@@ -1,4 +1,4 @@
-import { cache, HTTPError, utils } from "@budibase/backend-core"
+import { HTTPError } from "@budibase/backend-core"
 import type {
   AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
@@ -14,7 +14,6 @@ import {
 interface SharePointConnectionCacheRecord {
   tenantId: string
   tokenEndpoint: string
-  scope?: string
   accessToken: string
   refreshToken: string
   tokenType?: string
@@ -24,8 +23,6 @@ interface SharePointConnectionCacheRecord {
 }
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
-const DEFAULT_SCOPE =
-  "offline_access https://graph.microsoft.com/Sites.Read.All"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
 
 const trimString = (value: unknown) =>
@@ -46,9 +43,6 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
   }
 }
 
-export const sharePointSetupCacheKey = (appId: string, setupId: string) =>
-  utils.microsoftDatasourceCreationCacheKey(appId, setupId)
-
 export const sharePointConnectionCacheKey = (scope: string, scopeId: string) =>
   `sharepoint:${scope}:${scopeId}:connection`
 
@@ -68,7 +62,6 @@ const persistConnection = async (
     {
       tenantId: connection.tenantId,
       tokenEndpoint: connection.tokenEndpoint,
-      scope: connection.scope,
       accessToken: connection.accessToken,
       refreshToken: connection.refreshToken,
       tokenType: connection.tokenType,
@@ -85,7 +78,6 @@ const mapPersistedToCacheRecord = (
   return {
     tenantId: doc.tenantId,
     tokenEndpoint: doc.tokenEndpoint,
-    scope: doc.scope,
     accessToken: doc.accessToken,
     refreshToken: doc.refreshToken,
     tokenType: doc.tokenType,
@@ -135,7 +127,6 @@ const refreshConnection = async (
       client_secret: connection.clientSecret,
       grant_type: "refresh_token",
       refresh_token: connection.refreshToken,
-      scope: connection.scope || DEFAULT_SCOPE,
     }),
   })
   const payload = await response.json()
@@ -151,7 +142,6 @@ const refreshConnection = async (
   const expiresIn = Number(payload?.expires_in || 0)
   const updated: SharePointConnectionCacheRecord = {
     ...connection,
-    scope: payload?.scope || connection.scope,
     accessToken: payload?.access_token || connection.accessToken,
     refreshToken: payload?.refresh_token || connection.refreshToken,
     tokenType: payload?.token_type || connection.tokenType || "Bearer",
@@ -171,32 +161,6 @@ export const getSharePointBearerToken = async (
   }
   const tokenType = connection.tokenType?.trim() || "Bearer"
   return `${tokenType} ${connection.accessToken}`
-}
-
-export const storeSharePointConnectionFromSetup = async ({
-  appId,
-  setupId,
-  connectionKey,
-}: {
-  appId: string
-  setupId: string
-  connectionKey: string
-}) => {
-  const cachedConnection = await cache.get(
-    sharePointSetupCacheKey(appId, setupId)
-  )
-  if (!cachedConnection?.refreshToken) {
-    throw new HTTPError(
-      "SharePoint setup token is invalid or expired. Please connect again.",
-      400
-    )
-  }
-
-  await persistConnection(
-    connectionKey,
-    cachedConnection as SharePointConnectionCacheRecord
-  )
-  await cache.destroy(sharePointSetupCacheKey(appId, setupId))
 }
 
 export const clearSharePointConnection = async (connectionKey: string) => {

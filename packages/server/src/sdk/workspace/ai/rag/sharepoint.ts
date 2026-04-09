@@ -5,8 +5,6 @@ import {
   AgentKnowledgeSourceSyncRunStatus,
   AgentKnowledgeSourceType,
   type AgentKnowledgeSource,
-  type CompleteAgentKnowledgeSourceConnectionRequest,
-  type CompleteAgentKnowledgeSourceConnectionResponse,
   DocumentType,
   type FetchAgentKnowledgeSourceOptionsResponse,
   type KnowledgeSourceOption,
@@ -19,7 +17,6 @@ import {
   hasSharePointConnection,
   isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
-  storeSharePointConnectionFromSetup,
 } from "../sharepoint"
 import { ensureKnowledgeBaseForAgent } from "./files"
 
@@ -46,7 +43,6 @@ interface SharePointDriveItemsResponse {
 }
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
-const SHAREPOINT_CONNECTION_SOURCE_ID = "sharepoint_connection"
 const SHAREPOINT_SOURCE_TYPE = "sharepoint"
 const SHAREPOINT_SITE_ID_REGEX =
   /^[^,/?#\s]+,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12},[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
@@ -159,28 +155,6 @@ const saveSharePointSyncRunState = async ({
     status: getSharePointSyncRunStatus(synced, failed),
     createdAt: existing?.createdAt || now,
     updatedAt: now,
-  })
-}
-
-const upsertSharePointConnection = async (agent: Agent) => {
-  const nonSharePointSources = (agent.knowledgeSources || []).filter(
-    source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
-  )
-  const existingSharePointSources = getSharePointSources(agent)
-  const nextSharePointSources =
-    existingSharePointSources.length > 0
-      ? existingSharePointSources
-      : [
-          {
-            id: SHAREPOINT_CONNECTION_SOURCE_ID,
-            type: AgentKnowledgeSourceType.SHAREPOINT,
-            config: {},
-          } satisfies AgentKnowledgeSource,
-        ]
-
-  await agentsSdk.update({
-    ...agent,
-    knowledgeSources: [...nonSharePointSources, ...nextSharePointSources],
   })
 }
 
@@ -339,35 +313,6 @@ const downloadFileBuffer = async (
     )
   }
   return Buffer.from(await response.arrayBuffer())
-}
-
-export const completeSharePointConnectionForAgent = async ({
-  agentId,
-  appId,
-  continueSetupId,
-}: CompleteAgentKnowledgeSourceConnectionRequest & {
-  agentId: string
-}): Promise<CompleteAgentKnowledgeSourceConnectionResponse> => {
-  const trimmedAgentId = trimString(agentId)
-  const trimmedAppId = trimString(appId)
-  const trimmedSetupId = trimString(continueSetupId)
-
-  if (!trimmedAgentId || !trimmedAppId || !trimmedSetupId) {
-    throw new HTTPError("agentId, appId and continueSetupId are required", 400)
-  }
-
-  const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  await storeSharePointConnectionFromSetup({
-    appId: trimmedAppId,
-    setupId: trimmedSetupId,
-    connectionKey: getSharePointCurrentWorkspaceConnectionKey(),
-  })
-  await upsertSharePointConnection(agent)
-
-  return {
-    agentId: trimmedAgentId,
-    connected: true,
-  }
 }
 
 export const fetchSharePointSitesForAgent = async (
