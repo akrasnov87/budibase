@@ -8,7 +8,6 @@ import type {
   FileKnowledgeTableRow,
   SharePointConnectionTableRow,
 } from "./renderers/types"
-import { notifications } from "@budibase/bbui"
 
 export const formatTimestamp = (value?: string | number) => {
   if (value == null || value === "") {
@@ -127,16 +126,9 @@ export const toSharePointConnectionRows = ({
       const source = sharePointSources.find(
         source => source.config.site?.id === siteId
       )
-      if (!source) {
-        const error = `No source found for SharePoint site with id ${siteId}`
-        notifications.error(error)
-        throw new Error(error)
-      }
       const site = source?.config.site
-      if (!site) {
-        const error = `No site config found for SharePoint source with id ${source?.id}`
-        notifications.error(error)
-        throw new Error(error)
+      if (!source || !site) {
+        return null
       }
       const run = sharePointSyncRunsBySiteId[siteId]
       const hasSynced = !!run?.lastRunAt
@@ -179,5 +171,6 @@ export const toSharePointConnectionRows = ({
         onSync: () => onSync(source.id),
       }
     })
+    .filter(s => s !== null)
     .sort((a, b) => a.filename.localeCompare(b.filename))
 }
