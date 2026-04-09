@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest"
 import {
-  AgentSharePointSyncRunStatus,
+  AgentKnowledgeSourceSyncRunStatus,
   KnowledgeBaseFileStatus,
   type KnowledgeBaseFile,
   type KnowledgeSourceSyncRun,
@@ -85,7 +85,7 @@ describe("knowledgeTableRows", () => {
         failed: 0,
         skipped: 0,
         totalDiscovered: 1,
-        status: AgentSharePointSyncRunStatus.SUCCESS,
+        status: AgentKnowledgeSourceSyncRunStatus.SUCCESS,
       },
     }
     expect(getSharePointLastSyncLabel(runsBySiteId, "site-1")).toContain(
@@ -115,7 +115,7 @@ describe("knowledgeTableRows", () => {
           failed: 0,
           skipped: 0,
           totalDiscovered: 0,
-          status: AgentSharePointSyncRunStatus.SUCCESS,
+          status: AgentKnowledgeSourceSyncRunStatus.SUCCESS,
         },
       },
       files: [],

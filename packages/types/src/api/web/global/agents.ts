@@ -1,7 +1,7 @@
 import { Optional } from "../../../shared"
 import {
   Agent,
-  AgentSharePointSyncRunStatus,
+  AgentKnowledgeSourceSyncRunStatus,
   ChatApp,
   ChatConversation,
   ChatConversationRequest,
@@ -51,7 +51,7 @@ export interface KnowledgeSourceSyncRun {
   failed: number
   skipped: number
   totalDiscovered: number
-  status: AgentSharePointSyncRunStatus
+  status: AgentKnowledgeSourceSyncRunStatus
 }
 
 export interface CompleteAgentKnowledgeSourceConnectionRequest {

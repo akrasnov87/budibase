@@ -1,5 +1,5 @@
 import {
-  AgentSharePointSyncRunStatus,
+  AgentKnowledgeSourceSyncRunStatus,
   KnowledgeBaseFileStatus,
 } from "@budibase/types"
 
@@ -31,7 +31,7 @@ export interface SharePointConnectionTableRow {
   failedCount: number
   processingCount: number
   hasSynced: boolean
-  runStatus?: AgentSharePointSyncRunStatus
+  runStatus?: AgentKnowledgeSourceSyncRunStatus
   onDelete: () => Promise<void>
   onSync: () => Promise<void>
 }

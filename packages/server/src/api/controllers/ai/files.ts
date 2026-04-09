@@ -231,7 +231,7 @@ export async function setAgentKnowledgeSources(
     removedSharePointSiteIds,
     sharePointDisconnected: false,
   })
-  await sdk.ai.rag.deleteSharePointSyncStateForAgent(
+  await sdk.ai.rag.deleteKnowledgeSourceSyncStateForAgent(
     agentId,
     removedSharePointSiteIds
   )
@@ -268,7 +268,7 @@ export async function disconnectAgentKnowledgeSources(
     removedSharePointSiteIds: [],
     sharePointDisconnected: true,
   })
-  await sdk.ai.rag.deleteSharePointSyncStateForAgent(agentId)
+  await sdk.ai.rag.deleteKnowledgeSourceSyncStateForAgent(agentId)
 
   ctx.body = {
     agentId,

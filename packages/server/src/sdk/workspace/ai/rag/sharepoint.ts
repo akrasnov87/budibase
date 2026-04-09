@@ -1,8 +1,8 @@
 import { cache, context, db, docIds, HTTPError } from "@budibase/backend-core"
 import {
   type Agent,
-  type AgentSharePointSyncState,
-  AgentSharePointSyncRunStatus,
+  type AgentKnowledgeSourceSyncState,
+  AgentKnowledgeSourceSyncRunStatus,
   AgentKnowledgeSourceType,
   type AgentKnowledgeSource,
   type CompleteAgentKnowledgeSourceConnectionRequest,
@@ -106,14 +106,14 @@ const getSharePointSitesFromSources = (
 const getSharePointSyncRunStatus = (
   synced: number,
   failed: number
-): AgentSharePointSyncRunStatus => {
+): AgentKnowledgeSourceSyncRunStatus => {
   if (failed === 0) {
-    return AgentSharePointSyncRunStatus.SUCCESS
+    return AgentKnowledgeSourceSyncRunStatus.SUCCESS
   }
   if (synced === 0) {
-    return AgentSharePointSyncRunStatus.FAILED
+    return AgentKnowledgeSourceSyncRunStatus.FAILED
   }
-  return AgentSharePointSyncRunStatus.PARTIAL
+  return AgentKnowledgeSourceSyncRunStatus.PARTIAL
 }
 
 const saveSharePointSyncRunState = async ({
@@ -139,13 +139,14 @@ const saveSharePointSyncRunState = async ({
     SHAREPOINT_SOURCE_TYPE,
     siteId
   )
-  const existing = await db.tryGet<AgentSharePointSyncState>(stateId)
+  const existing = await db.tryGet<AgentKnowledgeSourceSyncState>(stateId)
   const now = new Date().toISOString()
   await db.put({
     ...existing,
     _id: stateId,
     agentId,
-    siteId,
+    sourceType: SHAREPOINT_SOURCE_TYPE,
+    sourceId: siteId,
     lastRunAt,
     synced,
     failed,
@@ -366,7 +367,7 @@ export const fetchSharePointSitesForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const agent = await agentsSdk.getOrThrow(trimmedAgentId)
-  const { runs } = await fetchSharePointSyncStateForAgent(agent._id!)
+  const { runs } = await fetchKnowledgeSourceSyncStateForAgent(agent._id!)
   if (!(await hasSharePointWorkspaceConnection())) {
     return { options: [], runs }
   }
@@ -379,7 +380,7 @@ export const fetchSharePointSitesForAgent = async (
   }
 }
 
-export const fetchSharePointSyncStateForAgent = async (
+export const fetchKnowledgeSourceSyncStateForAgent = async (
   agentId: string
 ): Promise<{ runs: FetchAgentKnowledgeSourceOptionsResponse["runs"] }> => {
   const trimmedAgentId = trimString(agentId)
@@ -387,7 +388,7 @@ export const fetchSharePointSyncStateForAgent = async (
     throw new HTTPError("agentId is required", 400)
   }
   const db = context.getWorkspaceDB()
-  const result = await db.allDocs<AgentSharePointSyncState>(
+  const result = await db.allDocs<AgentKnowledgeSourceSyncState>(
     docIds.getDocParams(
       DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
       `${trimmedAgentId}_${SHAREPOINT_SOURCE_TYPE}_`,
@@ -397,9 +398,9 @@ export const fetchSharePointSyncStateForAgent = async (
 
   const runs = result.rows
     .map(row => row.doc)
-    .filter((doc): doc is AgentSharePointSyncState => !!doc?.siteId)
+    .filter((doc): doc is AgentKnowledgeSourceSyncState => !!doc?.sourceId)
     .map(doc => ({
-      sourceId: doc.siteId,
+      sourceId: doc.sourceId,
       lastRunAt: doc.lastRunAt,
       synced: doc.synced,
       failed: doc.failed,
@@ -411,9 +412,9 @@ export const fetchSharePointSyncStateForAgent = async (
   return { runs }
 }
 
-export const deleteSharePointSyncStateForAgent = async (
+export const deleteKnowledgeSourceSyncStateForAgent = async (
   agentId: string,
-  siteIds?: string[]
+  sourceIds?: string[]
 ) => {
   const trimmedAgentId = trimString(agentId)
   if (!trimmedAgentId) {
@@ -421,18 +422,22 @@ export const deleteSharePointSyncStateForAgent = async (
   }
 
   const db = context.getWorkspaceDB()
-  const result = await db.allDocs<AgentSharePointSyncState>(
+  const result = await db.allDocs<AgentKnowledgeSourceSyncState>(
     docIds.getDocParams(
       DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
       `${trimmedAgentId}_${SHAREPOINT_SOURCE_TYPE}_`,
       { include_docs: true }
     )
   )
-  const siteIdSet = siteIds ? new Set(siteIds.map(id => trimString(id))) : null
+  const sourceIdSet = sourceIds
+    ? new Set(sourceIds.map(id => trimString(id)))
+    : null
   const docsToDelete = result.rows
     .map(row => row.doc)
-    .filter((doc): doc is AgentSharePointSyncState => !!doc?._id && !!doc._rev)
-    .filter(doc => !siteIdSet || siteIdSet.has(doc.siteId))
+    .filter(
+      (doc): doc is AgentKnowledgeSourceSyncState => !!doc?._id && !!doc._rev
+    )
+    .filter(doc => !sourceIdSet || sourceIdSet.has(doc.sourceId))
     .map(doc => ({
       ...doc,
       _deleted: true,

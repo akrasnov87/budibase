@@ -1,7 +1,7 @@
 <script lang="ts">
   import { StatusLight } from "@budibase/bbui"
   import {
-    AgentSharePointSyncRunStatus,
+    AgentKnowledgeSourceSyncRunStatus,
     KnowledgeBaseFileStatus,
   } from "@budibase/types"
   import type { KnowledgeTableRow, SharePointConnectionTableRow } from "./types"
@@ -59,9 +59,9 @@
     }
 
     switch (row.runStatus) {
-      case AgentSharePointSyncRunStatus.SUCCESS:
+      case AgentKnowledgeSourceSyncRunStatus.SUCCESS:
         return { positive: true }
-      case AgentSharePointSyncRunStatus.FAILED:
+      case AgentKnowledgeSourceSyncRunStatus.FAILED:
         return { negative: true }
       default:
         return { notice: true }
