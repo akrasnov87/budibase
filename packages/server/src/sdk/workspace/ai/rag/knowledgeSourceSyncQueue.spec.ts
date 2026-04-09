@@ -242,19 +242,14 @@ describe("knowledgeSourceSyncQueue", () => {
       ],
     })
 
-    const originalForkedProcess = process.env.FORKED_PROCESS
-    process.env.FORKED_PROCESS = ""
-    try {
-      await withEnv(
-        {
-          SELF_HOSTED: "1",
-          MULTI_TENANCY: undefined,
-        },
-        () => rehydrateScheduledJobs()
-      )
-    } finally {
-      process.env.FORKED_PROCESS = originalForkedProcess
-    }
+    await withEnv(
+      {
+        SELF_HOSTED: "1",
+        MULTI_TENANCY: undefined,
+        FORKED_PROCESS_NAME: undefined,
+      },
+      () => rehydrateScheduledJobs()
+    )
 
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:orphan")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
