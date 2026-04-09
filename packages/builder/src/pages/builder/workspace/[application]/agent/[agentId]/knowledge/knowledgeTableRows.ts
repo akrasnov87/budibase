@@ -2,13 +2,13 @@ import { helpers } from "@budibase/shared-core"
 import {
   KnowledgeBaseFileStatus,
   type KnowledgeBaseFile,
-  type KnowledgeSourceOption,
   type KnowledgeSourceSyncRun,
 } from "@budibase/types"
 import type {
   FileKnowledgeTableRow,
   SharePointConnectionTableRow,
 } from "./renderers/types"
+import { notifications } from "@budibase/bbui"
 
 export const formatTimestamp = (value?: string | number) => {
   if (value == null || value === "") {
@@ -100,7 +100,6 @@ export const toSharePointConnectionRows = ({
   hasSharePointConnection,
   selectedSiteIds,
   sharePointSources,
-  sharePointSites,
   sharePointSyncRunsBySiteId,
   files,
   loadingSharePointSites,
@@ -113,7 +112,6 @@ export const toSharePointConnectionRows = ({
     id: string
     config: { site?: { id: string; name?: string; webUrl?: string } }
   }>
-  sharePointSites: KnowledgeSourceOption[]
   sharePointSyncRunsBySiteId: Record<string, KnowledgeSourceSyncRun>
   files: KnowledgeBaseFile[]
   loadingSharePointSites: boolean
@@ -129,9 +127,17 @@ export const toSharePointConnectionRows = ({
       const source = sharePointSources.find(
         source => source.config.site?.id === siteId
       )
-      const site =
-        source?.config.site ||
-        sharePointSites.find(entry => entry.id === siteId)
+      if (!source) {
+        const error = `No source found for SharePoint site with id ${siteId}`
+        notifications.error(error)
+        throw new Error(error)
+      }
+      const site = source?.config.site
+      if (!site) {
+        const error = `No site config found for SharePoint source with id ${source?.id}`
+        notifications.error(error)
+        throw new Error(error)
+      }
       const run = sharePointSyncRunsBySiteId[siteId]
       const hasSynced = !!run?.lastRunAt
       const { ready, failed, processing } = getSharePointFileProcessingCounts(
@@ -141,8 +147,8 @@ export const toSharePointConnectionRows = ({
       const total = run?.totalDiscovered || 0
       const completed = Math.min(ready + failed, total)
       const siteDisplayName =
-        site?.name ||
-        site?.webUrl ||
+        site.name ||
+        site.webUrl ||
         (loadingSharePointSites
           ? "Loading SharePoint site..."
           : "SharePoint site")
@@ -154,8 +160,8 @@ export const toSharePointConnectionRows = ({
       return {
         kind: "sharepoint_connection" as const,
         __clickable: true,
-        _id: `sharepoint-site-${siteId}`,
-        sourceId: source?.id || `sharepoint_site_${siteId}`,
+        _id: siteId,
+        sourceId: source.id,
         siteId,
         filename: siteDisplayName,
         subtitle: getSharePointLastSyncLabel(
@@ -170,7 +176,7 @@ export const toSharePointConnectionRows = ({
         hasSynced,
         runStatus: run?.status,
         onDelete: () => onDelete(siteId),
-        onSync: () => onSync(source?.id || `sharepoint_site_${siteId}`),
+        onSync: () => onSync(source.id),
       }
     })
     .sort((a, b) => a.filename.localeCompare(b.filename))

@@ -11,7 +11,6 @@ import {
   getSharePointFilesForSite,
   getSharePointLastSyncLabel,
   toFileTableRows,
-  toSharePointConnectionRows,
 } from "./knowledgeTableRows"
 
 const makeFile = (
@@ -92,50 +91,5 @@ describe("knowledgeTableRows", () => {
       "Last sync at"
     )
     expect(getSharePointLastSyncLabel({}, "site-1")).toBe("SharePoint")
-  })
-
-  it("builds sharepoint connection rows with sensible fallbacks", () => {
-    const rows = toSharePointConnectionRows({
-      hasSharePointConnection: true,
-      selectedSiteIds: ["site-1", "site-2"],
-      sharePointSources: [
-        {
-          id: "sharepoint_site_site-1",
-          config: { site: { id: "site-1", name: "Team docs" } },
-        },
-      ],
-      sharePointSites: [
-        { id: "site-2", webUrl: "https://contoso.sharepoint.com/sites/a" },
-      ],
-      sharePointSyncRunsBySiteId: {
-        "site-1": {
-          sourceId: "site-1",
-          lastRunAt: "2026-04-08T10:00:00.000Z",
-          synced: 0,
-          failed: 0,
-          skipped: 0,
-          totalDiscovered: 0,
-          status: AgentKnowledgeSourceSyncRunStatus.SUCCESS,
-        },
-      },
-      files: [],
-      loadingSharePointSites: false,
-      onDelete: async () => {},
-      onSync: async () => {},
-    })
-
-    expect(rows).toHaveLength(2)
-    expect(rows.find(row => row.siteId === "site-1")?.filename).toBe(
-      "Team docs"
-    )
-    expect(rows.find(row => row.siteId === "site-1")?.displayStatus).toBe(
-      "No files found"
-    )
-    expect(rows.find(row => row.siteId === "site-2")?.filename).toContain(
-      "https://contoso.sharepoint.com/sites/a"
-    )
-    expect(rows.find(row => row.siteId === "site-2")?.displayStatus).toBe(
-      "Processing"
-    )
   })
 })
