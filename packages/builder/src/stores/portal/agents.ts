@@ -95,7 +95,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     try {
       await this.fetchAgentFiles(agentId)
     } finally {
-      if (this.agentFilePolling) {
+      if (this.agentFilePolling?.agentId === agentId) {
         this.agentFilePolling.inFlight = false
       }
     }
