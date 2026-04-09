@@ -10,8 +10,7 @@ import { DatasourceAuthCookie, UserCtx } from "@budibase/types"
 import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/sharepoint"
 import sdk from "../../../sdk"
 
-const DEFAULT_SCOPE =
-  "offline_access https://graph.microsoft.com/Sites.Read.All"
+const DEFAULT_SCOPE = env.RAG_SHAREPOINT_DEFAULT_SCOPE
 const STATE_CACHE_TTL_SECONDS = 600
 const MICROSOFT_PROVIDER = "microsoft"
 const SHAREPOINT_SOURCE_TYPE = "sharepoint"
