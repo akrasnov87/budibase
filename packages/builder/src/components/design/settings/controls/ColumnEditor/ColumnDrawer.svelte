@@ -121,12 +121,19 @@
                   <Icon name="dots-six-vertical" size="L" />
                 </div>
                 <Select
-                  bind:value={column.name}
+                  value={column?.name}
                   placeholder="Column"
-                  options={getRemainingColumnOptions(column.name)}
+                  options={getRemainingColumnOptions(column?.name)}
+                  on:change={e => {
+                    column.name = e.detail
+                    column.displayName = e.detail
+                  }}
+                />
+                <Input
+                  value={column?.displayName}
+                  placeholder="Label"
                   on:change={e => (column.displayName = e.detail)}
                 />
-                <Input bind:value={column.displayName} placeholder="Label" />
                 {#if allowCellEditing}
                   <CellEditor bind:column />
                 {/if}
