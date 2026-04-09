@@ -111,13 +111,8 @@ const readPersistedConnection = async (
 const readConnection = async (
   connectionKey: string
 ): Promise<SharePointConnectionCacheRecord> => {
-  const cachedConnection = await cache.get(connectionKey)
-  if (cachedConnection?.refreshToken) {
-    return cachedConnection
-  }
   const persistedConnection = await readPersistedConnection(connectionKey)
   if (persistedConnection?.refreshToken) {
-    await cache.store(connectionKey, persistedConnection)
     return persistedConnection
   }
   throw new HTTPError(
@@ -162,7 +157,6 @@ const refreshConnection = async (
     tokenType: payload?.token_type || connection.tokenType || "Bearer",
     expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
   }
-  await cache.store(connectionKey, updated)
   await persistConnection(connectionKey, updated)
   return updated
 }
@@ -198,10 +192,6 @@ export const storeSharePointConnectionFromSetup = async ({
     )
   }
 
-  await cache.store(
-    connectionKey,
-    cachedConnection as SharePointConnectionCacheRecord
-  )
   await persistConnection(
     connectionKey,
     cachedConnection as SharePointConnectionCacheRecord
@@ -210,15 +200,10 @@ export const storeSharePointConnectionFromSetup = async ({
 }
 
 export const clearSharePointConnection = async (connectionKey: string) => {
-  await cache.destroy(connectionKey)
   await deleteKnowledgeSourceConnection(SHAREPOINT_SOURCE_TYPE, connectionKey)
 }
 
 export const hasSharePointConnection = async (connectionKey: string) => {
-  const cached = await cache.get(connectionKey)
-  if (cached?.refreshToken) {
-    return true
-  }
   return hasKnowledgeSourceConnection(SHAREPOINT_SOURCE_TYPE, connectionKey)
 }
 
