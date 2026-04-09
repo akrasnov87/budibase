@@ -257,7 +257,7 @@
         notifications.success("SharePoint connected")
         shouldOpenSharePointPickerAfterOauth = true
       }
-      if (currentAgent?._id) {
+      if (currentAgent?._id && continueSetupId) {
         initialKnowledgeLoadedForAgent = undefined
       }
     } catch (error) {
