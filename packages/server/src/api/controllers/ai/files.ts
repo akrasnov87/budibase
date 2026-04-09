@@ -78,7 +78,6 @@ export async function uploadAgentFile(
     await unlinkSafe(filePath)
     throw new HTTPError("Unsupported file type for knowledge ingestion", 400)
   }
-  }
 
   const buffer = await readFile(filePath)
 
