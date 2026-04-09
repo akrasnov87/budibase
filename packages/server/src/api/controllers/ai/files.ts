@@ -129,9 +129,21 @@ export async function syncAgentKnowledgeSources(
   const sourceIds = Array.isArray(ctx.request.body?.sourceIds)
     ? ctx.request.body.sourceIds
     : undefined
+  console.log("Agent knowledge source sync requested", {
+    agentId,
+    sourceIds: sourceIds?.length ? sourceIds : "all",
+  })
   const response = sourceIds
     ? await sdk.ai.rag.syncSharePointSourcesForAgent(agentId, sourceIds)
     : await sdk.ai.rag.syncSharePointSourcesForAgent(agentId)
+  console.log("Agent knowledge source sync completed", {
+    agentId,
+    sourceIds: sourceIds?.length ? sourceIds : "all",
+    synced: response.synced,
+    failed: response.failed,
+    skipped: response.skipped,
+    totalDiscovered: response.totalDiscovered,
+  })
   ctx.body = response
   ctx.status = 200
 }
@@ -160,7 +172,21 @@ export async function setAgentKnowledgeSources(
   }
   const sharePointSources = getSharePointSources(existingAgent)
 
-  const previousSiteIds = getSharePointSiteIds(existingAgent)
+  const previousSiteIdsSet = getSharePointSiteIds(existingAgent)
+  const previousSiteIds = Array.from(previousSiteIdsSet)
+  const addedSharePointSiteIds = siteIds.filter(
+    id => !previousSiteIdsSet.has(id)
+  )
+  const removedSharePointSiteIds = previousSiteIds.filter(
+    id => !siteIds.includes(id)
+  )
+  console.log("Updating agent knowledge sources", {
+    agentId,
+    previousSiteCount: previousSiteIds.length,
+    nextSiteCount: siteIds.length,
+    addedSharePointSiteIds,
+    removedSharePointSiteIds,
+  })
   const availableSites = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   const availableById = new Map(
     availableSites.options.map(site => [
@@ -203,9 +229,6 @@ export async function setAgentKnowledgeSources(
   })
   await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(updated)
 
-  const removedSharePointSiteIds = [...previousSiteIds].filter(
-    id => !siteIds.includes(id)
-  )
   await cleanupSharePointFilesForAgent({
     agentId,
     removedSharePointSiteIds,
@@ -221,6 +244,13 @@ export async function setAgentKnowledgeSources(
     await sdk.ai.rag.syncSharePointSourcesForAgent(agentId, nextSourceIds)
   }
 
+  console.log("Updated agent knowledge sources", {
+    agentId,
+    nextSourceIds,
+    addedSharePointSiteIds,
+    removedSharePointSiteIds,
+  })
+
   ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   ctx.status = 200
 }
@@ -234,6 +264,14 @@ export async function disconnectAgentKnowledgeSources(
 ) {
   const { agentId } = ctx.params
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
+  const removedSharePointSiteIds = Array.from(
+    getSharePointSiteIds(existingAgent)
+  )
+  console.log("Disconnecting agent knowledge sources", {
+    agentId,
+    removedSharePointSiteIds,
+    removedCount: removedSharePointSiteIds.length,
+  })
 
   const nextSources = (existingAgent.knowledgeSources || []).filter(
     source => source.type !== AgentKnowledgeSourceType.SHAREPOINT
@@ -249,6 +287,10 @@ export async function disconnectAgentKnowledgeSources(
     sharePointDisconnected: true,
   })
   await sdk.ai.rag.deleteKnowledgeSourceSyncStateForAgent(agentId)
+  console.log("Disconnected agent knowledge sources", {
+    agentId,
+    removedSharePointSiteIds,
+  })
 
   ctx.body = {
     agentId,

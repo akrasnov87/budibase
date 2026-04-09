@@ -43,6 +43,10 @@ export async function startSharePointAuth(ctx: UserCtx<void, void>) {
   if (!appId) {
     ctx.throw(400, "appId query param not present.")
   }
+  console.log("Starting SharePoint OAuth flow", {
+    appId,
+    hasReturnPath: !!returnPath,
+  })
 
   const { clientId, tenantId } = getMicrosoftConfig()
   const platformUrl = await configs.getPlatformUrl({ tenantAware: false })
@@ -192,6 +196,10 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
       }
     )
   )
+  console.log("Completed SharePoint OAuth flow", {
+    appId,
+    connected: true,
+  })
 
   utils.clearCookie(ctx, constants.Cookie.DatasourceAuth)
 
