@@ -1,5 +1,4 @@
 import { createAutomationBuilder } from "../utilities/AutomationTestBuilder"
-import * as automation from "../../index"
 import { Table } from "@budibase/types"
 import TestConfiguration from "../../../tests/utilities/TestConfiguration"
 import { basicTable } from "../../../tests/utilities/structures"
@@ -10,7 +9,6 @@ describe("Execute Script Automations", () => {
 
   beforeAll(async () => {
     await config.init()
-    await automation.init()
     table = await config.api.table.save(basicTable())
     await config.api.row.save(table._id!, {})
     await config.api.automation.deleteAll()
