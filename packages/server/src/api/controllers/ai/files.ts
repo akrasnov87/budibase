@@ -17,7 +17,6 @@ import {
 import sdk from "../../../sdk"
 import {
   cleanupSharePointFilesForAgent,
-  hasSharePointConnection,
   getSharePointSiteIds,
   getSharePointSources,
 } from "./sharepoint"
@@ -178,7 +177,7 @@ export async function setAgentKnowledgeSources(
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
   const hasWorkspaceConnection =
     await sdk.ai.rag.hasSharePointWorkspaceConnection()
-  if (!hasSharePointConnection(existingAgent) && !hasWorkspaceConnection) {
+  if (!hasWorkspaceConnection) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
   const sharePointSources = getSharePointSources(existingAgent)

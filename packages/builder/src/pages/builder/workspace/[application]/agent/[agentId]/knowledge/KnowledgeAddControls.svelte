@@ -10,19 +10,11 @@
 
   export interface Props {
     agentId?: string
-    hasSharePointConnection: boolean
     onUploaded?: () => Promise<void>
-    onConnectSharePoint?: () => void
-    onSelectSharePoint?: () => Promise<void>
+    onSharePoint?: () => Promise<void> | void
   }
 
-  let {
-    agentId,
-    hasSharePointConnection,
-    onUploaded,
-    onConnectSharePoint,
-    onSelectSharePoint,
-  }: Props = $props()
+  let { agentId, onUploaded, onSharePoint }: Props = $props()
 
   const ACCEPTED_KNOWLEDGE_FILE_TYPES =
     ".txt,.md,.markdown,.json,.yaml,.yml,.csv,.tsv,.pdf,.html,.htm,.xml,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.rtf"
@@ -76,11 +68,7 @@
   }
 
   const handleSharePoint = async () => {
-    if (hasSharePointConnection) {
-      await onSelectSharePoint?.()
-      return
-    }
-    onConnectSharePoint?.()
+    await onSharePoint?.()
   }
 </script>
 

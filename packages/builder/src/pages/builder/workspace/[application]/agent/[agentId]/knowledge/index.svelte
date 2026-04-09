@@ -279,6 +279,14 @@
     window.location.href = oauthUrl
   }
 
+  async function handleAddSharePointKnowledge() {
+    if (hasSharePointConnection || sharePointSites.length > 0) {
+      await openSharePointSiteModal()
+      return
+    }
+    connectSharePoint()
+  }
+
   async function openSharePointSiteModal() {
     const agentId = currentAgent?._id
     if (!agentId) {
@@ -431,17 +439,14 @@
     <Body size="S">Knowledge</Body>
     <KnowledgeAddControls
       agentId={currentAgent?._id}
-      hasSharePointConnection={hasSharePointConnection ||
-        sharePointSites.length > 0}
       onUploaded={async () => {
         if (!currentAgent?._id) {
           return
         }
         await fetchFiles(currentAgent._id)
       }}
-      onConnectSharePoint={connectSharePoint}
-      onSelectSharePoint={() =>
-        openSharePointSiteModal().catch(error => {
+      onSharePoint={() =>
+        handleAddSharePointKnowledge().catch(error => {
           console.error(error)
           notifications.error("Failed to fetch SharePoint sites")
         })}
