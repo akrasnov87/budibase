@@ -1,5 +1,5 @@
 import nock from "nock"
-import { cache, context, db, features } from "@budibase/backend-core"
+import { context, db, features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
 import type { MockAgent } from "undici"
 import {
@@ -11,6 +11,7 @@ import {
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
+import { upsertKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
 import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/sharepoint"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
@@ -121,11 +122,12 @@ describe("agent files", () => {
     })
   }
 
-  const setSharePointConnectionInCache = async (_agentId: string) => {
+  const setSharePointConnection = async (_agentId: string) => {
     await config.doInContext(config.getDevWorkspaceId(), async () => {
       const workspaceId = context.getOrThrowWorkspaceId()
       const workspaceConnectionId = db.getProdWorkspaceID(workspaceId)
-      await cache.store(
+      await upsertKnowledgeSourceConnection(
+        "sharepoint",
         sharePointConnectionCacheKey("connection", workspaceConnectionId),
         {
           tenantId: config.getTenantId(),
@@ -373,7 +375,7 @@ describe("agent files", () => {
       })
 
       await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
-      await setSharePointConnectionInCache(created._id!)
+      await setSharePointConnection(created._id!)
       mockSharePointSitesFetch(["site-1", "site-2"])
       mockSharePointSitesFetch(["site-1", "site-2"])
       const deleteScope = mockGeminiFileDelete(
