@@ -9,8 +9,8 @@ describe("Execute Script Automations", () => {
   let table: Table
 
   beforeAll(async () => {
-    await config.init()
     await automation.init()
+    await config.init()
     table = await config.api.table.save(basicTable())
     await config.api.row.save(table._id!, {})
     await config.api.automation.deleteAll()
