@@ -123,7 +123,7 @@ describe("syncGlobalUsers", () => {
     })
   })
 
-  it("uses email as computed fullName fallback when first and last names are empty", async () => {
+  it("does not compute fullName when first and last names are empty", async () => {
     const user = await config.createUser({
       firstName: "",
       lastName: "",
@@ -141,7 +141,7 @@ describe("syncGlobalUsers", () => {
       expect(metadata).toContainEqual(
         expect.objectContaining({
           _id: db.generateUserMetadataID(user._id!),
-          fullName: user.email,
+          fullName: undefined,
         })
       )
     })
