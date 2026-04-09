@@ -7,6 +7,7 @@ import {
   type AgentKnowledgeSource,
   DocumentType,
   type FetchAgentKnowledgeSourceOptionsResponse,
+  isKnowledgeFileSupported,
   type KnowledgeSourceOption,
   type SyncAgentKnowledgeSourcesResponse,
 } from "@budibase/types"
@@ -238,6 +239,13 @@ interface SharePointFileRef {
   mimetype?: string
 }
 
+const isSupportedSharePointFile = (file: SharePointFileRef) => {
+  return isKnowledgeFileSupported({
+    filename: file.filename,
+    mimetype: file.mimetype,
+  })
+}
+
 const collectFilesRecursive = async (
   bearerToken: string,
   driveId: string,
@@ -460,12 +468,14 @@ export const syncSharePointSourcesForAgent = async (
   let synced = 0
   let failed = 0
   let skipped = 0
+  let unsupported = 0
   let totalDiscovered = 0
 
   for (const siteId of siteIds) {
     let siteSynced = 0
     let siteFailed = 0
     let siteSkipped = 0
+    let siteUnsupported = 0
     let siteTotalDiscovered = 0
     console.log("Starting SharePoint site sync for agent", {
       agentId: trimmedAgentId,
@@ -483,6 +493,13 @@ export const syncSharePointSourcesForAgent = async (
         siteTotalDiscovered += files.length
         totalDiscovered += files.length
         for (const file of files) {
+          if (!isSupportedSharePointFile(file)) {
+            skipped++
+            siteSkipped++
+            unsupported++
+            siteUnsupported++
+            continue
+          }
           const externalSourceId = `sharepoint:${siteId}:${driveId}:${file.itemId}`
           if (existingExternalIds.has(externalSourceId)) {
             skipped++
@@ -547,6 +564,7 @@ export const syncSharePointSourcesForAgent = async (
         synced: siteSynced,
         failed: siteFailed,
         skipped: siteSkipped,
+        unsupported: siteUnsupported,
         totalDiscovered: siteTotalDiscovered,
       })
     }
@@ -558,6 +576,7 @@ export const syncSharePointSourcesForAgent = async (
     synced,
     failed,
     skipped,
+    unsupported,
     totalDiscovered,
   })
 
