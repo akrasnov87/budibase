@@ -259,7 +259,6 @@ export async function createAgent(
   }
 
   const agent = await sdk.ai.agents.create(createRequest)
-  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
 
   ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 201
@@ -289,7 +288,6 @@ export async function updateAgent(
   }
 
   const agent = await sdk.ai.agents.update(updateRequest)
-  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
 
   ctx.body = withoutKnowledgeConfig(obfuscateAgentSecrets(agent))
   ctx.status = 200

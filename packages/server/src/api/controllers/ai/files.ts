@@ -122,8 +122,6 @@ export async function completeAgentKnowledgeSourceConnection(
     appId,
     continueSetupId,
   })
-  const agent = await sdk.ai.agents.getOrThrow(agentId)
-  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
   ctx.body = response
   ctx.status = 200
 }
@@ -148,12 +146,10 @@ export async function syncAgentKnowledgeSources(
   >
 ) {
   const { agentId } = ctx.params
-  const siteIds = Array.isArray(ctx.request.body?.sourceIds)
+  const sourceIds = Array.isArray(ctx.request.body?.sourceIds)
     ? ctx.request.body.sourceIds
     : undefined
-  const response = await sdk.ai.rag.syncSharePointForAgent(agentId, siteIds)
-  const agent = await sdk.ai.agents.getOrThrow(agentId)
-  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(agent)
+  const response = await sdk.ai.rag.syncSharePointForAgent(agentId, sourceIds)
   ctx.body = response
   ctx.status = 200
 }

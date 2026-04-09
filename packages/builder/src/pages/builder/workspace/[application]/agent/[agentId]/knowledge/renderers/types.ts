@@ -21,6 +21,7 @@ export interface SharePointConnectionTableRow {
   kind: "sharepoint_connection"
   __clickable: boolean
   _id: string
+  sourceId: string
   siteId: string
   filename: string
   subtitle: string

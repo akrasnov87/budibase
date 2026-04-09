@@ -44,32 +44,27 @@ const getAgentSharePointSources = (agent: Agent) =>
   )
 
 const hasSchedulableSharePointSource = (agent: Agent) => {
-  const sources = getAgentSharePointSources(agent)
-  if (sources.length === 0) {
-    return false
-  }
-  const sites = sources
-    .map(source => source.config.site?.id?.trim())
-    .filter((siteId): siteId is string => !!siteId)
-  return sites.length > 0
+  return getAgentSharePointSources(agent).some(
+    source => !!source.id?.trim() && !!source.config.site?.id?.trim()
+  )
 }
 
 const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {
   if (!agent._id || !hasSchedulableSharePointSource(agent)) {
     return []
   }
-  const siteIds = Array.from(
+  const sourceIds = Array.from(
     new Set(
       getAgentSharePointSources(agent)
-        .map(source => source.config.site?.id?.trim())
-        .filter((siteId): siteId is string => !!siteId)
+        .map(source => source.id?.trim())
+        .filter((sourceId): sourceId is string => !!sourceId)
     )
   )
-  return siteIds.map(siteId => ({
+  return sourceIds.map(sourceId => ({
     workspaceId,
     agentId: agent._id!,
     sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-    sourceId: siteId,
+    sourceId,
   }))
 }
 
@@ -252,7 +247,6 @@ export async function rehydrateScheduledJobs() {
   })
 
   const bullQueue = getQueue().getBullQueue()
-  const repeatableJobs = await bullQueue.getRepeatableJobs()
   let workspaceCount = 0
   let reconciledAgents = 0
   let desiredSchedules = 0
@@ -277,6 +271,7 @@ export async function rehydrateScheduledJobs() {
         getDesiredJobsForAgent(workspaceId, agent)
       )
       const desiredIds = new Set(desiredJobs.map(getJobId))
+      const repeatableJobs = await bullQueue.getRepeatableJobs()
       const workspacePrefix = `${getScheduleWorkspaceNamespace(workspaceId)}_knowledge_source_sync_`
       const staleWorkspaceJobs = repeatableJobs.filter(
         repeatable =>

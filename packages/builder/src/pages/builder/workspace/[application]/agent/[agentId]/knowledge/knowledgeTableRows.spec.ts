@@ -99,7 +99,10 @@ describe("knowledgeTableRows", () => {
       hasSharePointConnection: true,
       selectedSiteIds: ["site-1", "site-2"],
       sharePointSources: [
-        { config: { site: { id: "site-1", name: "Team docs" } } },
+        {
+          id: "sharepoint_site_site-1",
+          config: { site: { id: "site-1", name: "Team docs" } },
+        },
       ],
       sharePointSites: [
         { id: "site-2", webUrl: "https://contoso.sharepoint.com/sites/a" },

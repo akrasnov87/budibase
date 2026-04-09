@@ -110,6 +110,7 @@ export const toSharePointConnectionRows = ({
   hasSharePointConnection: boolean
   selectedSiteIds: string[]
   sharePointSources: Array<{
+    id: string
     config: { site?: { id: string; name?: string; webUrl?: string } }
   }>
   sharePointSites: KnowledgeSourceOption[]
@@ -117,7 +118,7 @@ export const toSharePointConnectionRows = ({
   files: KnowledgeBaseFile[]
   loadingSharePointSites: boolean
   onDelete: (siteId: string) => Promise<void>
-  onSync: (siteId: string) => Promise<void>
+  onSync: (sourceId: string) => Promise<void>
 }): SharePointConnectionTableRow[] => {
   if (!hasSharePointConnection) {
     return []
@@ -125,10 +126,11 @@ export const toSharePointConnectionRows = ({
 
   return selectedSiteIds
     .map(siteId => {
+      const source = sharePointSources.find(
+        source => source.config.site?.id === siteId
+      )
       const site =
-        sharePointSources
-          .map(source => source.config.site)
-          .find(entry => entry?.id === siteId) ||
+        source?.config.site ||
         sharePointSites.find(entry => entry.id === siteId)
       const run = sharePointSyncRunsBySiteId[siteId]
       const hasSynced = !!run?.lastRunAt
@@ -153,6 +155,7 @@ export const toSharePointConnectionRows = ({
         kind: "sharepoint_connection" as const,
         __clickable: true,
         _id: `sharepoint-site-${siteId}`,
+        sourceId: source?.id || `sharepoint_site_${siteId}`,
         siteId,
         filename: siteDisplayName,
         subtitle: getSharePointLastSyncLabel(
@@ -167,7 +170,7 @@ export const toSharePointConnectionRows = ({
         hasSynced,
         runStatus: run?.status,
         onDelete: () => onDelete(siteId),
-        onSync: () => onSync(siteId),
+        onSync: () => onSync(source?.id || `sharepoint_site_${siteId}`),
       }
     })
     .sort((a, b) => a.filename.localeCompare(b.filename))

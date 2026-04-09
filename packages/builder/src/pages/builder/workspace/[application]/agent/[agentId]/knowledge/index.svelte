@@ -154,8 +154,8 @@
       files,
       loadingSharePointSites,
       onDelete: removeSharePointSite,
-      onSync: async siteId => {
-        await syncSharePointNow([siteId])
+      onSync: async sourceId => {
+        await syncSharePointNow([sourceId])
       },
     })
   })
@@ -319,12 +319,23 @@
       })
       pendingSiteIds = nextSiteIds.filter(id => !selectedSiteIds.includes(id))
       sharePointSiteModal?.hide()
+      const refreshedAgents = await agentsStore.fetchAgents()
+      const refreshedAgent = refreshedAgents.find(
+        agent => agent._id === agentId
+      )
+      const sourceIds =
+        refreshedAgent?.knowledgeSources
+          ?.filter(
+            source =>
+              source.type === AgentKnowledgeSourceType.SHAREPOINT &&
+              nextSiteIds.includes(source.config.site?.id || "")
+          )
+          .map(source => source.id) || []
       const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
-        sourceIds: nextSiteIds,
+        sourceIds,
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
-      await agentsStore.fetchAgents()
       pendingSiteIds = []
       showSharePointSyncResult(result)
     } catch (error) {
@@ -334,19 +345,19 @@
     }
   }
 
-  async function syncSharePointNow(siteIds: string[]) {
+  async function syncSharePointNow(sourceIds: string[]) {
     const agentId = currentAgent?._id
     if (!agentId) {
       return
     }
-    if (siteIds.length === 0) {
+    if (sourceIds.length === 0) {
       notifications.error("Please select at least one SharePoint site")
       return
     }
 
     try {
       const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
-        sourceIds: siteIds,
+        sourceIds,
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)

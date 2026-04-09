@@ -84,7 +84,7 @@ describe("knowledgeSourceSyncQueue", () => {
       workspaceId: "app_dev_test",
       agentId: "agent_1",
       sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-      sourceId: "site_1",
+      sourceId: "sharepoint_site_site_1",
     })
 
     expect(mockQueueAdd).toHaveBeenCalledWith(
@@ -92,11 +92,12 @@ describe("knowledgeSourceSyncQueue", () => {
         workspaceId: "app_dev_test",
         agentId: "agent_1",
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        sourceId: "site_1",
+        sourceId: "sharepoint_site_site_1",
       },
       {
         repeat: { every: 86_400_000 },
-        jobId: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        jobId:
+          "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_site_1",
       }
     )
   })
@@ -104,11 +105,11 @@ describe("knowledgeSourceSyncQueue", () => {
   it("reconciles repeatable jobs for an agent", async () => {
     mockGetRepeatableJobs.mockResolvedValue([
       {
-        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_old",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_old",
         key: "repeat:old",
       },
       {
-        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_site_1",
         key: "repeat:site-1",
       },
     ])
@@ -139,17 +140,18 @@ describe("knowledgeSourceSyncQueue", () => {
 
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:old")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_test_knowledge_source_sync_agent_1_sharepoint_site_old"
+      "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_old"
     )
     expect(mockQueueAdd).toHaveBeenCalledWith(
       {
         workspaceId: "app_dev_test",
         agentId: "agent_1",
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        sourceId: "site_2",
+        sourceId: "sharepoint_site_site_2",
       },
       expect.objectContaining({
-        jobId: "app_test_knowledge_source_sync_agent_1_sharepoint_site_2",
+        jobId:
+          "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_site_2",
       })
     )
   })
@@ -157,15 +159,15 @@ describe("knowledgeSourceSyncQueue", () => {
   it("removes all repeatable jobs for an agent", async () => {
     mockGetRepeatableJobs.mockResolvedValue([
       {
-        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_1",
         key: "repeat:site-1",
       },
       {
-        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_2",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_2",
         key: "repeat:site-2",
       },
       {
-        id: "app_test_knowledge_source_sync_agent_2_sharepoint_site_9",
+        id: "app_test_knowledge_source_sync_agent_2_sharepoint_sharepoint_site_9",
         key: "repeat:other-agent",
       },
     ])
@@ -177,10 +179,10 @@ describe("knowledgeSourceSyncQueue", () => {
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:site-1")
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:site-2")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_test_knowledge_source_sync_agent_1_sharepoint_site_1"
+      "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_1"
     )
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_test_knowledge_source_sync_agent_1_sharepoint_site_2"
+      "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_2"
     )
   })
 
@@ -195,7 +197,7 @@ describe("knowledgeSourceSyncQueue", () => {
         workspaceId: "app_dev_test",
         agentId: "agent_1",
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        sourceId: "site_1",
+        sourceId: "sharepoint_site_site_1",
       },
     })
 
@@ -204,18 +206,18 @@ describe("knowledgeSourceSyncQueue", () => {
       expect.any(Function)
     )
     expect(mockSyncSharePointForAgent).toHaveBeenCalledWith("agent_1", [
-      "site_1",
+      "sharepoint_site_site_1",
     ])
   })
 
   it("removes orphan jobs during rehydration", async () => {
     mockGetRepeatableJobs.mockResolvedValue([
       {
-        id: "app_test_knowledge_source_sync_agent_deleted_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_deleted_sharepoint_sharepoint_site_1",
         key: "repeat:orphan",
       },
       {
-        id: "app_test_knowledge_source_sync_agent_1_sharepoint_site_1",
+        id: "app_test_knowledge_source_sync_agent_1_sharepoint_sharepoint_site_site_1",
         key: "repeat:valid",
       },
     ])
@@ -240,18 +242,23 @@ describe("knowledgeSourceSyncQueue", () => {
       ],
     })
 
-    await withEnv(
-      {
-        SELF_HOSTED: "1",
-        MULTI_TENANCY: undefined,
-        FORKED_PROCESS_NAME: undefined,
-      },
-      () => rehydrateScheduledJobs()
-    )
+    const originalForkedProcess = process.env.FORKED_PROCESS
+    process.env.FORKED_PROCESS = ""
+    try {
+      await withEnv(
+        {
+          SELF_HOSTED: "1",
+          MULTI_TENANCY: undefined,
+        },
+        () => rehydrateScheduledJobs()
+      )
+    } finally {
+      process.env.FORKED_PROCESS = originalForkedProcess
+    }
 
     expect(mockRemoveRepeatableByKey).toHaveBeenCalledWith("repeat:orphan")
     expect(mockRemoveJobs).toHaveBeenCalledWith(
-      "app_test_knowledge_source_sync_agent_deleted_sharepoint_site_1"
+      "app_test_knowledge_source_sync_agent_deleted_sharepoint_sharepoint_site_1"
     )
     expect(mockRemoveRepeatableByKey).not.toHaveBeenCalledWith("repeat:valid")
   })
