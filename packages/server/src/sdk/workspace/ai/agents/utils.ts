@@ -6,7 +6,10 @@ import {
   WebSearchProvider,
 } from "@budibase/types"
 import { ai } from "@budibase/pro"
-import { getBudibaseTools } from "../../../../ai/tools/budibase"
+import {
+  createKnowledgeFilesTool,
+  getBudibaseTools,
+} from "../../../../ai/tools/budibase"
 import type { ToolSet, UIMessage, TypedToolCall, TypedToolResult } from "ai"
 import { isToolUIPart, getToolName } from "ai"
 import {
@@ -23,6 +26,7 @@ const HELPER_TOOL_NAMES = new Set([
   "get_table",
   "list_automations",
   "get_automation",
+  "list_knowledge_files",
 ])
 
 const isHelperTool = (tool: Pick<AiToolDefinition, "name">) =>
@@ -151,6 +155,14 @@ export async function buildPromptAndTools(
     ),
     allTools
   )
+
+  if (
+    agent._id &&
+    (agent.knowledgeBases || []).filter(Boolean).length > 0 &&
+    !enabledTools.some(tool => tool.name === "list_knowledge_files")
+  ) {
+    enabledTools.push(createKnowledgeFilesTool(agent._id))
+  }
 
   const systemPrompt = ai.composeAutomationAgentSystemPrompt({
     baseSystemPrompt,
