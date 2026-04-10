@@ -171,8 +171,13 @@ export async function buildPromptAndTools(
     includeGoal,
   })
 
+  const resolvedSystemPrompt =
+    agent._id && (agent.knowledgeBases || []).filter(Boolean).length > 0
+      ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, or processing errors), call list_knowledge_files with a filename when possible.`
+      : systemPrompt
+
   return {
-    systemPrompt,
+    systemPrompt: resolvedSystemPrompt,
     tools: toToolSet(enabledTools),
     toolDisplayNames: getToolDisplayNames(enabledTools),
   }

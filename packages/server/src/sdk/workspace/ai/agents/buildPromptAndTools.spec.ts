@@ -81,6 +81,7 @@ describe("buildPromptAndTools", () => {
       "agent_1"
     )
     expect(Reflect.get(result.tools, "list_knowledge_files")).toBeDefined()
+    expect(result.systemPrompt).toContain("call list_knowledge_files")
   })
 
   it("does not add knowledge files helper when no knowledge base exists", async () => {
@@ -96,5 +97,6 @@ describe("buildPromptAndTools", () => {
 
     expect(createKnowledgeFilesTool as jest.Mock).not.toHaveBeenCalled()
     expect(Reflect.get(result.tools, "list_knowledge_files")).toBeUndefined()
+    expect(result.systemPrompt).toBe("system prompt")
   })
 })

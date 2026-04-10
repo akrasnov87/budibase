@@ -16,19 +16,23 @@ jest.mock("../../../../sdk", () => ({
 import sdk from "../../../../sdk"
 import { createKnowledgeFilesTool } from "../knowledgeFiles"
 
-const executeTool = async (agentId: string) => {
+const executeTool = async (
+  agentId: string,
+  input: {
+    filename?: string
+    matchMode?: "smart" | "exact" | "contains"
+    caseSensitive?: boolean
+  } = {}
+) => {
   const toolDef = createKnowledgeFilesTool(agentId)
   if (!toolDef.tool.execute) {
     throw new Error("tool.execute is not a function")
   }
 
-  return await toolDef.tool.execute(
-    {},
-    {
-      toolCallId: "test-tool-call",
-      messages: [],
-    }
-  )
+  return await toolDef.tool.execute(input, {
+    toolCallId: "test-tool-call",
+    messages: [],
+  })
 }
 
 describe("AI Tools - Knowledge files", () => {
@@ -81,6 +85,10 @@ describe("AI Tools - Knowledge files", () => {
       ])
 
     const result = (await executeTool("agent_123")) as {
+      matchedCount: number
+      ambiguous: boolean
+      bestMatch?: unknown
+      candidates: unknown[]
       total: number
       readyCount: number
       processingCount: number
@@ -98,6 +106,10 @@ describe("AI Tools - Knowledge files", () => {
     }
 
     expect(listFilesSpy).toHaveBeenCalledWith("agent_123")
+    expect(result.matchedCount).toBe(3)
+    expect(result.ambiguous).toBe(false)
+    expect(result.bestMatch).toBeUndefined()
+    expect(result.candidates).toEqual([])
     expect(result.total).toBe(3)
     expect(result.readyCount).toBe(1)
     expect(result.processingCount).toBe(1)
@@ -122,6 +134,10 @@ describe("AI Tools - Knowledge files", () => {
     jest.spyOn(sdk.ai.rag, "listFilesForAgent").mockResolvedValue([])
 
     const result = (await executeTool("agent_456")) as {
+      matchedCount: number
+      ambiguous: boolean
+      bestMatch?: unknown
+      candidates: unknown[]
       total: number
       readyCount: number
       processingCount: number
@@ -130,11 +146,156 @@ describe("AI Tools - Knowledge files", () => {
     }
 
     expect(result).toEqual({
+      matchedCount: 0,
+      ambiguous: false,
+      bestMatch: undefined,
+      candidates: [],
       total: 0,
       readyCount: 0,
       processingCount: 0,
       failedCount: 0,
       files: [],
     })
+  })
+
+  it("uses smart matching by default and resolves basename without extension", async () => {
+    jest.spyOn(sdk.ai.rag, "listFilesForAgent").mockResolvedValue([
+      {
+        _id: "file_1",
+        knowledgeBaseId: "kb_1",
+        filename: "policy.pdf",
+        objectStoreKey: "obj_1",
+        ragSourceId: "source_1",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "user_1",
+      } satisfies KnowledgeBaseFile,
+      {
+        _id: "file_2",
+        knowledgeBaseId: "kb_1",
+        filename: "fileName.pdf",
+        size: 512,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        objectStoreKey: "obj_2",
+        ragSourceId: "source_2",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "user_1",
+      } satisfies KnowledgeBaseFile,
+    ])
+
+    const result = (await executeTool("agent_789", {
+      filename: "filename",
+    })) as {
+      matchedCount: number
+      ambiguous: boolean
+      bestMatch?: { filename: string; sizeBytes?: number; matchedBy?: string }
+      candidates: Array<{ filename: string; matchedBy?: string }>
+      files: Array<{ filename: string; sizeBytes?: number; matchedBy?: string }>
+    }
+
+    expect(result.matchedCount).toBe(1)
+    expect(result.ambiguous).toBe(false)
+    expect(result.bestMatch).toMatchObject({
+      filename: "fileName.pdf",
+      sizeBytes: 512,
+      matchedBy: "basename-exact",
+    })
+    expect(result.candidates).toHaveLength(1)
+    expect(result.files).toHaveLength(1)
+    expect(result.files[0]).toMatchObject({
+      filename: "fileName.pdf",
+      sizeBytes: 512,
+      matchedBy: "basename-exact",
+    })
+  })
+
+  it("returns best guess and alternatives for ambiguous smart matches", async () => {
+    jest.spyOn(sdk.ai.rag, "listFilesForAgent").mockResolvedValue([
+      {
+        _id: "file_1",
+        knowledgeBaseId: "kb_1",
+        filename: "policy-v2.pdf",
+        size: 102,
+        createdAt: "2026-03-01T00:00:00.000Z",
+        objectStoreKey: "obj_1",
+        ragSourceId: "source_1",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "user_1",
+      } satisfies KnowledgeBaseFile,
+      {
+        _id: "file_2",
+        knowledgeBaseId: "kb_1",
+        filename: "policy-v1.pdf",
+        size: 101,
+        createdAt: "2026-02-01T00:00:00.000Z",
+        objectStoreKey: "obj_2",
+        ragSourceId: "source_2",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "user_1",
+      } satisfies KnowledgeBaseFile,
+    ])
+
+    const result = (await executeTool("agent_654", {
+      filename: "policy",
+    })) as {
+      matchedCount: number
+      ambiguous: boolean
+      bestMatch?: { filename: string; matchedBy?: string }
+      candidates: Array<{ filename: string; matchedBy?: string }>
+    }
+
+    expect(result.matchedCount).toBe(2)
+    expect(result.ambiguous).toBe(true)
+    expect(result.bestMatch).toMatchObject({
+      filename: "policy-v2.pdf",
+      matchedBy: "basename-prefix",
+    })
+    expect(result.candidates.map(file => file.filename)).toEqual([
+      "policy-v2.pdf",
+      "policy-v1.pdf",
+    ])
+  })
+
+  it("supports contains matching", async () => {
+    jest.spyOn(sdk.ai.rag, "listFilesForAgent").mockResolvedValue([
+      {
+        _id: "file_1",
+        knowledgeBaseId: "kb_1",
+        filename: "project-filename.pdf",
+        objectStoreKey: "obj_1",
+        ragSourceId: "source_1",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "user_1",
+      } satisfies KnowledgeBaseFile,
+      {
+        _id: "file_2",
+        knowledgeBaseId: "kb_1",
+        filename: "notes.txt",
+        objectStoreKey: "obj_2",
+        ragSourceId: "source_2",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "user_1",
+      } satisfies KnowledgeBaseFile,
+    ])
+
+    const result = (await executeTool("agent_987", {
+      filename: "filename",
+      matchMode: "contains",
+    })) as {
+      matchedCount: number
+      ambiguous: boolean
+      bestMatch?: { filename: string; matchedBy?: string }
+      files: Array<{ filename: string; matchedBy?: string }>
+    }
+
+    expect(result.matchedCount).toBe(1)
+    expect(result.ambiguous).toBe(false)
+    expect(result.bestMatch).toMatchObject({
+      filename: "project-filename.pdf",
+      matchedBy: "filename-contains",
+    })
+    expect(result.files.map(file => file.filename)).toEqual([
+      "project-filename.pdf",
+    ])
+    expect(result.files[0].matchedBy).toBe("filename-contains")
   })
 })
