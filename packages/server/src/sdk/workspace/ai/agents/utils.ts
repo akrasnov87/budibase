@@ -146,6 +146,11 @@ export async function buildPromptAndTools(
   toolDisplayNames: Record<string, string>
 }> {
   const { baseSystemPrompt, includeGoal = true } = options
+  const agentId = agent._id
+  if (!agentId) {
+    throw new Error("Agent _id is required")
+  }
+  const hasKnowledgeBases = agent.knowledgeBases?.some(Boolean) ?? false
 
   const allTools = await getAvailableTools(agent.aiconfig)
   const enabledToolNames = new Set(agent.enabledTools || [])
@@ -157,11 +162,10 @@ export async function buildPromptAndTools(
   )
 
   if (
-    agent._id &&
-    (agent.knowledgeBases || []).filter(Boolean).length > 0 &&
+    hasKnowledgeBases &&
     !enabledTools.some(tool => tool.name === "list_knowledge_files")
   ) {
-    enabledTools.push(createKnowledgeFilesTool(agent._id))
+    enabledTools.push(createKnowledgeFilesTool(agentId))
   }
 
   const systemPrompt = ai.composeAutomationAgentSystemPrompt({
@@ -171,10 +175,9 @@ export async function buildPromptAndTools(
     includeGoal,
   })
 
-  const resolvedSystemPrompt =
-    agent._id && (agent.knowledgeBases || []).filter(Boolean).length > 0
-      ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, or processing errors), call list_knowledge_files with a filename when possible.`
-      : systemPrompt
+  const resolvedSystemPrompt = hasKnowledgeBases
+    ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, or processing errors), call list_knowledge_files with a filename when possible.`
+    : systemPrompt
 
   return {
     systemPrompt: resolvedSystemPrompt,

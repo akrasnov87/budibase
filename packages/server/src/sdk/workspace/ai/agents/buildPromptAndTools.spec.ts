@@ -99,4 +99,17 @@ describe("buildPromptAndTools", () => {
     expect(Reflect.get(result.tools, "list_knowledge_files")).toBeUndefined()
     expect(result.systemPrompt).toBe("system prompt")
   })
+
+  it("throws when agent id is missing", async () => {
+    const agent = {
+      name: "Support Agent",
+      aiconfig: "",
+      enabledTools: [],
+      knowledgeBases: ["kb_1"],
+    } as Agent
+
+    await expect(buildPromptAndTools(agent)).rejects.toThrow(
+      "Agent _id is required"
+    )
+  })
 })
