@@ -1,4 +1,8 @@
-import { KnowledgeBaseFileStatus, ToolType } from "@budibase/types"
+import {
+  KnowledgeBaseFileStatus,
+  ToolType,
+  type KnowledgeBaseFile,
+} from "@budibase/types"
 import { tool } from "ai"
 import { z } from "zod"
 import sdk from "../../../sdk"
@@ -21,16 +25,7 @@ interface KnowledgeFileMetadata {
 interface RankedMatch {
   score: number
   matchedBy: string
-  file: {
-    _id?: string
-    filename: string
-    status: KnowledgeBaseFileStatus
-    size?: number
-    mimetype?: string
-    createdAt?: string | number
-    processedAt?: string
-    errorMessage?: string
-  }
+  file: KnowledgeBaseFile
 }
 
 const toEpochMillis = (value?: string | number) => {
@@ -67,7 +62,7 @@ const normalizeFilenamePart = (value: string, caseSensitive: boolean) => {
 }
 
 const buildMetadata = (
-  file: RankedMatch["file"],
+  file: KnowledgeBaseFile,
   matchedBy?: string
 ): KnowledgeFileMetadata => ({
   fileId: file._id,
@@ -126,7 +121,7 @@ const rankSmartFilenameMatch = (
 }
 
 const getRankedMatches = (
-  files: RankedMatch["file"][],
+  files: KnowledgeBaseFile[],
   inputName: string,
   mode: FilenameMatchMode,
   caseSensitive: boolean
