@@ -173,36 +173,36 @@ export async function createBucketIfNotExists(
       err.$metadata?.httpStatusCode
     const promises: Record<string, Promise<any> | undefined> =
       STATE.bucketCreationPromises
-    const doesntExist = statusCode === 404,
-      noAccess = statusCode === 403
+
+    if (statusCode === 403) {
+      throw new Error("Access denied to object store bucket." + err)
+    }
+
     if (promises[bucketName]) {
       await promises[bucketName]
       return { created: false, exists: true }
-    } else if (doesntExist || noAccess) {
-      if (doesntExist) {
-        promises[bucketName] = client
-          .createBucket({
-            Bucket: bucketName,
-          })
-          .catch((err: any) => {
-            // bucket was created in the meantime by another process
-            if (
-              err.Code !== "BucketAlreadyOwnedByYou" &&
-              err.name !== "BucketAlreadyOwnedByYou"
-            ) {
-              throw err
-            }
-          })
-
-        await promises[bucketName]
-        delete promises[bucketName]
-        return { created: true, exists: false }
-      } else {
-        throw new Error("Access denied to object store bucket." + err)
-      }
-    } else {
-      throw new Error("Unable to write to object store bucket.")
     }
+
+    // Attempt to create the bucket for any headBucket failure that is not an
+    // explicit access denial. This covers 404 (not found) and non-standard
+    // status codes returned by S3-compatible stores such as Ceph RadosGW.
+    promises[bucketName] = client
+      .createBucket({
+        Bucket: bucketName,
+      })
+      .catch((err: any) => {
+        // bucket was created in the meantime by another process
+        if (
+          err.Code !== "BucketAlreadyOwnedByYou" &&
+          err.name !== "BucketAlreadyOwnedByYou"
+        ) {
+          throw err
+        }
+      })
+
+    await promises[bucketName]
+    delete promises[bucketName]
+    return { created: true, exists: false }
   }
 }
 
