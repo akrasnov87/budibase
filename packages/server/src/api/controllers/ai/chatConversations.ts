@@ -298,7 +298,7 @@ export async function webhookChat({
     throw responseResult.reason
   }
 
-  await events.action.aiAgentExecuted({ agentId })
+  events.action.aiAgentExecuted({ agentId })
 
   const assistantText = textResult.value
   const assistantMessage: ChatConversation["messages"][number] = {
@@ -500,7 +500,7 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
       onError: error => getErrorMessage(error),
       onFinish: async ({ messages }) => {
         await sessionLogIndexer.index()
-        await events.action.aiAgentExecuted({ agentId })
+        events.action.aiAgentExecuted({ agentId })
 
         if (chat.transient || !chatAppId) {
           return
