@@ -1,5 +1,5 @@
 import { context, docIds, features, roles } from "@budibase/backend-core"
-import { DocumentType } from "@budibase/types"
+import { DocumentType, FeatureFlag } from "@budibase/types"
 import type {
   Agent,
   AgentChannelProvider,
@@ -962,6 +962,13 @@ describe("Agent chat tool call tracking", () => {
   let sessionLogIndexer: ReturnType<typeof createMockSessionLogIndexer>
   const addActionMock = jest.mocked(quotas.addAction)
 
+  const withRagEnabled = async <T>(f: () => Promise<T>) =>
+    await features.testutils.withFeatureFlags(
+      config.getTenantId(),
+      { [FeatureFlag.AI_RAG]: true },
+      f
+    )
+
   function makeStreamTextMock(toolResults: { toolCallId: string }[]) {
     return (options: any) => ({
       response: Promise.resolve({
@@ -1093,7 +1100,6 @@ describe("Agent chat tool call tracking", () => {
   beforeEach(() => {
     addActionMock.mockClear()
     jest.mocked(streamText).mockClear()
-    jest.spyOn(features, "isEnabled").mockResolvedValue(true)
     sessionLogIndexer = createMockSessionLogIndexer()
     jest
       .mocked(agentLogs.createSessionLogIndexer)
@@ -1234,21 +1240,23 @@ describe("Agent chat tool call tracking", () => {
       )
 
       const headers = await config.defaultHeaders({}, true)
-      const res = await config
-        .getRequest()!
-        .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
-        .set(headers)
-        .send({
-          agentId: "agent-1",
-          messages: [
-            {
-              id: "msg-1",
-              role: "user",
-              parts: [{ type: "text", text: "how many files do I have" }],
-            },
-          ],
-          transient: true,
-        })
+      const res = await withRagEnabled(async () =>
+        config
+          .getRequest()!
+          .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
+          .set(headers)
+          .send({
+            agentId: "agent-1",
+            messages: [
+              {
+                id: "msg-1",
+                role: "user",
+                parts: [{ type: "text", text: "how many files do I have" }],
+              },
+            ],
+            transient: true,
+          })
+      )
 
       expect(res.status).toBe(200)
       expect(finishMetadata?.ragSources).toBeUndefined()
@@ -1291,21 +1299,23 @@ describe("Agent chat tool call tracking", () => {
       )
 
       const headers = await config.defaultHeaders({}, true)
-      const res = await config
-        .getRequest()!
-        .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
-        .set(headers)
-        .send({
-          agentId: "agent-1",
-          messages: [
-            {
-              id: "msg-1",
-              role: "user",
-              parts: [{ type: "text", text: "summarize the pricing file" }],
-            },
-          ],
-          transient: true,
-        })
+      const res = await withRagEnabled(async () =>
+        config
+          .getRequest()!
+          .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
+          .set(headers)
+          .send({
+            agentId: "agent-1",
+            messages: [
+              {
+                id: "msg-1",
+                role: "user",
+                parts: [{ type: "text", text: "summarize the pricing file" }],
+              },
+            ],
+            transient: true,
+          })
+      )
 
       expect(res.status).toBe(200)
       expect(finishMetadata?.ragSources).toEqual([
@@ -1353,21 +1363,23 @@ describe("Agent chat tool call tracking", () => {
       )
 
       const headers = await config.defaultHeaders({}, true)
-      const res = await config
-        .getRequest()!
-        .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
-        .set(headers)
-        .send({
-          agentId: "agent-1",
-          messages: [
-            {
-              id: "msg-1",
-              role: "user",
-              parts: [{ type: "text", text: "summarize the pricing file" }],
-            },
-          ],
-          transient: true,
-        })
+      const res = await withRagEnabled(async () =>
+        config
+          .getRequest()!
+          .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
+          .set(headers)
+          .send({
+            agentId: "agent-1",
+            messages: [
+              {
+                id: "msg-1",
+                role: "user",
+                parts: [{ type: "text", text: "summarize the pricing file" }],
+              },
+            ],
+            transient: true,
+          })
+      )
 
       expect(res.status).toBe(200)
       expect(finishMetadata?.ragSources).toBeUndefined()
