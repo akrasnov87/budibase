@@ -1,10 +1,10 @@
-<script lang="ts" generics="V extends string ">
+<script lang="ts" generics="V extends string | number">
   import Field from "./Field.svelte"
   import TextField from "./Core/TextField.svelte"
   import { createEventDispatcher } from "svelte"
   import type { FullAutoFill } from "svelte/elements"
 
-  export let value: V | undefined = undefined
+  export let value: V | null | undefined = undefined
   export let label: string | undefined = undefined
   export let labelPosition: "above" | "left" = "above"
   export let placeholder: string | undefined = undefined
@@ -49,7 +49,7 @@
     {updateOnChange}
     {disabled}
     {readonly}
-    value={value ?? null}
+    {value}
     {placeholder}
     {type}
     {quiet}
