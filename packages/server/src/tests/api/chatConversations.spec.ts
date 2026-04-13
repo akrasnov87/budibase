@@ -1005,7 +1005,11 @@ describe("Agent chat tool call tracking", () => {
     onMetadata,
   }: {
     toolCalls: { toolCallId: string; toolName?: string }[]
-    toolResults: { toolCallId: string }[]
+    toolResults: {
+      toolCallId: string
+      toolName?: string
+      preliminary?: boolean
+    }[]
     onMetadata: (metadata: {
       startMetadata: Record<string, any> | undefined
       finishMetadata: Record<string, any> | undefined
@@ -1201,7 +1205,7 @@ describe("Agent chat tool call tracking", () => {
       expect(addActionMock).not.toHaveBeenCalled()
     })
 
-    it("does not include ragSources when list_knowledge_files is called", async () => {
+    it("does not include ragSources when list_knowledge_files returns successfully", async () => {
       let finishMetadata: Record<string, any> | undefined
       ;(
         sdk.ai.agents.getOrThrow as jest.MockedFunction<
@@ -1232,7 +1236,9 @@ describe("Agent chat tool call tracking", () => {
           toolCalls: [
             { toolCallId: "call-1", toolName: "list_knowledge_files" },
           ],
-          toolResults: [{ toolCallId: "call-1" }],
+          toolResults: [
+            { toolCallId: "call-1", toolName: "list_knowledge_files" },
+          ],
           onMetadata: metadata => {
             finishMetadata = metadata.finishMetadata
           },
@@ -1260,6 +1266,72 @@ describe("Agent chat tool call tracking", () => {
 
       expect(res.status).toBe(200)
       expect(finishMetadata?.ragSources).toBeUndefined()
+    })
+
+    it("keeps ragSources when list_knowledge_files call fails", async () => {
+      let finishMetadata: Record<string, any> | undefined
+      ;(
+        sdk.ai.agents.getOrThrow as jest.MockedFunction<
+          typeof sdk.ai.agents.getOrThrow
+        >
+      ).mockResolvedValue({
+        _id: "agent-1",
+        name: "Test Agent",
+        aiconfig: "config-1",
+        knowledgeBases: ["kb-1"],
+      } as any)
+      ;(
+        retrieveContextForAgent as jest.MockedFunction<
+          typeof retrieveContextForAgent
+        >
+      ).mockResolvedValue({
+        text: "Retrieved context",
+        chunks: [],
+        sources: [
+          {
+            sourceId: "pricing-source",
+            filename: "Budibase Enterprise Pricing V8.pdf",
+          },
+        ],
+      })
+      jest.mocked(streamText).mockImplementation(
+        makeStreamTextMockWithMetadata({
+          toolCalls: [
+            { toolCallId: "call-1", toolName: "list_knowledge_files" },
+          ],
+          toolResults: [],
+          onMetadata: metadata => {
+            finishMetadata = metadata.finishMetadata
+          },
+        }) as any
+      )
+
+      const headers = await config.defaultHeaders({}, true)
+      const res = await withRagEnabled(async () =>
+        config
+          .getRequest()!
+          .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
+          .set(headers)
+          .send({
+            agentId: "agent-1",
+            messages: [
+              {
+                id: "msg-1",
+                role: "user",
+                parts: [{ type: "text", text: "how many files do I have" }],
+              },
+            ],
+            transient: true,
+          })
+      )
+
+      expect(res.status).toBe(200)
+      expect(finishMetadata?.ragSources).toEqual([
+        {
+          sourceId: "pricing-source",
+          filename: "Budibase Enterprise Pricing V8.pdf",
+        },
+      ])
     })
 
     it("includes ragSources when no knowledge file listing tool is called", async () => {

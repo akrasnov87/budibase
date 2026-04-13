@@ -445,18 +445,19 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
       async onStepFinish({ content, toolCalls, toolResults, response }) {
         sessionLogIndexer.addRequestId(response?.id)
         updatePendingToolCalls(pendingToolCalls, toolCalls, toolResults)
-        for (const toolCall of toolCalls) {
-          if (toolCall.toolName === "list_knowledge_files") {
+        for (const toolResult of toolResults) {
+          if (
+            toolResult.toolName === "list_knowledge_files" &&
+            !toolResult.preliminary
+          ) {
             listedKnowledgeFiles = true
           }
+          await quotas.addAction(async () => {})
         }
         for (const part of content) {
           if (part.type === "tool-error") {
             pendingToolCalls.delete(part.toolCallId)
           }
-        }
-        for (const _toolResult of toolResults) {
-          await quotas.addAction(async () => {})
         }
       },
       onFinish({ response }) {
