@@ -14,12 +14,7 @@
   import { generate } from "shortid"
   import type { TableSchema } from "@budibase/types"
   import CellEditor from "./CellEditor.svelte"
-
-  interface ColumnConfig {
-    id?: string
-    name?: string
-    displayName?: string
-  }
+  import type { ColumnConfig } from "./types"
 
   interface DndItemsDetail<T> {
     items: T[]
@@ -155,7 +150,12 @@
                   on:change={e => (column.displayName = e.detail)}
                 />
                 {#if allowCellEditing}
-                  <CellEditor bind:column />
+                  <CellEditor
+                    {column}
+                    on:change={e => {
+                      Object.assign(column, e.detail)
+                    }}
+                  />
                 {/if}
                 <Icon
                   name="x"
