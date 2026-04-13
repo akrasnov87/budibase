@@ -242,7 +242,7 @@ class StepBuilder<
       this.config.getDevWorkspaceId(),
       async () => {
         const runner = await this.save()
-        return runner.test(triggerOutput)
+        return await runner.test(triggerOutput)
       }
     )
   }
