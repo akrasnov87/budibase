@@ -1,15 +1,21 @@
-<script>
+<script lang="ts">
   import { Drawer, Button, Icon } from "@budibase/bbui"
   import CellDrawer from "./CellDrawer.svelte"
 
-  export let column
+  interface ColumnConfig {
+    id?: string
+    name?: string
+    displayName?: string
+  }
 
-  let boundValue
-  let drawer
+  export let column: ColumnConfig
+
+  let boundValue: ColumnConfig
+  let drawer: Drawer
 
   $: updateBoundValue(column)
 
-  const updateBoundValue = value => {
+  const updateBoundValue = (value: ColumnConfig) => {
     boundValue = { ...value }
   }
 
@@ -26,9 +32,6 @@
 
 <Icon name="gear" hoverable size="S" on:click={open} />
 <Drawer bind:this={drawer} title={column.name}>
-  <svelte:fragment slot="description">
-    "{column.name}" column settings
-  </svelte:fragment>
   <Button cta slot="buttons" on:click={save}>Save</Button>
   <CellDrawer slot="body" bind:column={boundValue} />
 </Drawer>
