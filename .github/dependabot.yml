@@ -4,13 +4,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 0
     groups:
-      all-non-major:
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
       all-non-major-security:
         applies-to: security-updates
         patterns:
@@ -23,14 +18,8 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    open-pull-requests-limit: 0
     groups:
-      non-major-version:
-        applies-to: version-updates
-        patterns:
-          - "*"
-        update-types:
-          - "minor"
-          - "patch"
       non-major-security:
         applies-to: security-updates
         patterns:
