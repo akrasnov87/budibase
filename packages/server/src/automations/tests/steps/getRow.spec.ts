@@ -1,6 +1,5 @@
 import { EmptyFilterOption, SortOrder, Table } from "@budibase/types"
 import { createAutomationBuilder } from "../utilities/AutomationTestBuilder"
-import * as automation from "../../index"
 import { basicTable } from "../../../tests/utilities/structures"
 import TestConfiguration from "../../../tests/utilities/TestConfiguration"
 
@@ -12,7 +11,6 @@ describe("Get row automation step", () => {
   let rowId: string
 
   beforeAll(async () => {
-    await automation.init()
     await config.init()
     table = await config.api.table.save(basicTable())
 
