@@ -16,7 +16,7 @@
   export let autofocus: boolean | null = false
   export let autocomplete: FullAutoFill | boolean | null | undefined = undefined
 
-  const dispatch = createEventDispatcher()
+  const dispatch = createEventDispatcher<{ change: string }>()
 
   let field: any
   let focus = false

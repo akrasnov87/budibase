@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import {
     Button,
     Icon,
@@ -12,11 +12,22 @@
   import { flip } from "svelte/animate"
   import { dndzone } from "svelte-dnd-action"
   import { generate } from "shortid"
+  import type { TableSchema } from "@budibase/types"
   import CellEditor from "./CellEditor.svelte"
 
-  export let columns = []
-  export let options = []
-  export let schema = {}
+  interface ColumnConfig {
+    id?: string
+    name?: string
+    displayName?: string
+  }
+
+  interface DndItemsDetail<T> {
+    items: T[]
+  }
+
+  export let columns: ColumnConfig[] = []
+  export let options: string[] = []
+  export let schema: TableSchema = {}
   export let allowCellEditing = true
   export let allowReorder = true
 
@@ -30,18 +41,25 @@
     }
   })
 
-  const getUnselectedColumns = (allColumns, selectedColumns) => {
-    let optionsObj = {}
-    allColumns.forEach(option => {
+  $: console.error(columns.map(col => col.id))
+
+  const getUnselectedColumns = (
+    allColumns: string[],
+    selectedColumns: ColumnConfig[]
+  ): string[] => {
+    const optionsObj: Record<string, true> = {}
+    allColumns.forEach((option: string) => {
       optionsObj[option] = true
     })
     selectedColumns?.forEach(column => {
-      delete optionsObj[column.name]
+      if (column.name) {
+        delete optionsObj[column.name]
+      }
     })
     return Object.keys(optionsObj)
   }
 
-  const getRemainingColumnOptions = selectedColumn => {
+  const getRemainingColumnOptions = (selectedColumn?: string): string[] => {
     if (!selectedColumn || unselectedColumns.includes(selectedColumn)) {
       return unselectedColumns
     }
@@ -52,24 +70,28 @@
     columns = [...columns, {}]
   }
 
-  const removeColumn = id => {
+  const removeColumn = (id?: string) => {
+    if (!id) {
+      return
+    }
     columns = columns.filter(column => column.id !== id)
   }
 
-  const updateColumnOrder = e => {
+  const updateColumnOrder = (e: CustomEvent<DndItemsDetail<ColumnConfig>>) => {
     columns = e.detail.items
   }
 
-  const handleFinalize = e => {
+  const handleFinalize = (e: CustomEvent<DndItemsDetail<ColumnConfig>>) => {
     updateColumnOrder(e)
     dragDisabled = true
   }
 
   const addAllColumns = () => {
-    let newColumns = columns || []
-    options.forEach(field => {
+    const newColumns = [...(columns || [])]
+    options.forEach((field: string) => {
       const fieldSchema = schema[field]
-      const hasCol = columns && columns.findIndex(x => x.name === field) !== -1
+      const hasCol =
+        columns && columns.findIndex(col => col.name === field) !== -1
       if (!fieldSchema?.autocolumn && !hasCol) {
         newColumns.push({
           name: field,
