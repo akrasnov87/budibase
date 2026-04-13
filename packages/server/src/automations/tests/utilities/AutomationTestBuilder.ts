@@ -238,9 +238,12 @@ class StepBuilder<
   async test(
     triggerOutput: AutomationTriggerOutputs<TStep> & TestAutomationRequest
   ) {
-    const runner = await this.save()
-    return await this.config.doInContext(this.config.getDevWorkspaceId(), () =>
-      runner.test(triggerOutput)
+    return await this.config.doInContext(
+      this.config.getDevWorkspaceId(),
+      async () => {
+        const runner = await this.save()
+        return runner.test(triggerOutput)
+      }
     )
   }
 
