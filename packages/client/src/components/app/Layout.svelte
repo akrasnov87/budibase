@@ -86,7 +86,7 @@
   })
   setContext("layout", store)
 
-  $: enrichedNavItems = enrichNavItems(links, $roleStore)
+  $: enrichedNavItems = enrichNavItems(links, $roleStore, $routeStore.routes)
   $: typeClass = NavigationClasses[navigation] || NavigationClasses.None
   $: navWidthClass = WidthClasses[navWidth || width] || WidthClasses.Large
   $: pageWidthClass = WidthClasses[pageWidth || width] || WidthClasses.Large
@@ -124,10 +124,33 @@
     }
   }
 
-  const enrichNavItems = (navItems, userRoleHierarchy) => {
+  const getRouteWithoutQueryParams = route => {
+    if (!route) {
+      return route
+    }
+    return route.split("?")[0].split("#")[0]
+  }
+
+  const canAccessSubLink = (subLink, accessibleRoutes) => {
+    const url = subLink?.url
+    if (!url) {
+      return false
+    }
+
+    // We can only reliably validate static internal routes here.
+    if (!isInternal(url) || url.includes("{{")) {
+      return true
+    }
+
+    return accessibleRoutes.has(getRouteWithoutQueryParams(url))
+  }
+
+  const enrichNavItems = (navItems, userRoleHierarchy, routeEntries = []) => {
     if (!navItems?.length) {
       return []
     }
+    const accessibleRoutes = new Set(routeEntries.map(route => route.path))
+
     return navItems
       .filter(navItem => {
         // Strip nav items without text
@@ -148,11 +171,17 @@
         const enrichedNavItem = enrichNavItem(navItem)
         if (navItem.type === "sublinks" && navItem.subLinks?.length) {
           enrichedNavItem.subLinks = navItem.subLinks
-            .filter(subLink => subLink.text && subLink.url)
+            .filter(
+              subLink =>
+                subLink.text && canAccessSubLink(subLink, accessibleRoutes)
+            )
             .map(enrichNavItem)
         }
         return enrichedNavItem
       })
+      .filter(
+        navItem => navItem.type !== "sublinks" || navItem.subLinks?.length > 0
+      )
   }
 
   function evaluateNavItemConditions(conditions = []) {
