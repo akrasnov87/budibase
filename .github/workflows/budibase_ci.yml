@@ -16,6 +16,9 @@ on:
         description: Force running checks as if it was an OSS contributor
         default: false
 
+permissions:
+  contents: read
+
 env:
   BRANCH: ${{ github.event.pull_request.head.ref }}
   BASE_BRANCH: ${{ github.event.pull_request.base.ref}}
@@ -34,7 +37,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
@@ -73,7 +76,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
@@ -98,7 +101,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
@@ -121,7 +124,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 2
 
       - name: Fetch base branch for affected tasks
@@ -163,7 +166,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
@@ -208,7 +211,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 2
 
       - name: Fetch base branch for affected tasks
@@ -262,7 +265,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 2
 
       - name: Fetch base branch for affected tasks
@@ -341,7 +344,7 @@ jobs:
         if: needs.compute-affected-jobs.outputs.run_worker_tests == 'true'
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         if: needs.compute-affected-jobs.outputs.run_worker_tests == 'true'
@@ -437,7 +440,7 @@ jobs:
         if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         if: needs.compute-affected-jobs.outputs.run_server_tests == 'true'
@@ -531,7 +534,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
@@ -565,7 +568,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
@@ -626,7 +629,7 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v6
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || github.token }}
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Use Node.js 22.x
         uses: actions/setup-node@v6
