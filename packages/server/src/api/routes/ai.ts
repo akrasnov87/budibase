@@ -18,14 +18,6 @@ import {
   createAIConfigValidator,
   updateAIConfigValidator,
 } from "./utils/validators/aiConfig"
-import {
-  createVectorDbValidator,
-  updateVectorDbValidator,
-} from "./utils/validators/vectorDb"
-import {
-  createKnowledgeBaseValidator,
-  updateKnowledgeBaseValidator,
-} from "./utils/validators/knowledgeBase"
 
 export const licensedRoutes = endpointGroupList.group(middleware.licenseAuth)
 
@@ -89,31 +81,9 @@ const aiRagBuilderAdminRoutes = endpointGroupList
   .group(auth.builderOrAdmin)
   .addGroupMiddleware(aiRagEnabled)
 aiRagBuilderAdminRoutes
-  .get("/api/knowledge-base/:knowledgeBaseId/files", ai.fetchKnowledgeBaseFiles)
-  .post(
-    "/api/knowledge-base/:knowledgeBaseId/files",
-    ai.uploadKnowledgeBaseFile
-  )
-  .delete(
-    "/api/knowledge-base/:knowledgeBaseId/files/:fileId",
-    ai.deleteKnowledgeBaseFile
-  )
-  .get("/api/vectordb", ai.fetchVectorDbConfigs)
-  .post("/api/vectordb", createVectorDbValidator(), ai.createVectorDbConfig)
-  .put("/api/vectordb", updateVectorDbValidator(), ai.updateVectorDbConfig)
-  .delete("/api/vectordb/:id", ai.deleteVectorDbConfig)
-  .get("/api/knowledge-base", ai.fetchKnowledgeBases)
-  .post(
-    "/api/knowledge-base",
-    createKnowledgeBaseValidator(),
-    ai.createKnowledgeBase
-  )
-  .put(
-    "/api/knowledge-base",
-    updateKnowledgeBaseValidator(),
-    ai.updateKnowledgeBase
-  )
-  .delete("/api/knowledge-base/:id", ai.deleteKnowledgeBase)
+  .get("/api/agent/:agentId/files", ai.fetchAgentFiles)
+  .post("/api/agent/:agentId/files", ai.uploadAgentFile)
+  .delete("/api/agent/:agentId/files/:fileId", ai.deleteAgentFile)
 
 builderAdminRoutes.get("/api/configs/providers", ai.fetchAIProviders)
 
