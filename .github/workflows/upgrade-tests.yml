@@ -179,7 +179,7 @@ jobs:
           yarn build
 
       - name: Download Docker image
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: budibase-current-image
           path: /tmp
