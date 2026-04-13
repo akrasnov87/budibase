@@ -41,8 +41,6 @@
     }
   })
 
-  $: console.error(columns.map(col => col.id))
-
   const getUnselectedColumns = (
     allColumns: string[],
     selectedColumns: ColumnConfig[]
