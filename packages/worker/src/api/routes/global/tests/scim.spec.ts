@@ -366,12 +366,10 @@ describe("scim", () => {
       it("creating an external user that conflicts an internal one syncs the existing user", async () => {
         const workspaceId = "app_scim_sync_roles"
         const explicitRoles = { [workspaceId]: "BASIC" }
-        const { body: internalUser } = await config.api.users.saveUser(
-          {
-            ...structures.users.user(),
-            roles: explicitRoles,
-          }
-        )
+        const { body: internalUser } = await config.api.users.saveUser({
+          ...structures.users.user(),
+          roles: explicitRoles,
+        })
 
         const scimUserData = {
           externalId: structures.uuid(),
@@ -416,7 +414,9 @@ describe("scim", () => {
 
         expect(res).toEqual(expectedScimUser)
 
-        expect((await config.api.users.getUser(internalUser._id!)).body).toEqual(
+        expect(
+          (await config.api.users.getUser(internalUser._id!)).body
+        ).toEqual(
           expect.objectContaining({
             roles: explicitRoles,
           })
