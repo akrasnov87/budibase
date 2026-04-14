@@ -200,9 +200,12 @@ export async function createBucketIfNotExists(
         }
       })
 
-    await promises[bucketName]
-    delete promises[bucketName]
-    return { created: true, exists: false }
+    try {
+      await promises[bucketName]
+      return { created: true, exists: false }
+    } finally {
+      delete promises[bucketName]
+    }
   }
 }
 
