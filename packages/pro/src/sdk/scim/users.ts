@@ -98,7 +98,7 @@ export async function handleDisable(action: SCIMDisableAction): Promise<void> {
         scimUsers.map(u => ({ userId: u._id!, email: u.email }))
       )
       break
-    case "convert":
+    case "convert": {
       const regularUsers = await Promise.all(
         scimUsers.map(async u => {
           const user = { ...u }
@@ -110,5 +110,6 @@ export async function handleDisable(action: SCIMDisableAction): Promise<void> {
       )
       await usersCore.bulkUpdateGlobalUsers(regularUsers)
       break
+    }
   }
 }
