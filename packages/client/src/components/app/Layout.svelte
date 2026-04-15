@@ -128,7 +128,11 @@
     if (!route) {
       return route
     }
-    return route.split("?")[0].split("#")[0]
+    try {
+      return new URL(route, "http://localhost").pathname
+    } catch (error) {
+      return route
+    }
   }
 
   const canAccessSubLink = (subLink, accessibleRoutes) => {
