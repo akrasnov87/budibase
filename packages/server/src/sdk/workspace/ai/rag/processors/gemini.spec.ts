@@ -62,7 +62,14 @@ describe("GeminiRagProcessor", () => {
       },
     ])
 
-    const processor = createProcessor()
+    const processor = new GeminiRagProcessor({
+      _id: "kb_1",
+      name: "KB",
+      type: KnowledgeBaseType.GEMINI,
+      config: {
+        googleFileStoreId: "store_1",
+      },
+    } as any)
 
     const result = await processor.search("What is policy?")
 
