@@ -50,6 +50,7 @@
           label="Select site"
           options={sharePointSites}
           getOptionLabel={o => o.name || o.webUrl || o.id}
+          getOptionSubtitle={o => o.webUrl}
           getOptionValue={o => o.id}
         ></Select>
       {/if}
