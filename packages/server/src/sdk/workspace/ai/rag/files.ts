@@ -49,6 +49,9 @@ const getAgentKnowledgeBase = async (
   return undefined
 }
 
+const normalizeFilenameLookup = (value?: string) =>
+  value?.trim().toLowerCase() || ""
+
 export const ensureKnowledgeBaseForAgent = async (
   agentId: string
 ): Promise<KnowledgeBase> => {
@@ -204,20 +207,33 @@ export const retrieveContextForAgent = async (
       await knowledgeBaseSdk.listKnowledgeBaseFiles(knowledgeBaseId)
     files.push(...knowledgeBaseFiles)
 
-    const readyFileSources = knowledgeBaseFiles
-      .filter(
-        file =>
-          file.status === KnowledgeBaseFileStatus.READY && file.ragSourceId
-      )
+    const readyFiles = knowledgeBaseFiles.filter(
+      file => file.status === KnowledgeBaseFileStatus.READY
+    )
+    const readyFileSources = readyFiles
+      .filter(file => file.ragSourceId)
       .map(file => file.ragSourceId)
 
-    if (readyFileSources.length === 0) {
+    if (readyFiles.length === 0) {
       continue
     }
 
+    const readyFileSourceIds = new Set(readyFileSources)
+    const readyFilenameSet = new Set(
+      readyFiles
+        .map(file => normalizeFilenameLookup(file.filename))
+        .filter(Boolean)
+    )
     const processor = getProcessor(knowledgeBase)
     const returned = await processor.search(question)
-    chunks.push(...returned)
+    chunks.push(
+      ...returned.filter(
+        chunk =>
+          !!chunk.source &&
+          (readyFileSourceIds.has(chunk.source) ||
+            readyFilenameSet.has(normalizeFilenameLookup(chunk.source)))
+      )
+    )
   }
 
   if (chunks.length === 0) {
@@ -235,17 +251,28 @@ const toSourceMetadata = (
   chunks: RetrievedContextChunk[],
   files: KnowledgeBaseFile[]
 ): AgentMessageRagSource[] => {
-  const fileBySourceId = new Map(files.map(file => [file.ragSourceId, file]))
+  const readyFiles = files.filter(
+    file => file.status === KnowledgeBaseFileStatus.READY
+  )
+  const fileBySourceId = new Map(
+    readyFiles.map(file => [file.ragSourceId, file])
+  )
+  const fileByFilename = new Map(
+    readyFiles.map(file => [normalizeFilenameLookup(file.filename), file])
+  )
   const summary = new Map<string, AgentMessageRagSource>()
 
   for (const chunk of chunks) {
     if (!chunk.source) {
       continue
     }
-    const file = fileBySourceId.get(chunk.source)
-    if (!summary.has(chunk.source)) {
-      summary.set(chunk.source, {
-        sourceId: chunk.source,
+    const file =
+      fileBySourceId.get(chunk.source) ||
+      fileByFilename.get(normalizeFilenameLookup(chunk.source))
+    const sourceId = file?.ragSourceId || chunk.source
+    if (!summary.has(sourceId)) {
+      summary.set(sourceId, {
+        sourceId,
         fileId: file?._id,
         filename: file?.filename ?? chunk.source,
       })

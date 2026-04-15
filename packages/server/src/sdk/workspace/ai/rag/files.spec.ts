@@ -328,7 +328,118 @@ describe("rag files", () => {
       ])
       expect(result.sources).toEqual([
         {
-          sourceId: "policy.md",
+          sourceId: "source-1",
+          fileId: "file_1",
+          filename: "policy.md",
+        },
+      ])
+    })
+
+    it("filters out chunks from sources that are not currently ready files", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+      const agent = {
+        _id: "agent_1",
+        knowledgeBases: [knowledgeBase._id],
+      } as Agent
+
+      mockKnowledgeBaseFind.mockResolvedValue(knowledgeBase)
+      mockKnowledgeBaseListFiles.mockResolvedValue([
+        {
+          _id: "file_1",
+          knowledgeBaseId: "kb_123",
+          filename: "policy.md",
+          objectStoreKey: "obj",
+          ragSourceId: "source-ready",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+      ])
+      mockProcessorSearch.mockResolvedValue([
+        {
+          source: "source-ready",
+          chunkText: "Current policy",
+        },
+        {
+          source: "source-deleted",
+          chunkText: "Old deleted policy",
+        },
+      ])
+
+      const result = await retrieveContextForAgent(agent, "What is policy?")
+
+      expect(result.text).toBe("Current policy")
+      expect(result.chunks).toEqual([
+        {
+          source: "source-ready",
+          chunkText: "Current policy",
+        },
+      ])
+      expect(result.sources).toEqual([
+        {
+          sourceId: "source-ready",
+          fileId: "file_1",
+          filename: "policy.md",
+        },
+      ])
+    })
+
+    it("allows filename fallback only for currently ready files", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+      const agent = {
+        _id: "agent_1",
+        knowledgeBases: [knowledgeBase._id],
+      } as Agent
+
+      mockKnowledgeBaseFind.mockResolvedValue(knowledgeBase)
+      mockKnowledgeBaseListFiles.mockResolvedValue([
+        {
+          _id: "file_1",
+          knowledgeBaseId: "kb_123",
+          filename: "policy.md",
+          objectStoreKey: "obj",
+          ragSourceId: "source-ready",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+      ])
+      mockProcessorSearch.mockResolvedValue([
+        {
+          source: "policy.md",
+          chunkText: "Current policy",
+        },
+        {
+          source: "old-policy.md",
+          chunkText: "Old policy",
+        },
+      ])
+
+      const result = await retrieveContextForAgent(agent, "What is policy?")
+
+      expect(result.text).toBe("Current policy")
+      expect(result.chunks).toEqual([
+        {
+          source: "policy.md",
+          chunkText: "Current policy",
+        },
+      ])
+      expect(result.sources).toEqual([
+        {
+          sourceId: "source-ready",
+          fileId: "file_1",
           filename: "policy.md",
         },
       ])
