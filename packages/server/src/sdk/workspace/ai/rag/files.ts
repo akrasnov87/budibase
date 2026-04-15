@@ -52,6 +52,33 @@ const getAgentKnowledgeBase = async (
 const normalizeFilenameLookup = (value?: string) =>
   value?.trim().toLowerCase() || ""
 
+const getReadySourceIdByFilename = (readyFiles: KnowledgeBaseFile[]) => {
+  const sourceIdByFilename = new Map<string, string>()
+  const ambiguousFilenames = new Set<string>()
+
+  for (const file of readyFiles) {
+    if (!file.ragSourceId) {
+      continue
+    }
+
+    const normalizedFilename = normalizeFilenameLookup(file.filename)
+    if (!normalizedFilename || ambiguousFilenames.has(normalizedFilename)) {
+      continue
+    }
+
+    const existingSourceId = sourceIdByFilename.get(normalizedFilename)
+    if (existingSourceId && existingSourceId !== file.ragSourceId) {
+      sourceIdByFilename.delete(normalizedFilename)
+      ambiguousFilenames.add(normalizedFilename)
+      continue
+    }
+
+    sourceIdByFilename.set(normalizedFilename, file.ragSourceId)
+  }
+
+  return sourceIdByFilename
+}
+
 export const ensureKnowledgeBaseForAgent = async (
   agentId: string
 ): Promise<KnowledgeBase> => {
@@ -219,21 +246,32 @@ export const retrieveContextForAgent = async (
     }
 
     const readyFileSourceIds = new Set(readyFileSources)
-    const readyFilenameSet = new Set(
-      readyFiles
-        .map(file => normalizeFilenameLookup(file.filename))
-        .filter(Boolean)
-    )
+    const readySourceIdByFilename = getReadySourceIdByFilename(readyFiles)
     const processor = getProcessor(knowledgeBase)
     const returned = await processor.search(question)
-    chunks.push(
-      ...returned.filter(
-        chunk =>
-          !!chunk.source &&
-          (readyFileSourceIds.has(chunk.source) ||
-            readyFilenameSet.has(normalizeFilenameLookup(chunk.source)))
+
+    for (const chunk of returned) {
+      if (!chunk.source) {
+        continue
+      }
+
+      if (readyFileSourceIds.has(chunk.source)) {
+        chunks.push(chunk)
+        continue
+      }
+
+      const sourceIdFromFilename = readySourceIdByFilename.get(
+        normalizeFilenameLookup(chunk.source)
       )
-    )
+      if (!sourceIdFromFilename) {
+        continue
+      }
+
+      chunks.push({
+        ...chunk,
+        source: sourceIdFromFilename,
+      })
+    }
   }
 
   if (chunks.length === 0) {
@@ -257,19 +295,14 @@ const toSourceMetadata = (
   const fileBySourceId = new Map(
     readyFiles.map(file => [file.ragSourceId, file])
   )
-  const fileByFilename = new Map(
-    readyFiles.map(file => [normalizeFilenameLookup(file.filename), file])
-  )
   const summary = new Map<string, AgentMessageRagSource>()
 
   for (const chunk of chunks) {
     if (!chunk.source) {
       continue
     }
-    const file =
-      fileBySourceId.get(chunk.source) ||
-      fileByFilename.get(normalizeFilenameLookup(chunk.source))
-    const sourceId = file?.ragSourceId || chunk.source
+    const file = fileBySourceId.get(chunk.source)
+    const sourceId = chunk.source
     if (!summary.has(sourceId)) {
       summary.set(sourceId, {
         sourceId,

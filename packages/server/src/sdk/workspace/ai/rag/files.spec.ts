@@ -322,7 +322,7 @@ describe("rag files", () => {
       expect(result.text).toBe("4-day in-office policy")
       expect(result.chunks).toEqual([
         {
-          source: "policy.md",
+          source: "source-1",
           chunkText: "4-day in-office policy",
         },
       ])
@@ -432,7 +432,7 @@ describe("rag files", () => {
       expect(result.text).toBe("Current policy")
       expect(result.chunks).toEqual([
         {
-          source: "policy.md",
+          source: "source-ready",
           chunkText: "Current policy",
         },
       ])
@@ -443,6 +443,154 @@ describe("rag files", () => {
           filename: "policy.md",
         },
       ])
+    })
+
+    it("does not mix filename fallback metadata across knowledge bases", async () => {
+      const knowledgeBaseOne: KnowledgeBase = {
+        _id: "kb_1",
+        name: "Knowledge Base 1",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+      const knowledgeBaseTwo: KnowledgeBase = {
+        _id: "kb_2",
+        name: "Knowledge Base 2",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-2",
+        },
+      }
+      const agent = {
+        _id: "agent_1",
+        knowledgeBases: [knowledgeBaseOne._id, knowledgeBaseTwo._id],
+      } as Agent
+
+      mockKnowledgeBaseFind.mockImplementation(async (id: string) => {
+        if (id === knowledgeBaseOne._id) {
+          return knowledgeBaseOne
+        }
+        if (id === knowledgeBaseTwo._id) {
+          return knowledgeBaseTwo
+        }
+        return undefined
+      })
+      mockKnowledgeBaseListFiles.mockImplementation(async (id: string) => {
+        if (id === knowledgeBaseOne._id) {
+          return [
+            {
+              _id: "file_1",
+              knowledgeBaseId: "kb_1",
+              filename: "policy.md",
+              objectStoreKey: "obj-1",
+              ragSourceId: "source-kb-1",
+              status: KnowledgeBaseFileStatus.READY,
+              uploadedBy: "user_1",
+            } as KnowledgeBaseFile,
+          ]
+        }
+        return [
+          {
+            _id: "file_2",
+            knowledgeBaseId: "kb_2",
+            filename: "policy.md",
+            objectStoreKey: "obj-2",
+            ragSourceId: "source-kb-2",
+            status: KnowledgeBaseFileStatus.READY,
+            uploadedBy: "user_1",
+          } as KnowledgeBaseFile,
+        ]
+      })
+      mockProcessorSearch
+        .mockResolvedValueOnce([
+          {
+            source: "policy.md",
+            chunkText: "Policy from KB1",
+          },
+        ])
+        .mockResolvedValueOnce([
+          {
+            source: "policy.md",
+            chunkText: "Policy from KB2",
+          },
+        ])
+
+      const result = await retrieveContextForAgent(agent, "What is policy?")
+
+      expect(result.chunks).toEqual([
+        {
+          source: "source-kb-1",
+          chunkText: "Policy from KB1",
+        },
+        {
+          source: "source-kb-2",
+          chunkText: "Policy from KB2",
+        },
+      ])
+      expect(result.sources).toEqual([
+        {
+          sourceId: "source-kb-1",
+          fileId: "file_1",
+          filename: "policy.md",
+        },
+        {
+          sourceId: "source-kb-2",
+          fileId: "file_2",
+          filename: "policy.md",
+        },
+      ])
+    })
+
+    it("does not map ambiguous filename fallback within a knowledge base", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+      const agent = {
+        _id: "agent_1",
+        knowledgeBases: [knowledgeBase._id],
+      } as Agent
+
+      mockKnowledgeBaseFind.mockResolvedValue(knowledgeBase)
+      mockKnowledgeBaseListFiles.mockResolvedValue([
+        {
+          _id: "file_1",
+          knowledgeBaseId: "kb_123",
+          filename: "policy.md",
+          objectStoreKey: "obj-1",
+          ragSourceId: "source-1",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+        {
+          _id: "file_2",
+          knowledgeBaseId: "kb_123",
+          filename: "policy.md",
+          objectStoreKey: "obj-2",
+          ragSourceId: "source-2",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+      ])
+      mockProcessorSearch.mockResolvedValue([
+        {
+          source: "policy.md",
+          chunkText: "Ambiguous policy",
+        },
+      ])
+
+      const result = await retrieveContextForAgent(agent, "What is policy?")
+
+      expect(result).toEqual({
+        text: "",
+        chunks: [],
+        sources: [],
+      })
     })
   })
 })
