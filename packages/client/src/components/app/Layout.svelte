@@ -39,6 +39,10 @@
   // New props from new design UI
   export let navBackground
   export let navTextColor
+  export let navLinkHoverTextColor
+  export let navLinkHoverBackground
+  export let navLinkActiveTextColor
+  export let navLinkActiveBackground
   export let navWidth
   export let pageWidth
   export let logoLinkUrl
@@ -93,6 +97,10 @@
   $: navStyle = getNavStyle(
     navBackground,
     navTextColor,
+    navLinkHoverTextColor,
+    navLinkHoverBackground,
+    navLinkActiveTextColor,
+    navLinkActiveBackground,
     logoHeight,
     $context.device.width,
     $context.device.height
@@ -227,6 +235,10 @@
   const getNavStyle = (
     backgroundColor,
     textColor,
+    linkHoverTextColor,
+    linkHoverBackground,
+    linkActiveTextColor,
+    linkActiveBackground,
     logoHeight,
     width,
     height
@@ -237,6 +249,18 @@
     }
     if (textColor) {
       style += `--navTextColor:${textColor};`
+    }
+    if (linkHoverTextColor) {
+      style += `--navLinkHoverTextColor:${linkHoverTextColor};`
+    }
+    if (linkHoverBackground) {
+      style += `--navLinkHoverBackground:${linkHoverBackground};`
+    }
+    if (linkActiveTextColor) {
+      style += `--navLinkActiveTextColor:${linkActiveTextColor};`
+    }
+    if (linkActiveBackground) {
+      style += `--navLinkActiveBackground:${linkActiveBackground};`
     }
     style += `--logoHeight:${logoHeight || 24}px;`
     return style
