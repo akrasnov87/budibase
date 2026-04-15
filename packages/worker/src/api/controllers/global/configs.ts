@@ -36,6 +36,8 @@ import {
   OIDCLogosConfig,
   PASSWORD_REPLACEMENT,
   RecaptchaInnerConfig,
+  SCIMDisableAction,
+  SCIMInnerConfig,
   SaveConfigRequest,
   SaveConfigResponse,
   SettingsBrandingConfig,
@@ -346,6 +348,20 @@ async function processTranslationsConfig(
   ctx.request.body.config = prepareTranslationsConfig(ctx, config)
 }
 
+async function processSCIMConfig(
+  newConfig: SCIMInnerConfig,
+  existingConfig: SCIMInnerConfig | undefined,
+  onDisable: (action: SCIMDisableAction) => void
+) {
+  const { disableAction } = newConfig
+  delete newConfig.disableAction
+
+  const isBeingDisabled = existingConfig?.enabled && !newConfig.enabled
+  if (isBeingDisabled && disableAction) {
+    onDisable(disableAction)
+  }
+}
+
 export async function save(
   ctx: UserCtx<SaveConfigRequest, SaveConfigResponse>
 ) {
@@ -379,6 +395,12 @@ export async function save(
         break
       case ConfigType.TRANSLATIONS:
         await processTranslationsConfig(ctx, config)
+        break
+      case ConfigType.SCIM:
+        await processSCIMConfig(config, existingConfig?.config, action => {
+          // TODO: trigger background job to remove/convert SCIM users
+          console.log(`SCIM disabled with action: ${action}`)
+        })
         break
     }
   } catch (err: any) {

@@ -49,14 +49,13 @@
     await persistSCIMConfig()
   }
 
-  async function persistSCIMConfig() {
+  async function persistSCIMConfig(disableAction) {
     try {
-      await API.saveConfig({
-        type: configType,
-        config: {
-          enabled: scimEnabled,
-        },
-      })
+      const config = { enabled: scimEnabled }
+      if (disableAction) {
+        config.disableAction = disableAction
+      }
+      await API.saveConfig({ type: configType, config })
       savedScimEnabled = scimEnabled
       notifications.success(`Settings saved`)
     } catch (e) {
@@ -65,12 +64,7 @@
   }
 
   async function handleDisableSCIM() {
-    if (selectedAction === "remove") {
-      // TODO: bulk delete SCIM-provisioned users
-    } else {
-      // TODO: clear scimInfo from SCIM-provisioned users
-    }
-    await persistSCIMConfig()
+    await persistSCIMConfig(selectedAction)
   }
 
   function handleModalCancel() {
