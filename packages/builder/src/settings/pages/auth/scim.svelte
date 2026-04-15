@@ -10,6 +10,9 @@
     Input,
     Icon,
     Helpers,
+    Modal,
+    ModalContent,
+    RadioGroup,
   } from "@budibase/bbui"
   import { onMount } from "svelte"
   import { API } from "@/api"
@@ -18,10 +21,35 @@
 
   const configType = "scim"
 
-  $: scimEnabled = false
-  $: apiKey = null
+  let scimEnabled = false
+  let savedScimEnabled = false
+  let apiKey = null
+  let disableScimModal
+  let selectedAction = "remove"
+
+  const disableActions = [
+    {
+      label: "Remove SCIM users (recommended)",
+      value: "remove",
+      subtitle: "All SCIM-provisioned users will be permanently deleted.",
+    },
+    {
+      label: "Convert to regular users",
+      value: "convert",
+      subtitle:
+        "SCIM-provisioned users will remain but will no longer be synced with your identity provider.",
+    },
+  ]
 
   async function saveSCIM() {
+    if (savedScimEnabled && !scimEnabled) {
+      disableScimModal.show()
+      return
+    }
+    await persistSCIMConfig()
+  }
+
+  async function persistSCIMConfig() {
     try {
       await API.saveConfig({
         type: configType,
@@ -29,17 +57,31 @@
           enabled: scimEnabled,
         },
       })
+      savedScimEnabled = scimEnabled
       notifications.success(`Settings saved`)
     } catch (e) {
       notifications.error(e.message)
-      return
     }
+  }
+
+  async function handleDisableSCIM() {
+    if (selectedAction === "remove") {
+      // TODO: bulk delete SCIM-provisioned users
+    } else {
+      // TODO: clear scimInfo from SCIM-provisioned users
+    }
+    await persistSCIMConfig()
+  }
+
+  function handleModalCancel() {
+    scimEnabled = savedScimEnabled
   }
 
   async function fetchConfig() {
     try {
       const scimConfig = await API.getConfig(configType)
       scimEnabled = scimConfig?.config?.enabled
+      savedScimEnabled = scimEnabled
     } catch (error) {
       console.error(error)
       notifications.error(
@@ -108,6 +150,27 @@
 <div>
   <Button cta on:click={saveSCIM}>Save</Button>
 </div>
+
+<Modal bind:this={disableScimModal} on:cancel={handleModalCancel}>
+  <ModalContent
+    title="Disable SCIM"
+    confirmText="Confirm"
+    cancelText="Cancel"
+    onConfirm={handleDisableSCIM}
+  >
+    <Body size="S">
+      There are users provisioned via SCIM. Choose what to do with them before
+      disabling SCIM:
+    </Body>
+    <RadioGroup
+      options={disableActions}
+      bind:value={selectedAction}
+      getOptionLabel={o => o.label}
+      getOptionValue={o => o.value}
+      getOptionSubtitle={o => o.subtitle}
+    />
+  </ModalContent>
+</Modal>
 
 <!-- TODO: DRY -->
 <style>
