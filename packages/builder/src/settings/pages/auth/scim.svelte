@@ -102,14 +102,6 @@
     await Helpers.copyToClipboard(value)
     notifications.success("Copied")
   }
-
-  $: settings = [
-    {
-      title: "Provisioning URL",
-      value: `${$organisation.platformUrl}/api/global/scim/v2`,
-    },
-    { title: "Provisioning Token", value: apiKey },
-  ]
 </script>
 
 <!-- svelte-ignore a11y-no-static-element-interactions -->
@@ -124,14 +116,13 @@
     <Toggle text="" bind:value={scimEnabled} />
   </div>
   {#if scimEnabled}
-    {#each settings as setting}
+    {#each [{ title: "Provisioning URL", value: `${$organisation.platformUrl}/api/global/scim/v2` }, { title: "Provisioning Token", value: apiKey }] as setting}
       <div class="form-row">
         <Label size="L" tooltip={""}>{setting.title}</Label>
         <div class="inputContainer">
           <div class="input">
             <Input value={setting.value} readonly={true} />
           </div>
-
           <div class="copy" on:click={() => copyToClipboard(setting.value)}>
             <Icon size="S" name="copy" />
           </div>
