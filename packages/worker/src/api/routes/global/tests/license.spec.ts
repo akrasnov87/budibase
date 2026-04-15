@@ -12,6 +12,20 @@ describe("/api/global/license", () => {
     return user
   }
 
+  async function createBuilderUser() {
+    const user = await config.createUser(structures.users.builderUser())
+    await config.login(user)
+    return user
+  }
+
+  async function createCreatorUser() {
+    const user = await config.createUser(
+      structures.users.user({ builder: { creator: true } })
+    )
+    await config.login(user)
+    return user
+  }
+
   beforeAll(async () => {
     await config.beforeAll()
   })
@@ -77,8 +91,22 @@ describe("/api/global/license", () => {
       expect(res.status).toBe(404)
     })
 
-    it("allows non-admin access", async () => {
-      const user = await createNonAdminUser()
+    it("allows builder access", async () => {
+      const user = await createBuilderUser()
+      licensing.keys.getLicenseKey.mockResolvedValue("licenseKey")
+
+      const res = await config.withUser(user, () =>
+        config.api.license.getLicenseKey()
+      )
+
+      expect(res.status).toBe(200)
+      expect(res.body).toEqual({
+        licenseKey: "*",
+      })
+    })
+
+    it("allows creator access", async () => {
+      const user = await createCreatorUser()
       licensing.keys.getLicenseKey.mockResolvedValue("licenseKey")
 
       const res = await config.withUser(user, () =>
@@ -161,18 +189,33 @@ describe("/api/global/license", () => {
 
   describe("authorisation", () => {
     it.each([
-      ["POST /api/global/license/refresh", () => config.api.license.refresh()],
-      ["GET /api/global/install", () => config.api.license.getInstallInfo()],
+      [
+        "GET /api/global/license/key",
+        () => config.api.license.getLicenseKey(),
+        { message: "Admin/Builder user only endpoint.", status: 403 },
+      ],
+      [
+        "POST /api/global/license/refresh",
+        () => config.api.license.refresh(),
+        config.adminOnlyResponse(),
+      ],
+      [
+        "GET /api/global/install",
+        () => config.api.license.getInstallInfo(),
+        config.adminOnlyResponse(),
+      ],
       [
         "POST /api/global/license/key",
         () =>
           config.api.license.activateLicenseKey({
             licenseKey: "licenseKey",
           }),
+        config.adminOnlyResponse(),
       ],
       [
         "DELETE /api/global/license/key",
         () => config.api.license.deleteLicenseKey(),
+        config.adminOnlyResponse(),
       ],
       [
         "POST /api/global/license/offline",
@@ -180,26 +223,33 @@ describe("/api/global/license", () => {
           config.api.license.activateOfflineLicense({
             offlineLicenseToken: "offlineLicenseToken",
           }),
+        config.adminOnlyResponse(),
       ],
       [
         "GET /api/global/license/offline",
         () => config.api.license.getOfflineLicense(),
+        config.adminOnlyResponse(),
       ],
       [
         "DELETE /api/global/license/offline",
         () => config.api.license.deleteOfflineLicense(),
+        config.adminOnlyResponse(),
       ],
       [
         "GET /api/global/license/offline/identifier",
         () => config.api.license.getOfflineLicenseIdentifier(),
+        config.adminOnlyResponse(),
       ],
-    ])("returns 403 for non-admin access to %s", async (_path, request) => {
-      const user = await createNonAdminUser()
+    ])(
+      "returns 403 for non-admin access to %s",
+      async (_path, request, expectedBody) => {
+        const user = await createNonAdminUser()
 
-      const res = await config.withUser(user, () => request())
+        const res = await config.withUser(user, () => request())
 
-      expect(res.status).toBe(403)
-      expect(res.body).toEqual(config.adminOnlyResponse())
-    })
+        expect(res.status).toBe(403)
+        expect(res.body).toEqual(expectedBody)
+      }
+    )
   })
 })
