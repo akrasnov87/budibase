@@ -570,6 +570,7 @@ export const getUserBindings = () => {
   if (get(licensing).groupsEnabled) {
     schema["groups"] = { type: FieldType.STRING }
   }
+  schema["fullName"] = { type: FieldType.STRING }
   const keys = Object.keys(schema).sort()
   const safeUser = makePropSafe("user")
 
