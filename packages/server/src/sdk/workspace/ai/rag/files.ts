@@ -252,6 +252,7 @@ export const retrieveContextForAgent = async (
 
     for (const chunk of returned) {
       if (!chunk.source) {
+        chunks.push(chunk)
         continue
       }
 

@@ -335,6 +335,63 @@ describe("rag files", () => {
       ])
     })
 
+    it("keeps unsourced chunks in context but excludes them from source metadata", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+      const agent = {
+        _id: "agent_1",
+        knowledgeBases: [knowledgeBase._id],
+      } as Agent
+
+      mockKnowledgeBaseFind.mockResolvedValue(knowledgeBase)
+      mockKnowledgeBaseListFiles.mockResolvedValue([
+        {
+          _id: "file_1",
+          knowledgeBaseId: "kb_123",
+          filename: "policy.md",
+          objectStoreKey: "obj",
+          ragSourceId: "source-ready",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+      ])
+      mockProcessorSearch.mockResolvedValue([
+        {
+          chunkText: "General policy context",
+        },
+        {
+          source: "source-ready",
+          chunkText: "Current policy",
+        },
+      ])
+
+      const result = await retrieveContextForAgent(agent, "What is policy?")
+
+      expect(result.text).toBe("General policy context\n\nCurrent policy")
+      expect(result.chunks).toEqual([
+        {
+          chunkText: "General policy context",
+        },
+        {
+          source: "source-ready",
+          chunkText: "Current policy",
+        },
+      ])
+      expect(result.sources).toEqual([
+        {
+          sourceId: "source-ready",
+          fileId: "file_1",
+          filename: "policy.md",
+        },
+      ])
+    })
+
     it("filters out chunks from sources that are not currently ready files", async () => {
       const knowledgeBase: KnowledgeBase = {
         _id: "kb_123",
