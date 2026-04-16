@@ -29,7 +29,7 @@
 
   const disableActions = [
     {
-      label: "Remove SCIM users (recommended)",
+      label: "Remove SCIM users",
       value: "remove",
       subtitle: "All SCIM-provisioned users will be permanently deleted.",
     },
