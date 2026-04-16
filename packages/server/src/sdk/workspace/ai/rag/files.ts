@@ -238,8 +238,8 @@ export const retrieveContextForAgent = async (
       file => file.status === KnowledgeBaseFileStatus.READY
     )
     const readyFileSources = readyFiles
-      .filter(file => file.ragSourceId)
       .map(file => file.ragSourceId)
+      .filter((id): id is string => !!id)
 
     if (readyFiles.length === 0) {
       continue
@@ -248,7 +248,7 @@ export const retrieveContextForAgent = async (
     const readyFileSourceIds = new Set(readyFileSources)
     const readySourceIdByFilename = getReadySourceIdByFilename(readyFiles)
     const processor = getProcessor(knowledgeBase)
-    const returned = await processor.search(question)
+    const returned = await processor.search(question, readyFileSources)
 
     for (const chunk of returned) {
       if (!chunk.source) {

@@ -447,6 +447,65 @@ describe("rag files", () => {
       ])
     })
 
+    it("passes only current ready source ids to processor search", async () => {
+      const knowledgeBase: KnowledgeBase = {
+        _id: "kb_123",
+        name: "Knowledge Base",
+        type: KnowledgeBaseType.GEMINI,
+        config: {
+          googleFileStoreId: "file-store-1",
+        },
+      }
+      const agent = {
+        _id: "agent_1",
+        knowledgeBases: [knowledgeBase._id],
+      } as Agent
+
+      mockKnowledgeBaseFind.mockResolvedValue(knowledgeBase)
+      mockKnowledgeBaseListFiles.mockResolvedValue([
+        {
+          _id: "file_1",
+          knowledgeBaseId: "kb_123",
+          filename: "policy.md",
+          objectStoreKey: "obj",
+          ragSourceId: "source-ready-1",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+        {
+          _id: "file_2",
+          knowledgeBaseId: "kb_123",
+          filename: "old-policy.md",
+          objectStoreKey: "obj",
+          ragSourceId: "source-processing",
+          status: KnowledgeBaseFileStatus.PROCESSING,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+        {
+          _id: "file_3",
+          knowledgeBaseId: "kb_123",
+          filename: "handbook.md",
+          objectStoreKey: "obj",
+          ragSourceId: "source-ready-2",
+          status: KnowledgeBaseFileStatus.READY,
+          uploadedBy: "user_1",
+        } as KnowledgeBaseFile,
+      ])
+      mockProcessorSearch.mockResolvedValue([])
+
+      const result = await retrieveContextForAgent(agent, "What is policy?")
+
+      expect(result).toEqual({
+        text: "",
+        chunks: [],
+        sources: [],
+      })
+      expect(mockProcessorSearch).toHaveBeenCalledWith("What is policy?", [
+        "source-ready-1",
+        "source-ready-2",
+      ])
+    })
+
     it("allows filename fallback only for currently ready files", async () => {
       const knowledgeBase: KnowledgeBase = {
         _id: "kb_123",
