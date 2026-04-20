@@ -36,7 +36,6 @@ export enum Event {
   // AI
   AI_CONFIG_CREATED = "ai:config:created",
   AI_CONFIG_UPDATED = "ai:config:updated",
-
   AI_CONFIG_DELETED = "ai:config:deleted",
 
   // AI AGENT
