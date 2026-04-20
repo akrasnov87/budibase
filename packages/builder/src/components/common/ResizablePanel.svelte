@@ -2,7 +2,6 @@
   import { onDestroy, onMount } from "svelte"
   import { builderStore } from "@/stores/builder"
   import { getHorizontalResizeActions } from "@/components/common/resizable"
-  import Panel from "@/components/design/Panel.svelte"
 
   export let storageKey: string | undefined = undefined
   export let defaultWidth = 260
@@ -11,27 +10,6 @@
   export let maxWidthRatio: number | undefined = undefined
   export let direction: "left" | "right" = "left"
   export let onResizeStart: () => void = () => {}
-  export let usePanel = false
-
-  export let title: string | undefined = ""
-  export let icon: string | undefined = ""
-  export let iconTooltip: string | undefined = ""
-  export let showAddButton: boolean | undefined = false
-  export let showBackButton: boolean | undefined = false
-  export let showCloseButton: boolean | undefined = false
-  export let onClickAddButton: () => void = () => {}
-  export let onClickBackButton: () => void = () => {}
-  export let onClickCloseButton: () => void = () => {}
-  export let borderLeft: boolean | undefined = false
-  export let borderRight: boolean | undefined = false
-  export let borderBottomHeader: boolean | undefined = true
-  export let wide: boolean | undefined = false
-  export let extraWide: boolean | undefined = false
-  export let closeButtonIcon: string | undefined = "Close"
-  export let noHeaderBorder: boolean | undefined = false
-  export let titleCSS: boolean | undefined = true
-  export let customWidth: number | undefined = undefined
-  export let panelResizable: boolean | undefined = true
 
   let width = defaultWidth
   let computedMaxWidth = defaultWidth
@@ -117,33 +95,7 @@
   {/if}
 
   <div class="content">
-    {#if usePanel}
-      <Panel
-        {title}
-        {icon}
-        {iconTooltip}
-        {showAddButton}
-        {showBackButton}
-        {showCloseButton}
-        {onClickAddButton}
-        {onClickBackButton}
-        {onClickCloseButton}
-        {borderLeft}
-        {borderRight}
-        {borderBottomHeader}
-        {wide}
-        {extraWide}
-        {closeButtonIcon}
-        {noHeaderBorder}
-        {titleCSS}
-        {customWidth}
-        resizable={panelResizable}
-      >
-        <slot />
-      </Panel>
-    {:else}
-      <slot />
-    {/if}
+    <slot />
   </div>
 
   {#if direction === "left"}
