@@ -19,28 +19,34 @@ async function configUpdated() {
   await publishEvent(Event.AI_CONFIG_UPDATED, properties)
 }
 
-async function agentCreated(agent: Agent) {
+function agentCreated(agent: Agent) {
   const properties: AIAgentCreatedEvent = {
     agentId: agent._id as string,
     audited: { name: agent.name },
   }
-  await publishEvent(Event.AI_AGENT_CREATED, properties)
+  publishEvent(Event.AI_AGENT_CREATED, properties).catch(err => {
+    console.error("agentCreated telemetry failed", { agentId: agent._id, err })
+  })
 }
 
-async function agentUpdated(agent: Agent) {
+function agentUpdated(agent: Agent) {
   const properties: AIAgentUpdatedEvent = {
     agentId: agent._id as string,
     audited: { name: agent.name },
   }
-  await publishEvent(Event.AI_AGENT_UPDATED, properties)
+  publishEvent(Event.AI_AGENT_UPDATED, properties).catch(err => {
+    console.error("agentUpdated telemetry failed", { agentId: agent._id, err })
+  })
 }
 
-async function agentDeleted(agent: Agent) {
+function agentDeleted(agent: Agent) {
   const properties: AIAgentDeletedEvent = {
     agentId: agent._id as string,
     audited: { name: agent.name },
   }
-  await publishEvent(Event.AI_AGENT_DELETED, properties)
+  publishEvent(Event.AI_AGENT_DELETED, properties).catch(err => {
+    console.error("agentDeleted telemetry failed", { agentId: agent._id, err })
+  })
 }
 
 export default {
