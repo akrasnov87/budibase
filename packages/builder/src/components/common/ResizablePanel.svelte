@@ -8,7 +8,7 @@
   export let minWidth = 260
   export let maxWidth: number | undefined = undefined
   export let maxWidthRatio: number | undefined = undefined
-  export let direction: "left" | "right" = "left"
+  export let position: "left" | "right" = "left"
   export let onResizeStart: () => void = () => {}
 
   let width = defaultWidth
@@ -68,7 +68,7 @@
       }
     },
     onResizeStart,
-    direction
+    position
   )
 
   onMount(() => {
@@ -88,7 +88,7 @@
   style="width: {width}px; min-width: {minWidth}px; max-width: {computedMaxWidth}px;"
   use:resizable
 >
-  {#if direction === "right"}
+  {#if position === "right"}
     <div class="divider">
       <div class="divider-hitbox" role="separator" use:resizableHandle></div>
     </div>
@@ -98,7 +98,7 @@
     <slot />
   </div>
 
-  {#if direction === "left"}
+  {#if position === "left"}
     <div class="divider">
       <div class="divider-hitbox" role="separator" use:resizableHandle></div>
     </div>

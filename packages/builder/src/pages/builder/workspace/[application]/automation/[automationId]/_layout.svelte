@@ -60,7 +60,7 @@
           defaultWidth={480}
           minWidth={360}
           maxWidthRatio={0.6}
-          direction="right"
+          position="right"
         >
           <div class="step-panel">
             <StepPanel />

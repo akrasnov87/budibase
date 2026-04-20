@@ -340,7 +340,7 @@
     defaultWidth={480}
     minWidth={360}
     maxWidthRatio={0.6}
-    direction="right"
+    position="right"
   >
     <Panel
       title="Automation Step"
