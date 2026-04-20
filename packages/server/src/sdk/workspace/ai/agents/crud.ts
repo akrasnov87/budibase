@@ -1,4 +1,10 @@
-import { context, docIds, encryption, events, HTTPError } from "@budibase/backend-core"
+import {
+  context,
+  docIds,
+  encryption,
+  events,
+  HTTPError,
+} from "@budibase/backend-core"
 import { DocumentType } from "@budibase/types"
 import type { Agent, Optional } from "@budibase/types"
 import { helpers } from "@budibase/shared-core"
