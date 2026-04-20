@@ -35,7 +35,11 @@
     dagreLayoutAutomation,
     type GraphBuildDeps,
   } from "./AutomationStepHelpers"
-  import { NODE_SPACING } from "./FlowCanvas/FlowGeometry"
+  import {
+    NODE_SPACING,
+    DEFAULT_NODE_WIDTH,
+    DEFAULT_NODE_HEIGHT,
+  } from "./FlowCanvas/FlowGeometry"
 
   import ConfirmDialog from "@/components/common/ConfirmDialog.svelte"
   import { createFlowChartDnD } from "./FlowCanvas/FlowChartDnD"
@@ -74,7 +78,6 @@
   }
 
   let testDataModal: Modal
-  let confirmDeleteDialog
   let blockRefs: Record<string, BlockRef> = {}
   let prodErrors: number = 0
   let paneEl: HTMLDivElement | null = null
@@ -202,8 +205,8 @@
     const triggerNode = $nodes[0]
 
     const paneRect = paneEl.getBoundingClientRect()
-    const nodeWidth = 320
-    const nodeHeight = 150
+    const nodeWidth = DEFAULT_NODE_WIDTH
+    const nodeHeight = DEFAULT_NODE_HEIGHT
     const nodeOffset = NODE_SPACING
 
     let x, y
@@ -238,8 +241,8 @@
       return
     }
 
-    const nodeWidth = targetNode.width || 320
-    const nodeHeight = targetNode.height || 150
+    const nodeWidth = targetNode.width || DEFAULT_NODE_WIDTH
+    const nodeHeight = targetNode.height || DEFAULT_NODE_HEIGHT
     const desiredZoom = zoom ?? currentViewport.zoom ?? 1
     const safeZoom = Math.min(Math.max(desiredZoom, 0.4), 1)
 
