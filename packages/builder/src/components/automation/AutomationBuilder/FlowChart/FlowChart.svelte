@@ -65,6 +65,8 @@
 
   export let automation: UIAutomation
 
+  const VIEWPORT_ANIMATION_DURATION = 180
+
   const memoAutomation = memo(automation)
 
   const nodeTypes: NodeTypes = {
@@ -252,7 +254,7 @@
         const y = currentViewport.y - direction * yStride
         setViewport(
           { x: currentViewport.x, y, zoom: safeZoom },
-          { duration: 180 }
+          { duration: VIEWPORT_ANIMATION_DURATION }
         )
         return
       }
@@ -261,7 +263,7 @@
       const x = currentViewport.x - direction * xStride
       setViewport(
         { x, y: currentViewport.y, zoom: safeZoom },
-        { duration: 180 }
+        { duration: VIEWPORT_ANIMATION_DURATION }
       )
       return
     }
@@ -270,7 +272,7 @@
     const x = paneRect.width / 2 - targetNode.position.x - nodeWidth / 2
     const y = paneRect.height / 2 - targetNode.position.y - nodeHeight / 2
 
-    setViewport({ x, y, zoom: safeZoom }, { duration: 180 })
+    setViewport({ x, y, zoom: safeZoom }, { duration: VIEWPORT_ANIMATION_DURATION })
   }
 
   const refresh = () => {
