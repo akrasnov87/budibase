@@ -393,6 +393,6 @@ export async function remove(agentId: string) {
     }
   }
 
-  events.ai.agentDeleted(agent)
   await db.remove(agent)
+  events.ai.agentDeleted(agent)
 }
