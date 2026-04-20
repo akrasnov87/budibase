@@ -41,7 +41,6 @@
     DEFAULT_NODE_HEIGHT,
   } from "./FlowCanvas/FlowGeometry"
 
-  import ConfirmDialog from "@/components/common/ConfirmDialog.svelte"
   import { createFlowChartDnD } from "./FlowCanvas/FlowChartDnD"
   import TestDataModal from "./TestDataModal.svelte"
   import NodeWrapper from "./FlowCanvas/nodes/NodeWrapper.svelte"
@@ -272,20 +271,15 @@
     const x = paneRect.width / 2 - targetNode.position.x - nodeWidth / 2
     const y = paneRect.height / 2 - targetNode.position.y - nodeHeight / 2
 
-    setViewport({ x, y, zoom: safeZoom }, { duration: VIEWPORT_ANIMATION_DURATION })
+    setViewport(
+      { x, y, zoom: safeZoom },
+      { duration: VIEWPORT_ANIMATION_DURATION }
+    )
   }
 
   const refresh = () => {
     // Get all processed block references
     blockRefs = $selectedAutomation.blockRefs
-  }
-
-  const deleteAutomation = async () => {
-    try {
-      await automationStore.actions.delete(automation)
-    } catch (error) {
-      notifications.error("Error deleting automation")
-    }
   }
 
   const publishChanges = async () => {
@@ -477,17 +471,6 @@
     </div>
   </div>
 </div>
-
-<ConfirmDialog
-  bind:this={confirmDeleteDialog}
-  okText="Delete Automation"
-  onOk={deleteAutomation}
-  title="Confirm Deletion"
->
-  Are you sure you wish to delete the automation
-  <i>{automation.name}?</i>
-  This action cannot be undone.
-</ConfirmDialog>
 
 <Modal
   bind:this={testDataModal}
