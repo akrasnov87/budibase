@@ -159,13 +159,13 @@ export const getHorizontalResizeActions = (
   initialValue?: number,
   setValue?: (value: number) => void,
   onResizeStart?: () => void,
-  direction: "left" | "right" = "left"
+  panelPosition: "left" | "right" = "left"
 ) => {
   return getResizeActions({
     elementDimension: "width",
     mouseCoordinate: "pageX",
     clientDimension: "clientWidth",
-    directionMultiplier: direction === "right" ? -1 : 1,
+    directionMultiplier: panelPosition === "right" ? -1 : 1,
     initialValue,
     setValue,
     onResizeStart,
