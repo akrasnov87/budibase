@@ -407,7 +407,10 @@
                       </Tags>
                     </div>
                   {:else if isDisabled}
-                    <Icon name="question" tooltip={checkDisabled(idx).message} />
+                    <Icon
+                      name="question"
+                      tooltip={checkDisabled(idx).message}
+                    />
                   {:else if action.new}
                     <NewPill />
                   {/if}
