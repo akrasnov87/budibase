@@ -385,7 +385,7 @@ describe("rag files", () => {
       ])
     })
 
-    it("filters out chunks from sources that are not currently ready files", async () => {
+    it("filters out chunks whose source is not in current ready files", async () => {
       mockKnowledgeBaseFind.mockResolvedValue(defaultKnowledgeBase)
       mockKnowledgeBaseListFiles.mockResolvedValue([
         {
