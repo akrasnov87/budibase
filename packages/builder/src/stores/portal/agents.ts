@@ -10,7 +10,7 @@ import {
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   KnowledgeSourceOption,
-  KnowledgeSourceSyncRun,
+  SharePointKnowledgeSourceSnapshot,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
@@ -32,8 +32,11 @@ interface AgentStoreState {
   tools: ToolMetadata[]
   agentsLoaded: boolean
   filesByAgentId: Record<string, KnowledgeBaseFile[]>
+  sharePointSourceSnapshotsByAgentId: Record<
+    string,
+    SharePointKnowledgeSourceSnapshot[]
+  >
   knowledgeSourceOptionsByAgentId: Record<string, KnowledgeSourceOption[]>
-  knowledgeSourceRunsByAgentId: Record<string, KnowledgeSourceSyncRun[]>
 }
 
 export class AgentsStore extends BudiStore<AgentStoreState> {
@@ -49,8 +52,8 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       tools: [],
       agentsLoaded: false,
       filesByAgentId: {},
+      sharePointSourceSnapshotsByAgentId: {},
       knowledgeSourceOptionsByAgentId: {},
-      knowledgeSourceRunsByAgentId: {},
     })
   }
 
@@ -61,14 +64,22 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     })
   }
 
+  private setSharePointSourceSnapshots = (
+    agentId: string,
+    sharePointSources: SharePointKnowledgeSourceSnapshot[]
+  ) => {
+    this.update(state => {
+      state.sharePointSourceSnapshotsByAgentId[agentId] = sharePointSources
+      return state
+    })
+  }
+
   private setAgentKnowledgeSourceOptions = (
     agentId: string,
-    options: KnowledgeSourceOption[],
-    runs: KnowledgeSourceSyncRun[]
+    options: KnowledgeSourceOption[]
   ) => {
     this.update(state => {
       state.knowledgeSourceOptionsByAgentId[agentId] = options
-      state.knowledgeSourceRunsByAgentId[agentId] = runs
       return state
     })
   }
@@ -258,6 +269,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
   ): Promise<FetchAgentKnowledgeResponse> => {
     const response = await API.fetchAgentKnowledge(agentId)
     this.setAgentFiles(agentId, response.files)
+    this.setSharePointSourceSnapshots(agentId, response.sharePointSources)
     return response
   }
 
@@ -274,11 +286,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     agentId: string
   ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
     const response = await API.fetchAgentKnowledgeSourceOptions(agentId)
-    this.setAgentKnowledgeSourceOptions(
-      agentId,
-      response.options,
-      response.runs
-    )
+    this.setAgentKnowledgeSourceOptions(agentId, response.options)
     return response
   }
 
@@ -287,11 +295,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     body: ConnectAgentSharePointSiteRequest
   ): Promise<ConnectAgentSharePointSiteResponse> => {
     const response = await API.connectAgentSharePointSite(agentId, body)
-    this.setAgentKnowledgeSourceOptions(
-      agentId,
-      response.options,
-      response.runs
-    )
+    this.setAgentKnowledgeSourceOptions(agentId, response.options)
     await this.fetchAgents()
     await this.fetchAgentKnowledge(agentId)
     this.startAgentFilePolling(agentId)

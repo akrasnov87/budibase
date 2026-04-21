@@ -42,7 +42,6 @@ export interface FetchAgentKnowledgeSourceOptionsResponse {
 
 export interface SharePointKnowledgeSourceSnapshot {
   sourceId: string
-  siteId: string
   name?: string
   webUrl?: string
   runStatus?: AgentKnowledgeSourceSyncRunStatus

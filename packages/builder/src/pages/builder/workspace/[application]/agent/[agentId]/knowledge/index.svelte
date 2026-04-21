@@ -7,7 +7,7 @@
     type Agent,
     type KnowledgeSourceOption,
     type KnowledgeBaseFile,
-    type KnowledgeSourceSyncRun,
+    type SharePointKnowledgeSourceSnapshot,
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
   import { agentsStore, selectedAgent } from "@/stores/portal"
@@ -52,17 +52,12 @@
     }
     return $agentsStore.knowledgeSourceOptionsByAgentId[agentId] || []
   })
-  let sharePointSyncRunsBySiteId = $derived.by(() => {
+  let sharePointSourceSnapshots = $derived.by(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
-      return {} as Record<string, KnowledgeSourceSyncRun>
+      return [] as SharePointKnowledgeSourceSnapshot[]
     }
-    return Object.fromEntries(
-      ($agentsStore.knowledgeSourceRunsByAgentId[agentId] || []).map(run => [
-        run.sourceId,
-        run,
-      ])
-    ) as Record<string, KnowledgeSourceSyncRun>
+    return $agentsStore.sharePointSourceSnapshotsByAgentId[agentId] || []
   })
   let selectedSiteIds = $derived.by(() =>
     sharePointSources
@@ -253,11 +248,8 @@
   )
   let sharePointConnectionRows = $derived.by(() => {
     return toSharePointConnectionRows({
-      hasSharePointConnection,
-      selectedSiteIds: effectiveSelectedSiteIds,
       sharePointSources,
-      sharePointSyncRunsBySiteId,
-      files,
+      sharePointSourceSnapshots,
       loadingSharePointSites,
       onDelete: removeSharePointSite,
       onSync: async sourceId => {

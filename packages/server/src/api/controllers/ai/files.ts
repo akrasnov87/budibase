@@ -55,57 +55,44 @@ export async function fetchAgentKnowledge(
   const hasSharePointConnection =
     await sdk.ai.rag.hasSharePointWorkspaceConnection()
   const runsBySiteId = new Map(syncState.runs.map(run => [run.sourceId, run]))
-  const sharePointSources: SharePointKnowledgeSourceSnapshot[] =
-    getSharePointSources(agent)
-      .filter(source => !!source.config.site?.id)
-      .map(source => {
-        const site = source.config.site
-        const siteId = site!.id
-        const run = runsBySiteId.get(siteId)
-        const filesForSource = files.filter(
-          file => file.knowledgeBaseId === source.id
-        )
+  const sharePointSources = getSharePointSources(agent)
+    .filter(source => !!source.config.site?.id)
+    .map<SharePointKnowledgeSourceSnapshot>(source => {
+      const site = source.config.site
+      const siteId = site!.id
+      const run = runsBySiteId.get(siteId)
+      const filesForSource = files.filter(
+        file => file.knowledgeBaseId === source.id
+      )
 
-        let totalCount = 0
-        let syncedCount = 0
-        let failedCount = 0
-        let processingCount = 0
+      let totalCount = 0
+      let syncedCount = 0
+      let failedCount = 0
+      let processingCount = 0
 
-        totalCount = filesForSource.length
-        syncedCount = filesForSource.filter(
-          file => file.status === KnowledgeBaseFileStatus.READY
-        ).length
-        failedCount = filesForSource.filter(
-          file => file.status === KnowledgeBaseFileStatus.FAILED
-        ).length
-        processingCount = filesForSource.filter(
-          file => file.status === KnowledgeBaseFileStatus.PROCESSING
-        ).length
+      totalCount = filesForSource.length
+      syncedCount = filesForSource.filter(
+        file => file.status === KnowledgeBaseFileStatus.READY
+      ).length
+      failedCount = filesForSource.filter(
+        file => file.status === KnowledgeBaseFileStatus.FAILED
+      ).length
+      processingCount = filesForSource.filter(
+        file => file.status === KnowledgeBaseFileStatus.PROCESSING
+      ).length
 
-        const status = (() => {
-          if (!run?.lastRunAt) {
-            return "connecting" as const
-          }
-          if (processingCount > 0) {
-            return "syncing" as const
-          }
-          return "synced" as const
-        })()
-
-        return {
-          sourceId: source.id,
-          siteId,
-          name: site?.name,
-          webUrl: site?.webUrl,
-          status,
-          runStatus: run?.status,
-          lastRunAt: run?.lastRunAt,
-          syncedCount,
-          failedCount,
-          processingCount,
-          totalCount,
-        }
-      })
+      return {
+        sourceId: source.id,
+        name: site?.name,
+        webUrl: site?.webUrl,
+        runStatus: run?.status,
+        lastRunAt: run?.lastRunAt,
+        syncedCount,
+        failedCount,
+        processingCount,
+        totalCount,
+      } satisfies SharePointKnowledgeSourceSnapshot
+    })
 
   ctx.body = {
     files,
