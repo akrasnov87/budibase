@@ -20,8 +20,6 @@ import {
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
   ToolMetadata,
-  UpdateAgentSharePointSiteRequest,
-  UpdateAgentSharePointSiteResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
 } from "@budibase/types"
@@ -75,11 +73,6 @@ export interface AgentEndpoints {
     agentId: string,
     body: ConnectAgentSharePointSiteRequest
   ) => Promise<ConnectAgentSharePointSiteResponse>
-  updateAgentSharePointSite: (
-    agentId: string,
-    siteId: string,
-    body: UpdateAgentSharePointSiteRequest
-  ) => Promise<UpdateAgentSharePointSiteResponse>
   disconnectAgentSharePointSite: (
     agentId: string,
     siteId: string
@@ -225,16 +218,6 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
       ConnectAgentSharePointSiteResponse
     >({
       url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites`,
-      body,
-    })
-  },
-
-  updateAgentSharePointSite: async (agentId: string, siteId: string, body) => {
-    return await API.patch<
-      UpdateAgentSharePointSiteRequest,
-      UpdateAgentSharePointSiteResponse
-    >({
-      url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites/${encodeURIComponent(siteId)}`,
       body,
     })
   },

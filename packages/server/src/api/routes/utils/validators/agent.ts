@@ -153,7 +153,3 @@ export function connectAgentSharePointSiteValidator() {
     }).required()
   )
 }
-
-export function updateAgentSharePointSiteValidator() {
-  return auth.joiValidator.body(Joi.object({}).required())
-}

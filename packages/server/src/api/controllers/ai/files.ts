@@ -15,8 +15,6 @@ import {
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
-  UpdateAgentSharePointSiteRequest,
-  UpdateAgentSharePointSiteResponse,
   UserCtx,
 } from "@budibase/types"
 import sdk from "../../../sdk"
@@ -300,37 +298,6 @@ export async function connectAgentSharePointSite(
     agentId,
     AgentKnowledgeSourceType.SHAREPOINT,
     [nextSource.id]
-  )
-  ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
-  ctx.status = 200
-}
-
-export async function updateAgentSharePointSite(
-  ctx: UserCtx<
-    UpdateAgentSharePointSiteRequest,
-    UpdateAgentSharePointSiteResponse,
-    { agentId: string; siteId: string }
-  >
-) {
-  const { agentId, siteId } = ctx.params
-  const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
-  const source = getSharePointSources(existingAgent).find(
-    source => source.config.site?.id === siteId
-  )
-  if (!source) {
-    throw new HTTPError("SharePoint site is not connected for this agent", 404)
-  }
-  console.log("Updating SharePoint site for agent", {
-    agentId,
-    siteId,
-    sourceId: source.id,
-  })
-  const updated = await sdk.ai.agents.update(existingAgent)
-  await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(updated)
-  await sdk.ai.rag.knowledgeSourceSyncQueue.enqueueAgentJobs(
-    agentId,
-    AgentKnowledgeSourceType.SHAREPOINT,
-    [source.id]
   )
   ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
   ctx.status = 200

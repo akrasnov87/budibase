@@ -104,11 +104,6 @@ export interface ConnectAgentSharePointSiteRequest {
 export type ConnectAgentSharePointSiteResponse =
   FetchAgentKnowledgeSourceOptionsResponse
 
-export interface UpdateAgentSharePointSiteRequest {}
-
-export type UpdateAgentSharePointSiteResponse =
-  FetchAgentKnowledgeSourceOptionsResponse
-
 export interface DisconnectAgentSharePointSiteResponse {
   agentId: string
   disconnected: true

@@ -17,8 +17,6 @@ import {
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
   ToggleAgentDeploymentRequest,
-  UpdateAgentSharePointSiteRequest,
-  UpdateAgentSharePointSiteResponse,
   ToggleAgentDeploymentResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
@@ -196,21 +194,6 @@ export class AgentAPI extends TestAPI {
   ): Promise<ConnectAgentSharePointSiteResponse> => {
     return await this._post<ConnectAgentSharePointSiteResponse>(
       `/api/agent/${agentId}/knowledge-sources/sharepoint/sites`,
-      {
-        body,
-        expectations,
-      }
-    )
-  }
-
-  updateSharePointSite = async (
-    agentId: string,
-    siteId: string,
-    body: UpdateAgentSharePointSiteRequest,
-    expectations?: Expectations
-  ): Promise<UpdateAgentSharePointSiteResponse> => {
-    return await this._patch<UpdateAgentSharePointSiteResponse>(
-      `/api/agent/${agentId}/knowledge-sources/sharepoint/sites/${encodeURIComponent(siteId)}`,
       {
         body,
         expectations,
