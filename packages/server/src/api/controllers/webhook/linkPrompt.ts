@@ -65,9 +65,10 @@ export const postLinkPromptPrivately = async ({
   delivered: boolean
   usedDirectMessageFallback: boolean
 }> => {
-  const plainText = buildPlainTextLinkPrompt({ text, linkUrl })
   const message =
-    renderMode === "plainText" ? plainText : buildLinkPromptCard({ text, linkUrl })
+    renderMode === "plainText"
+      ? buildPlainTextLinkPrompt({ text, linkUrl })
+      : buildLinkPromptCard({ text, linkUrl })
 
   try {
     const response = await target.postEphemeral(user, message, {
@@ -82,23 +83,6 @@ export const postLinkPromptPrivately = async ({
     }
   } catch (error) {
     console.error("Failed to send private link prompt", error)
-  }
-
-  if (renderMode !== "plainText") {
-    try {
-      const response = await target.postEphemeral(user, plainText, {
-        fallbackToDM: true,
-      })
-      if (response) {
-        return {
-          delivered: true,
-          usedDirectMessageFallback: !!(response as { usedFallback?: boolean })
-            .usedFallback,
-        }
-      }
-    } catch (error) {
-      console.error("Failed to send plain text private link prompt", error)
-    }
   }
 
   return {

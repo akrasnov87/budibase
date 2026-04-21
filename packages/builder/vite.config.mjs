@@ -45,10 +45,6 @@ export default defineConfig(({ mode }) => {
   const isProduction = mode === "production"
   const env = loadEnv(mode, process.cwd())
   const __dirname = path.dirname(fileURLToPath(import.meta.url))
-  const extraAllowedHosts = (env.VITE_ALLOWED_HOSTS || "")
-    .split(",")
-    .map(host => host.trim())
-    .filter(Boolean)
 
   // Plugins to only run in dev
   const devOnlyPlugins = [

@@ -117,7 +117,7 @@ const createTelegramInputHandler = ({
     threadId,
   }: TelegramInput) => {
     const displayName =
-      author.fullName || author.userName || externalUserId || "Telegram user"
+      author.fullName || author.userName || externalUserId
 
     const channel: ChatConversationChannel = {
       provider: AgentChannelProvider.TELEGRAM,

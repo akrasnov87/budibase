@@ -136,7 +136,7 @@
       Budibase account.
     </Body>
 
-      {#if provisionResult?.warning}
+    {#if provisionResult?.warning}
       <InlineAlert
         type="negative"
         header="Webhook registration failed"
