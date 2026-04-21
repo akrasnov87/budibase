@@ -50,15 +50,6 @@ interface SharePointDriveItemsResponse {
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_SOURCE_TYPE = "sharepoint"
-const SHAREPOINT_SITE_ID_REGEX =
-  /^[^,/?#\s]+,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12},[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
-
-const trimString = (value: unknown) =>
-  typeof value === "string" ? value.trim() : ""
-
-export const isValidSharePointSiteId = (value: string): boolean => {
-  return SHAREPOINT_SITE_ID_REGEX.test(trimString(value))
-}
 
 export const getSharePointWorkspaceConnectionKey = (workspaceId: string) =>
   sharePointConnectionCacheKey("connection", db.getProdWorkspaceID(workspaceId))
@@ -135,14 +126,9 @@ const listDrives = async (
   bearerToken: string,
   siteId: string
 ): Promise<string[]> => {
-  const normalizedSiteId = trimString(siteId)
-  if (!isValidSharePointSiteId(normalizedSiteId)) {
-    throw new HTTPError("Invalid SharePoint site id", 400)
-  }
-
   const response = await fetch(
     `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
-      normalizedSiteId
+      siteId
     )}/drives?$top=200&$select=id`,
     {
       headers: {
@@ -153,7 +139,7 @@ const listDrives = async (
   if (!response.ok) {
     console.error("Failed to list SharePoint drives", {
       status: response.status,
-      siteId: normalizedSiteId,
+      siteId,
     })
     throw new HTTPError(
       response.status === 401 || response.status === 403
@@ -163,9 +149,7 @@ const listDrives = async (
     )
   }
   const payload = (await response.json()) as SharePointDriveListResponse
-  return (payload.value || [])
-    .map(drive => trimString(drive.id))
-    .filter(Boolean)
+  return (payload.value || []).map(drive => drive.id || "").filter(Boolean)
 }
 
 const listDriveItems = async (
@@ -202,7 +186,7 @@ const listDriveItems = async (
 
     const payload = (await response.json()) as SharePointDriveItemsResponse
     items.push(...(Array.isArray(payload.value) ? payload.value : []))
-    const nextPageLink = trimString(payload?.["@odata.nextLink"])
+    const nextPageLink = payload?.["@odata.nextLink"]
     if (!nextPageLink) {
       nextLink = ""
       continue
@@ -242,8 +226,8 @@ const collectFilesRecursive = async (
   const files: SharePointFileRef[] = []
 
   for (const item of items) {
-    const itemId = trimString(item.id)
-    const name = trimString(item.name)
+    const itemId = item.id
+    const name = item.name
     if (!itemId || !name) {
       continue
     }
@@ -265,7 +249,7 @@ const collectFilesRecursive = async (
       itemId,
       filename: name,
       path: parentPath ? `${parentPath}/${name}` : name,
-      mimetype: trimString(item.file.mimeType) || undefined,
+      mimetype: item.file.mimeType || undefined,
     })
   }
 
@@ -304,11 +288,7 @@ const downloadFileBuffer = async (
 export const fetchSharePointSitesForAgent = async (
   agentId: string
 ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
-  const trimmedAgentId = trimString(agentId)
-  if (!trimmedAgentId) {
-    throw new HTTPError("agentId is required", 400)
-  }
-  const agent = await agentsSdk.getOrThrow(trimmedAgentId)
+  const agent = await agentsSdk.getOrThrow(agentId)
   const { runs } = await fetchKnowledgeSourceSyncStateForAgent(agent._id!)
   if (!(await hasSharePointWorkspaceConnection())) {
     return { options: [], runs }
@@ -326,21 +306,9 @@ export const fetchAllSharePointEntriesForAgent = async (
   agentId: string,
   siteId: string
 ): Promise<FetchAgentKnowledgeSourceEntriesResponse> => {
-  const trimmedAgentId = trimString(agentId)
-  const trimmedSiteId = trimString(siteId)
-  if (!trimmedAgentId) {
-    throw new HTTPError("agentId is required", 400)
-  }
-  if (!trimmedSiteId) {
-    throw new HTTPError("siteId is required", 400)
-  }
-  if (!isValidSharePointSiteId(trimmedSiteId)) {
-    throw new HTTPError("Invalid SharePoint site id", 400)
-  }
-
-  const agent = await agentsSdk.getOrThrow(trimmedAgentId)
+  const agent = await agentsSdk.getOrThrow(agentId)
   const source = getSharePointSources(agent).find(
-    source => trimString(source.config.site?.id) === trimmedSiteId
+    source => source.config.site?.id === siteId
   )
   if (!source) {
     throw new HTTPError("SharePoint site is not connected for this agent", 404)
@@ -349,19 +317,19 @@ export const fetchAllSharePointEntriesForAgent = async (
   const bearerToken = await getSharePointBearerToken(
     getSharePointCurrentWorkspaceConnectionKey()
   )
-  const driveIds = await listDrives(bearerToken, trimmedSiteId)
+  const driveIds = await listDrives(bearerToken, siteId)
   const entries: KnowledgeSourceEntry[] = []
 
   for (const driveId of driveIds) {
     const files = await collectFilesRecursive(bearerToken, driveId)
     for (const file of files) {
-      const path = trimString(file.path)
+      const path = file.path
       if (!path) {
         continue
       }
       entries.push({
-        id: `${trimString(file.driveId)}:${trimString(file.itemId)}`,
-        name: trimString(file.filename) || path.split("/").pop() || path,
+        id: `${file.driveId}:${file.itemId}`,
+        name: file.filename || path.split("/").pop() || path,
         path,
         type: "file",
       })
@@ -375,15 +343,11 @@ export const fetchAllSharePointEntriesForAgent = async (
 export const fetchKnowledgeSourceSyncStateForAgent = async (
   agentId: string
 ): Promise<{ runs: FetchAgentKnowledgeSourceOptionsResponse["runs"] }> => {
-  const trimmedAgentId = trimString(agentId)
-  if (!trimmedAgentId) {
-    throw new HTTPError("agentId is required", 400)
-  }
   const db = context.getWorkspaceDB()
   const result = await db.allDocs<AgentKnowledgeSourceSyncState>(
     docIds.getDocParams(
       DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
-      `${trimmedAgentId}_${SHAREPOINT_SOURCE_TYPE}_`,
+      `${agentId}_${SHAREPOINT_SOURCE_TYPE}_`,
       { include_docs: true }
     )
   )
@@ -438,11 +402,7 @@ export const syncSharePointSourcesForAgent = async (
   sourceId: string
 ): Promise<SyncAgentKnowledgeSourcesResponse> => {
   const lastRunAt = new Date().toISOString()
-  const trimmedAgentId = trimString(agentId)
-  if (!trimmedAgentId) {
-    throw new HTTPError("agentId is required", 400)
-  }
-  const agent = await agentsSdk.getOrThrow(trimmedAgentId)
+  const agent = await agentsSdk.getOrThrow(agentId)
   const sharepointSources = getSharePointSources(agent)
   if (sharepointSources.length === 0) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
@@ -459,7 +419,7 @@ export const syncSharePointSourcesForAgent = async (
   const siteId = site.id
 
   console.log("Starting SharePoint sync for agent", {
-    agentId: trimmedAgentId,
+    agentId,
     sourceId: sourceId,
     siteId,
     runAt: lastRunAt,
@@ -468,7 +428,7 @@ export const syncSharePointSourcesForAgent = async (
   const bearerToken = await getSharePointBearerToken(
     getSharePointCurrentWorkspaceConnectionKey()
   )
-  const knowledgeBase = await ensureKnowledgeBaseForAgent(trimmedAgentId)
+  const knowledgeBase = await ensureKnowledgeBaseForAgent(agentId)
   const knowledgeBaseId = knowledgeBase._id
   if (!knowledgeBaseId) {
     throw new HTTPError("Failed to create agent file storage", 500)
@@ -481,7 +441,7 @@ export const syncSharePointSourcesForAgent = async (
     { fileId: string; siteId: string }
   >()
   for (const file of existingFiles) {
-    const fileId = trimString(file._id)
+    const fileId = file._id
     if (!fileId || file.source?.type !== "sharepoint") {
       continue
     }
@@ -504,7 +464,7 @@ export const syncSharePointSourcesForAgent = async (
   try {
     const driveIds = await listDrives(bearerToken, siteId)
     console.log("Fetched SharePoint drives for site", {
-      agentId: trimmedAgentId,
+      agentId,
       siteId,
       driveCount: driveIds.length,
     })
@@ -554,7 +514,7 @@ export const syncSharePointSourcesForAgent = async (
           synced++
         } catch (error) {
           console.error("Failed to sync SharePoint file for agent", {
-            agentId: trimmedAgentId,
+            agentId,
             siteId,
             driveId,
             itemId: file.itemId,
@@ -566,14 +526,14 @@ export const syncSharePointSourcesForAgent = async (
     }
   } catch (error) {
     console.error("Failed to sync SharePoint site for agent", {
-      agentId: trimmedAgentId,
+      agentId,
       siteId,
       error,
     })
     failed++
   } finally {
     await saveSharePointSyncRunState({
-      agentId: trimmedAgentId,
+      agentId,
       siteId,
       lastRunAt,
       synced,
@@ -582,7 +542,7 @@ export const syncSharePointSourcesForAgent = async (
       totalDiscovered,
     })
     console.log("Completed SharePoint site sync for agent", {
-      agentId: trimmedAgentId,
+      agentId,
       siteId,
       synced,
       failed,
@@ -593,12 +553,11 @@ export const syncSharePointSourcesForAgent = async (
   }
 
   return {
-    agentId: trimmedAgentId,
+    agentId,
     synced,
     failed,
     alreadySynced: skipped - unsupported,
     unsupported,
-
     totalDiscovered,
   }
 }
