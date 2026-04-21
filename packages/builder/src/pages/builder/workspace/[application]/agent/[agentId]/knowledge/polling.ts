@@ -4,94 +4,52 @@ interface PollingState {
   inFlight: boolean
 }
 
-interface LimitedPollingState extends PollingState {
-  remaining: number
-}
-
 interface CreateAgentPollingControllerConfig {
   intervalMs: number
   onPoll: (agentId: string) => Promise<void>
   onError?: (error: unknown) => void
 }
 
-export interface AgentPollingController {
-  start: (agentId: string) => void
-  stop: () => void
-  isRunningFor: (agentId: string) => boolean
+interface UnifiedPollingState extends PollingState {
+  continuous: boolean
+  burstRemaining: number
 }
 
-export interface LimitedAgentPollingController {
-  start: (agentId: string, pollCount: number) => void
+interface KnowledgePollingController {
+  setContinuous: (agentId: string, enabled: boolean) => void
+  boost: (agentId: string, pollCount: number) => void
   stop: () => void
-  isRunningFor: (agentId: string) => boolean
+  isRunning: () => boolean
 }
 
-export const createAgentPollingController = ({
-  intervalMs,
-  onPoll,
-  onError,
-}: CreateAgentPollingControllerConfig): AgentPollingController => {
-  let state: PollingState | undefined
+export const coalesceAgentPollRequests = (
+  pollFn: (agentId: string) => Promise<void>
+) => {
+  let inFlight: Promise<void> | undefined
 
-  const stop = () => {
-    if (!state) {
-      return
+  return async (agentId: string) => {
+    if (inFlight) {
+      return await inFlight
     }
-    clearInterval(state.interval)
-    state = undefined
-  }
 
-  const pollOnce = async (agentId: string) => {
-    if (!state || state.agentId !== agentId || state.inFlight) {
-      return
-    }
-    state.inFlight = true
+    const request = pollFn(agentId)
+    inFlight = request
     try {
-      await onPoll(agentId)
+      await request
     } finally {
-      if (state?.agentId === agentId) {
-        state.inFlight = false
+      if (inFlight === request) {
+        inFlight = undefined
       }
     }
   }
-
-  const start = (agentId: string) => {
-    if (!agentId) {
-      return
-    }
-    if (state?.agentId === agentId) {
-      return
-    }
-    stop()
-    const interval = setInterval(() => {
-      pollOnce(agentId).catch(error => {
-        onError?.(error)
-      })
-    }, intervalMs)
-    state = {
-      agentId,
-      interval,
-      inFlight: false,
-    }
-  }
-
-  const isRunningFor = (agentId: string) => {
-    return !!state && state.agentId === agentId
-  }
-
-  return {
-    start,
-    stop,
-    isRunningFor,
-  }
 }
 
-export const createLimitedAgentPollingController = ({
+export const createKnowledgePollingController = ({
   intervalMs,
   onPoll,
   onError,
-}: CreateAgentPollingControllerConfig): LimitedAgentPollingController => {
-  let state: LimitedPollingState | undefined
+}: CreateAgentPollingControllerConfig): KnowledgePollingController => {
+  let state: UnifiedPollingState | undefined
 
   const stop = () => {
     if (!state) {
@@ -101,11 +59,15 @@ export const createLimitedAgentPollingController = ({
     state = undefined
   }
 
-  const pollOnce = async (agentId: string) => {
+  const shouldStop = () => {
+    return !state?.continuous && (state?.burstRemaining || 0) <= 0
+  }
+
+  const tick = async (agentId: string) => {
     if (!state || state.agentId !== agentId || state.inFlight) {
       return
     }
-    if (state.remaining <= 0) {
+    if (shouldStop()) {
       stop()
       return
     }
@@ -115,26 +77,24 @@ export const createLimitedAgentPollingController = ({
       await onPoll(agentId)
     } finally {
       if (state?.agentId === agentId) {
-        state.remaining -= 1
+        if (state.burstRemaining > 0) {
+          state.burstRemaining -= 1
+        }
         state.inFlight = false
-        if (state.remaining <= 0) {
+        if (shouldStop()) {
           stop()
         }
       }
     }
   }
 
-  const start = (agentId: string, pollCount: number) => {
-    if (!agentId || pollCount <= 0) {
-      return
-    }
+  const ensureState = (agentId: string) => {
     if (state?.agentId === agentId) {
-      state.remaining = Math.max(state.remaining, pollCount)
       return
     }
     stop()
     const interval = setInterval(() => {
-      pollOnce(agentId).catch(error => {
+      tick(agentId).catch(error => {
         onError?.(error)
       })
     }, intervalMs)
@@ -142,17 +102,44 @@ export const createLimitedAgentPollingController = ({
       agentId,
       interval,
       inFlight: false,
-      remaining: pollCount,
+      continuous: false,
+      burstRemaining: 0,
     }
   }
 
-  const isRunningFor = (agentId: string) => {
-    return !!state && state.agentId === agentId
+  const setContinuous = (agentId: string, enabled: boolean) => {
+    if (!agentId) {
+      return
+    }
+    ensureState(agentId)
+    if (!state || state.agentId !== agentId) {
+      return
+    }
+    state.continuous = enabled
+    if (shouldStop()) {
+      stop()
+    }
+  }
+
+  const boost = (agentId: string, pollCount: number) => {
+    if (!agentId || pollCount <= 0) {
+      return
+    }
+    ensureState(agentId)
+    if (!state || state.agentId !== agentId) {
+      return
+    }
+    state.burstRemaining = Math.max(state.burstRemaining, pollCount)
+  }
+
+  const isRunning = () => {
+    return !!state
   }
 
   return {
-    start,
+    setContinuous,
+    boost,
     stop,
-    isRunningFor,
+    isRunning,
   }
 }

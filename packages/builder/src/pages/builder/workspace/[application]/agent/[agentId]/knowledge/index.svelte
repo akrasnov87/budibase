@@ -25,8 +25,8 @@
     toSharePointConnectionRows,
   } from "./knowledgeTableRows"
   import {
-    createAgentPollingController,
-    createLimitedAgentPollingController,
+    coalesceAgentPollRequests,
+    createKnowledgePollingController,
   } from "./polling"
   import { API } from "@/api"
 
@@ -42,6 +42,9 @@
   let pendingUploadsByAgent = $state<Record<string, PendingUpload[]>>({})
   let uploadingByAgent = $state<Record<string, boolean>>({})
   let uploadProgressByAgent = $state<Record<string, string>>({})
+  const fetchFiles = coalesceAgentPollRequests(async (agentId: string) => {
+    await agentsStore.fetchAgentKnowledge(agentId)
+  })
   let files = $derived.by(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
@@ -76,21 +79,12 @@
   let selectedStatusSiteName = $state<string | undefined>()
   let shouldOpenSharePointPickerAfterOauth = $state(false)
   const SHAREPOINT_BOOTSTRAP_POLLS = 60
-  const SHAREPOINT_BOOTSTRAP_INTERVAL_MS = 1000
-  const AGENT_FILE_POLL_INTERVAL_MS = 1000
-  const sharePointBootstrapPollingController =
-    createLimitedAgentPollingController({
-      intervalMs: SHAREPOINT_BOOTSTRAP_INTERVAL_MS,
-      onPoll: fetchFiles,
-      onError: error => {
-        console.error("Failed to bootstrap SharePoint files", error)
-      },
-    })
-  const agentFilePollingController = createAgentPollingController({
-    intervalMs: AGENT_FILE_POLL_INTERVAL_MS,
+  const KNOWLEDGE_POLL_INTERVAL_MS = 1000
+  const knowledgePollingController = createKnowledgePollingController({
+    intervalMs: KNOWLEDGE_POLL_INTERVAL_MS,
     onPoll: fetchFiles,
     onError: error => {
-      console.error("Failed to poll agent files", error)
+      console.error("Failed to poll knowledge files", error)
     },
   })
   let activePendingUploads = $derived(
@@ -136,14 +130,14 @@
   }
 
   const stopSharePointBootstrapPolling = () => {
-    sharePointBootstrapPollingController.stop()
+    knowledgePollingController.stop()
   }
 
   const startSharePointBootstrapPolling = (
     agentId: string,
     pollCount = SHAREPOINT_BOOTSTRAP_POLLS
   ) => {
-    sharePointBootstrapPollingController.start(agentId, pollCount)
+    knowledgePollingController.boost(agentId, pollCount)
   }
 
   const showSharePointSyncResult = (
@@ -174,10 +168,6 @@
     } else {
       notifications.success(message)
     }
-  }
-
-  async function fetchFiles(agentId: string) {
-    await agentsStore.fetchAgentKnowledge(agentId)
   }
 
   const openSharePointFilesStatusModal = (siteId: string, siteName: string) => {
@@ -262,17 +252,13 @@
   $effect(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
-      agentFilePollingController.stop()
+      knowledgePollingController.stop()
       return
     }
     const hasProcessingFiles = files.some(
       file => file.status === KnowledgeBaseFileStatus.PROCESSING
     )
-    if (hasProcessingFiles) {
-      agentFilePollingController.start(agentId)
-    } else if (agentFilePollingController.isRunningFor(agentId)) {
-      agentFilePollingController.stop()
-    }
+    knowledgePollingController.setContinuous(agentId, hasProcessingFiles)
   })
 
   $effect(() => {
@@ -469,7 +455,7 @@
 
   onDestroy(() => {
     stopSharePointBootstrapPolling()
-    agentFilePollingController.stop()
+    knowledgePollingController.stop()
   })
 </script>
 
