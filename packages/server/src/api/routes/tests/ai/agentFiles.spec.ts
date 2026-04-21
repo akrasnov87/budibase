@@ -354,10 +354,36 @@ describe("agent files", () => {
         {
           status: 400,
           body: {
-            message: 'Invalid body - "knowledgeSources" is not allowed',
+            message: "knowledgeSources cannot be updated from this endpoint",
           },
         }
       )
+    })
+  })
+
+  it("allows generic agent update when knowledge sources are unchanged", async () => {
+    await withRagEnabled(async () => {
+      const created = await config.api.agent.create({
+        name: "SharePoint Agent Update No Change",
+        aiconfig: "default",
+      })
+
+      await setSharePointSourceInAgent(created._id!, ["site-1"])
+
+      await config.doInContext(config.getDevWorkspaceId(), async () => {
+        const workspaceDb = context.getWorkspaceDB()
+        const current = await workspaceDb.tryGet<Agent>(created._id!)
+        expect(current).toBeDefined()
+
+        const updated = await config.api.agent.update({
+          ...current!,
+          name: "SharePoint Agent Update No Change 2",
+          knowledgeSources: current!.knowledgeSources,
+          knowledgeBases: current!.knowledgeBases,
+        } as any)
+
+        expect(updated.name).toBe("SharePoint Agent Update No Change 2")
+      })
     })
   })
 
