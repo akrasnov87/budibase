@@ -47,3 +47,43 @@ export const buildTelegramWebhookUrl = async (
     chatAppId,
     agentId
   )
+
+export const setTelegramWebhook = async ({
+  botToken,
+  webhookUrl,
+  secretToken,
+}: {
+  botToken: string
+  webhookUrl: string
+  secretToken?: string
+}) => {
+  const body: Record<string, string> = { url: webhookUrl }
+  if (secretToken) {
+    body.secret_token = secretToken
+  }
+
+  const response = await fetch(
+    `https://api.telegram.org/bot${botToken}/setWebhook`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    }
+  )
+
+  if (!response.ok) {
+    const text = await response.text()
+    throw new HTTPError(
+      `Telegram setWebhook failed (${response.status}): ${text || response.statusText}`,
+      400
+    )
+  }
+
+  const data = await response.json()
+  if (!data.ok) {
+    throw new HTTPError(
+      `Telegram setWebhook failed: ${data.description || "Unknown error"}`,
+      400
+    )
+  }
+}

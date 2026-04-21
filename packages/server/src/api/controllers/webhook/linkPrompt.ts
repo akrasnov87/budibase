@@ -17,6 +17,14 @@ export interface PrivatePostTarget {
   ) => Promise<unknown>
 }
 
+export const buildPlainTextLinkPrompt = ({
+  text,
+  linkUrl,
+}: {
+  text: string
+  linkUrl: string
+}) => `${text}\n${linkUrl}`
+
 export const buildLinkPromptCard = ({
   text,
   linkUrl,
@@ -46,18 +54,23 @@ export const postLinkPromptPrivately = async ({
   user,
   text,
   linkUrl,
+  renderMode,
 }: {
   target: PrivatePostTarget
   user: string | Author
   text: string
   linkUrl: string
+  renderMode?: "card" | "plainText"
 }): Promise<{
   delivered: boolean
   usedDirectMessageFallback: boolean
 }> => {
-  const card = buildLinkPromptCard({ text, linkUrl })
+  const plainText = buildPlainTextLinkPrompt({ text, linkUrl })
+  const message =
+    renderMode === "plainText" ? plainText : buildLinkPromptCard({ text, linkUrl })
+
   try {
-    const response = await target.postEphemeral(user, card, {
+    const response = await target.postEphemeral(user, message, {
       fallbackToDM: true,
     })
     if (response) {
@@ -69,6 +82,23 @@ export const postLinkPromptPrivately = async ({
     }
   } catch (error) {
     console.error("Failed to send private link prompt", error)
+  }
+
+  if (renderMode !== "plainText") {
+    try {
+      const response = await target.postEphemeral(user, plainText, {
+        fallbackToDM: true,
+      })
+      if (response) {
+        return {
+          delivered: true,
+          usedDirectMessageFallback: !!(response as { usedFallback?: boolean })
+            .usedFallback,
+        }
+      }
+    } catch (error) {
+      console.error("Failed to send plain text private link prompt", error)
+    }
   }
 
   return {

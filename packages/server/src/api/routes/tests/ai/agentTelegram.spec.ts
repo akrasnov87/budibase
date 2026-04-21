@@ -87,10 +87,25 @@ describe("agent telegram integration provisioning", () => {
     return result
   }
 
+  const mockFetch = () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ ok: true }),
+        text: () => Promise.resolve('{"ok":true}'),
+      })
+    ) as jest.Mock
+  }
+
   beforeEach(async () => {
     await config.newTenant()
     mockedWebhookChat.mockClear()
     resetMockChatState()
+    mockFetch()
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
   })
 
   afterAll(() => {
@@ -169,6 +184,34 @@ describe("agent telegram integration provisioning", () => {
     await config.api.agent.provisionTelegramChannel(agent._id!, undefined, {
       status: 400,
     })
+  })
+
+  it("returns warning when telegram setWebhook fails", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ok: false,
+            error_code: 400,
+            description: "Bad Request: bad webhook",
+          }),
+        text: () => Promise.resolve('{"ok":false,"error_code":400}'),
+      })
+    ) as jest.Mock
+
+    const agent = await config.api.agent.create({
+      name: "Telegram Webhook Fail Agent",
+      telegramIntegration: {
+        botToken: "123:token-webhook-fail",
+      },
+    })
+
+    const result = await config.api.agent.provisionTelegramChannel(agent._id!)
+
+    expect(result.success).toBe(true)
+    expect(result.messagingEndpointUrl).toContain("/api/webhooks/telegram/")
+    expect(result.warning).toContain("Bad Request: bad webhook")
   })
 
   describe("telegram webhook incoming messages", () => {

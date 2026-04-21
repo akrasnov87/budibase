@@ -146,6 +146,7 @@ const createTelegramInputHandler = ({
             user: author,
             text: prompt.text,
             linkUrl: prompt.linkUrl,
+            renderMode: "plainText",
           })
           if (delivery.usedDirectMessageFallback) {
             await target.post(
@@ -154,7 +155,9 @@ const createTelegramInputHandler = ({
             return
           }
           if (!delivery.delivered) {
-            await target.post(`${prompt.text}\n${prompt.linkUrl}`)
+            await target.post(
+              "I couldn't send a private Budibase link. Please try again in a direct message."
+            )
           }
         },
         workspaceId,

@@ -427,25 +427,41 @@ export async function provisionAgentTelegramChannel(
   const { agentId } = ctx.params
   const agent = await sdk.ai.agents.getOrThrow(agentId)
   const requestedChatAppId = parseOptionalChatAppId(ctx.request.body?.chatAppId)
-  const { chatAppId, endpointUrl } = await configureDeploymentChannel({
-    agent,
-    agentId,
-    requestedChatAppId,
-    validateIntegration: sdk.ai.deployments.telegram.validateTelegramIntegration,
-    resolveChatAppForAgent: sdk.ai.deployments.telegram.resolveChatAppForAgent,
-    buildEndpointUrl: sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
-    persistIntegration: async (chatAppId, messagingEndpointUrl) =>
-      await persistTelegramDeployment({
-        agent,
-        chatAppId,
-        messagingEndpointUrl,
-      }),
-  })
+  const { chatAppId, endpointUrl, integration } =
+    await configureDeploymentChannel({
+      agent,
+      agentId,
+      requestedChatAppId,
+      validateIntegration:
+        sdk.ai.deployments.telegram.validateTelegramIntegration,
+      resolveChatAppForAgent:
+        sdk.ai.deployments.telegram.resolveChatAppForAgent,
+      buildEndpointUrl:
+        sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
+      persistIntegration: async (chatAppId, messagingEndpointUrl) =>
+        await persistTelegramDeployment({
+          agent,
+          chatAppId,
+          messagingEndpointUrl,
+        }),
+    })
+
+  let warning: string | undefined
+  try {
+    await sdk.ai.deployments.telegram.setTelegramWebhook({
+      botToken: integration.botToken,
+      webhookUrl: endpointUrl,
+      secretToken: integration.webhookSecretToken,
+    })
+  } catch (error: any) {
+    warning = error.message || "Failed to register webhook with Telegram"
+  }
 
   ctx.body = {
     success: true,
     chatAppId,
     messagingEndpointUrl: endpointUrl,
+    ...(warning ? { warning } : {}),
   }
   ctx.status = 200
 }
@@ -607,13 +623,16 @@ export async function toggleAgentTelegramDeployment(
     const requestedChatAppId = parseOptionalChatAppId(
       agent.telegramIntegration?.chatAppId?.trim() || undefined
     )
-    await configureDeploymentChannel({
+    const { endpointUrl, integration } = await configureDeploymentChannel({
       agent,
       agentId,
       requestedChatAppId,
-      validateIntegration: sdk.ai.deployments.telegram.validateTelegramIntegration,
-      resolveChatAppForAgent: sdk.ai.deployments.telegram.resolveChatAppForAgent,
-      buildEndpointUrl: sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
+      validateIntegration:
+        sdk.ai.deployments.telegram.validateTelegramIntegration,
+      resolveChatAppForAgent:
+        sdk.ai.deployments.telegram.resolveChatAppForAgent,
+      buildEndpointUrl:
+        sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
       persistIntegration: async (chatAppId, messagingEndpointUrl) =>
         await persistTelegramDeployment({
           agent,
@@ -621,6 +640,16 @@ export async function toggleAgentTelegramDeployment(
           messagingEndpointUrl,
         }),
     })
+
+    try {
+      await sdk.ai.deployments.telegram.setTelegramWebhook({
+        botToken: integration.botToken,
+        webhookUrl: endpointUrl,
+        secretToken: integration.webhookSecretToken,
+      })
+    } catch (error: any) {
+      console.warn("Telegram setWebhook failed during toggle:", error.message)
+    }
   } else {
     const chatAppId = agent.telegramIntegration?.chatAppId?.trim()
 

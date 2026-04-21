@@ -124,6 +124,7 @@ export type ProvisionAgentTelegramChannelRequest =
 export interface ProvisionAgentTelegramChannelResponse
   extends ConfigureAgentDeploymentChannelResponse {
   messagingEndpointUrl: string
+  warning?: string
 }
 
 export interface ToggleAgentDeploymentRequest {

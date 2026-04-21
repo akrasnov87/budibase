@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Body, CopyInput, Input, notifications } from "@budibase/bbui"
+  import {
+    Body,
+    CopyInput,
+    InlineAlert,
+    Input,
+    notifications,
+  } from "@budibase/bbui"
   import { ChatCommands } from "@budibase/shared-core"
   import type {
     Agent,
@@ -121,15 +127,22 @@
 
   {#snippet response()}
     <Body size="S">
-      Register this HTTPS URL with Telegram (<code>setWebhook</code>) so
-      updates are delivered to Budibase. If you set a webhook secret token, use
-      the same value here so requests can be verified.
+      Saving the channel automatically registers this endpoint with Telegram.
+      If you set a webhook secret token, use the same value here so requests
+      can be verified.
     </Body>
     <Body size="S">
       Use <code>/{TELEGRAM_LINK_COMMAND}</code> to link or refresh your
       Budibase account.
     </Body>
 
+      {#if provisionResult?.warning}
+      <InlineAlert
+        type="negative"
+        header="Webhook registration failed"
+        message={provisionResult.warning}
+      />
+    {/if}
     <CopyInput
       label="Messaging endpoint URL"
       value={messagingEndpointUrl}
