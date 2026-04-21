@@ -176,7 +176,7 @@ export async function buildPromptAndTools(
   })
 
   const resolvedSystemPrompt = hasKnowledgeBases
-    ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, or processing errors), call list_knowledge_files with a filename when possible.`
+    ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, processing errors, or file counts), call list_knowledge_files with a filename when possible. Do not guess file metadata. If list_knowledge_files returns no matches or ambiguous results, ask a clarification question before answering.`
     : systemPrompt
 
   return {
