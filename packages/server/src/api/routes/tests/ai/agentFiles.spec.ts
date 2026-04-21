@@ -433,10 +433,7 @@ describe("agent files", () => {
         aiconfig: "default",
       })
       await setSharePointSourceInAgent(created._id!, ["site-1", "site-2"])
-      const queueAddSpy = jest.spyOn(
-        knowledgeSourceSyncQueue.getQueue(),
-        "add"
-      )
+      const queueAddSpy = jest.spyOn(knowledgeSourceSyncQueue.getQueue(), "add")
 
       await config.api.agent.disconnectSharePointSite(created._id!, "site-1")
 
