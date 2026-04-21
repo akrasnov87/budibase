@@ -41,7 +41,7 @@ describe("agentsStore sharepoint and file syncing", () => {
       agents: [],
       tools: [],
       agentsLoaded: false,
-      filesByAgentId: {},
+      knowledgeByAgent: {},
       sharePointSourceSnapshotsByAgentId: {},
       knowledgeSourceOptionsByAgentId: {},
       currentAgentId: undefined,
@@ -96,7 +96,7 @@ describe("agentsStore sharepoint and file syncing", () => {
 
     expect(fetchAgentKnowledge).toHaveBeenCalledWith("agent_1")
     expect(response.files).toHaveLength(1)
-    expect(get(store.store).filesByAgentId["agent_1"]).toEqual(files)
+    expect(get(store.store).knowledgeByAgent["agent_1"]).toEqual(files)
   })
 
   it("fetchAgentKnowledgeSourceOptions forwards request", async () => {
@@ -120,7 +120,7 @@ describe("agentsStore sharepoint and file syncing", () => {
       agents: [],
       tools: [],
       agentsLoaded: false,
-      filesByAgentId: {
+      knowledgeByAgent: {
         agent_1: [
           {
             _id: "kb_file_1",
@@ -158,7 +158,7 @@ describe("agentsStore sharepoint and file syncing", () => {
     await vi.advanceTimersByTimeAsync(60)
 
     expect(fetchAgentKnowledge).toHaveBeenCalledTimes(1)
-    expect(get(store.store).filesByAgentId["agent_1"][0].status).toBe(
+    expect(get(store.store).knowledgeByAgent["agent_1"][0].status).toBe(
       KnowledgeBaseFileStatus.READY
     )
   })
@@ -169,7 +169,7 @@ describe("agentsStore sharepoint and file syncing", () => {
       agents: [],
       tools: [],
       agentsLoaded: false,
-      filesByAgentId: {
+      knowledgeByAgent: {
         agent_1: [
           {
             _id: "kb_file_1",

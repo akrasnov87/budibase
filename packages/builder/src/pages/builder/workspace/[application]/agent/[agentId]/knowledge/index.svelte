@@ -23,6 +23,7 @@
     toFileTableRows,
     toSharePointConnectionRows,
   } from "./knowledgeTableRows"
+  import { API } from "@/api"
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
   let activeAgentId = $derived(currentAgent?._id)
@@ -41,23 +42,17 @@
     if (!agentId) {
       return [] as KnowledgeBaseFile[]
     }
-    return $agentsStore.filesByAgentId[agentId] || []
+    return $agentsStore.knowledgeByAgent[agentId].files || []
   })
 
   let initialKnowledgeLoadedForAgent = $state<string | undefined>()
-  let sharePointSites = $derived.by(() => {
-    const agentId = currentAgent?._id
-    if (!agentId) {
-      return [] as KnowledgeSourceOption[]
-    }
-    return $agentsStore.knowledgeSourceOptionsByAgentId[agentId] || []
-  })
+  let sharePointSites = $state<KnowledgeSourceOption[]>()
   let sharePointSourceSnapshots = $derived.by(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
       return [] as SharePointKnowledgeSourceSnapshot[]
     }
-    return $agentsStore.sharePointSourceSnapshotsByAgentId[agentId] || []
+    return $agentsStore.knowledgeByAgent[agentId].sharePointSources || []
   })
   let selectedSiteIds = $derived.by(() =>
     sharePointSources
@@ -265,7 +260,6 @@
     loading = true
     try {
       await agentsStore.fetchAgentKnowledge(agentId)
-      await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
       initialKnowledgeLoadedForAgent = agentId
     } finally {
       loading = false
@@ -275,7 +269,8 @@
   const loadSharePointSites = async (agentId: string) => {
     loadingSharePointSites = true
     try {
-      await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
+      const response = await API.fetchAgentKnowledgeSourceOptions(agentId)
+      sharePointSites = response.options
     } finally {
       loadingSharePointSites = false
     }
@@ -363,7 +358,11 @@
   }
 
   async function handleAddSharePointKnowledge() {
-    if (hasSharePointConnection || sharePointSites.length > 0) {
+    if (
+      hasSharePointConnection ||
+      !sharePointSites ||
+      sharePointSites.length > 0
+    ) {
       await openSharePointSiteModal()
       return
     }
@@ -377,10 +376,10 @@
     }
     await loadSharePointSites(agentId)
     const selectedSiteIdSet = new Set(effectiveSelectedSiteIds)
-    const availableSites = sharePointSites.filter(
+    const availableSites = sharePointSites?.filter(
       site => !selectedSiteIdSet.has(site.id)
     )
-    selectedSharePointSiteId = availableSites[0]?.id || ""
+    selectedSharePointSiteId = availableSites?.[0]?.id || ""
     sharePointSiteModal?.show()
   }
 
