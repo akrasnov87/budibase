@@ -67,7 +67,10 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     if (!this.agentFilePolling || this.agentFilePolling.agentId !== agentId) {
       return
     }
-    if (this.agentFilePolling.inFlight || !this.shouldPollAgentFiles(agentId)) {
+    if (this.agentFilePolling.inFlight) {
+      return
+    }
+    if (!this.shouldPollAgentFiles(agentId)) {
       this.stopAgentFilePolling()
       return
     }

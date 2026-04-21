@@ -203,6 +203,113 @@ describe("agentsStore sharepoint and file syncing", () => {
 
     expect(fetchAgentKnowledge).not.toHaveBeenCalled()
   })
+
+  it("startAgentFilePolling does not stop while request is in-flight", async () => {
+    vi.useFakeTimers()
+    store.set({
+      agents: [],
+      tools: [],
+      agentsLoaded: false,
+      knowledgeByAgent: {
+        agent_1: {
+          files: [
+            {
+              _id: "kb_file_1",
+              knowledgeBaseId: "kb_1",
+              source: {
+                type: "sharepoint",
+                knowledgeSourceId: "source-1",
+                siteId: "site-1",
+                driveId: "drive-1",
+                itemId: "item-1",
+              },
+              ragSourceId: "rag_source_1",
+              filename: "notes.md",
+              objectStoreKey: "object/key",
+              status: KnowledgeBaseFileStatus.PROCESSING,
+              uploadedBy: "user_1",
+            },
+          ],
+          hasSharePointConnection: true,
+          sharePointSources: [],
+        },
+      },
+      currentAgentId: undefined,
+    })
+
+    let resolveFirstCall:
+      | ((value: {
+          files: KnowledgeBaseFile[]
+          hasSharePointConnection: boolean
+          sharePointSources: []
+        }) => void)
+      | undefined
+
+    fetchAgentKnowledge
+      .mockImplementationOnce(
+        () =>
+          new Promise(resolve => {
+            resolveFirstCall = resolve
+          })
+      )
+      .mockResolvedValue({
+        files: [
+          {
+            _id: "kb_file_1",
+            knowledgeBaseId: "kb_1",
+            source: {
+              type: "sharepoint",
+              knowledgeSourceId: "source-1",
+              siteId: "site-1",
+              driveId: "drive-1",
+              itemId: "item-1",
+            },
+            ragSourceId: "rag_source_1",
+            filename: "notes.md",
+            objectStoreKey: "object/key",
+            status: KnowledgeBaseFileStatus.READY,
+            uploadedBy: "user_1",
+          },
+        ],
+        hasSharePointConnection: true,
+        sharePointSources: [],
+      })
+
+    store.startAgentFilePolling("agent_1", 25)
+
+    await vi.advanceTimersByTimeAsync(30)
+    expect(fetchAgentKnowledge).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(100)
+    expect(fetchAgentKnowledge).toHaveBeenCalledTimes(1)
+
+    resolveFirstCall?.({
+      files: [
+        {
+          _id: "kb_file_1",
+          knowledgeBaseId: "kb_1",
+          source: {
+            type: "sharepoint",
+            knowledgeSourceId: "source-1",
+            siteId: "site-1",
+            driveId: "drive-1",
+            itemId: "item-1",
+          },
+          ragSourceId: "rag_source_1",
+          filename: "notes.md",
+          objectStoreKey: "object/key",
+          status: KnowledgeBaseFileStatus.PROCESSING,
+          uploadedBy: "user_1",
+        },
+      ],
+      hasSharePointConnection: true,
+      sharePointSources: [],
+    })
+
+    await Promise.resolve()
+    await vi.advanceTimersByTimeAsync(30)
+    expect(fetchAgentKnowledge).toHaveBeenCalledTimes(2)
+  })
 })
 
 describe("AgentsStore file operations", () => {
