@@ -141,7 +141,7 @@ export function generateAgentInstructionsValidator() {
 export function syncAgentKnowledgeSourcesValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      sourceIds: Joi.array().items(Joi.string().trim().disallow("")).optional(),
+      sourceId: Joi.string().trim().disallow("").required(),
     }).required()
   )
 }
