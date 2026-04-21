@@ -4,6 +4,7 @@
   import type { SyncAgentKnowledgeSourcesResponse } from "@budibase/types"
   import {
     AgentKnowledgeSourceType,
+    KnowledgeBaseFileStatus,
     type Agent,
     type KnowledgeSourceOption,
     type KnowledgeBaseFile,
@@ -23,6 +24,10 @@
     toFileTableRows,
     toSharePointConnectionRows,
   } from "./knowledgeTableRows"
+  import {
+    createAgentPollingController,
+    createLimitedAgentPollingController,
+  } from "./polling"
   import { API } from "@/api"
 
   let currentAgent: Agent | undefined = $derived($selectedAgent)
@@ -72,12 +77,22 @@
   let shouldOpenSharePointPickerAfterOauth = $state(false)
   const SHAREPOINT_BOOTSTRAP_POLLS = 60
   const SHAREPOINT_BOOTSTRAP_INTERVAL_MS = 1000
-  let sharePointBootstrapPolling = $state<{
-    agentId: string
-    interval: ReturnType<typeof setInterval>
-    inFlight: boolean
-    remaining: number
-  }>()
+  const AGENT_FILE_POLL_INTERVAL_MS = 1000
+  const sharePointBootstrapPollingController =
+    createLimitedAgentPollingController({
+      intervalMs: SHAREPOINT_BOOTSTRAP_INTERVAL_MS,
+      onPoll: fetchFiles,
+      onError: error => {
+        console.error("Failed to bootstrap SharePoint files", error)
+      },
+    })
+  const agentFilePollingController = createAgentPollingController({
+    intervalMs: AGENT_FILE_POLL_INTERVAL_MS,
+    onPoll: fetchFiles,
+    onError: error => {
+      console.error("Failed to poll agent files", error)
+    },
+  })
   let activePendingUploads = $derived(
     activeAgentId ? pendingUploadsByAgent[activeAgentId] || [] : []
   )
@@ -121,61 +136,14 @@
   }
 
   const stopSharePointBootstrapPolling = () => {
-    if (!sharePointBootstrapPolling) {
-      return
-    }
-    clearInterval(sharePointBootstrapPolling.interval)
-    sharePointBootstrapPolling = undefined
+    sharePointBootstrapPollingController.stop()
   }
 
   const startSharePointBootstrapPolling = (
     agentId: string,
     pollCount = SHAREPOINT_BOOTSTRAP_POLLS
   ) => {
-    if (!agentId || pollCount <= 0) {
-      return
-    }
-    if (sharePointBootstrapPolling?.agentId === agentId) {
-      sharePointBootstrapPolling.remaining = Math.max(
-        sharePointBootstrapPolling.remaining,
-        pollCount
-      )
-      return
-    }
-
-    stopSharePointBootstrapPolling()
-    const interval = setInterval(async () => {
-      if (!sharePointBootstrapPolling) {
-        return
-      }
-      if (sharePointBootstrapPolling.inFlight) {
-        return
-      }
-      if (sharePointBootstrapPolling.remaining <= 0) {
-        stopSharePointBootstrapPolling()
-        return
-      }
-
-      sharePointBootstrapPolling.inFlight = true
-      try {
-        await fetchFiles(agentId)
-      } finally {
-        if (sharePointBootstrapPolling) {
-          sharePointBootstrapPolling.remaining -= 1
-          sharePointBootstrapPolling.inFlight = false
-          if (sharePointBootstrapPolling.remaining <= 0) {
-            stopSharePointBootstrapPolling()
-          }
-        }
-      }
-    }, SHAREPOINT_BOOTSTRAP_INTERVAL_MS)
-
-    sharePointBootstrapPolling = {
-      agentId,
-      interval,
-      inFlight: false,
-      remaining: pollCount,
-    }
+    sharePointBootstrapPollingController.start(agentId, pollCount)
   }
 
   const showSharePointSyncResult = (
@@ -208,7 +176,7 @@
     }
   }
 
-  const fetchFiles = async (agentId: string) => {
+  async function fetchFiles(agentId: string) {
     await agentsStore.fetchAgentKnowledge(agentId)
   }
 
@@ -294,13 +262,16 @@
   $effect(() => {
     const agentId = currentAgent?._id
     if (!agentId) {
-      agentsStore.stopAgentFilePolling()
+      agentFilePollingController.stop()
       return
     }
-
-    agentsStore.startAgentFilePolling(agentId)
-    return () => {
-      agentsStore.stopAgentFilePolling()
+    const hasProcessingFiles = files.some(
+      file => file.status === KnowledgeBaseFileStatus.PROCESSING
+    )
+    if (hasProcessingFiles) {
+      agentFilePollingController.start(agentId)
+    } else if (agentFilePollingController.isRunningFor(agentId)) {
+      agentFilePollingController.stop()
     }
   })
 
@@ -498,7 +469,7 @@
 
   onDestroy(() => {
     stopSharePointBootstrapPolling()
-    agentsStore.stopAgentFilePolling()
+    agentFilePollingController.stop()
   })
 </script>
 

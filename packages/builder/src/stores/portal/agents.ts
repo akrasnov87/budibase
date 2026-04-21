@@ -13,7 +13,6 @@ import {
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
-  KnowledgeBaseFileStatus,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
   SyncAgentKnowledgeSourcesRequest,
@@ -22,7 +21,7 @@ import {
   UpdateAgentRequest,
   type KnowledgeBaseFile,
 } from "@budibase/types"
-import { derived, get } from "svelte/store"
+import { derived } from "svelte/store"
 
 interface AgentStoreState {
   agents: Agent[]
@@ -40,12 +39,6 @@ interface AgentStoreState {
 }
 
 export class AgentsStore extends BudiStore<AgentStoreState> {
-  private agentFilePolling?: {
-    agentId: string
-    interval: ReturnType<typeof setInterval>
-    inFlight: boolean
-  }
-
   constructor() {
     super({
       agents: [],
@@ -53,69 +46,6 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       agentsLoaded: false,
       knowledgeByAgent: {},
     })
-  }
-
-  private shouldPollAgentFiles = (agentId: string) => {
-    const state = get(this.store)
-    const files = state.knowledgeByAgent[agentId]?.files || []
-    return files.some(
-      file => file.status === KnowledgeBaseFileStatus.PROCESSING
-    )
-  }
-
-  private pollAgentFilesOnce = async (agentId: string) => {
-    if (!this.agentFilePolling || this.agentFilePolling.agentId !== agentId) {
-      return
-    }
-    if (this.agentFilePolling.inFlight) {
-      return
-    }
-    if (!this.shouldPollAgentFiles(agentId)) {
-      this.stopAgentFilePolling()
-      return
-    }
-
-    this.agentFilePolling.inFlight = true
-    try {
-      await this.fetchAgentKnowledge(agentId)
-    } finally {
-      if (this.agentFilePolling?.agentId === agentId) {
-        this.agentFilePolling.inFlight = false
-      }
-    }
-  }
-
-  startAgentFilePolling = (agentId: string, intervalMs = 1000) => {
-    if (!agentId) {
-      return
-    }
-    if (!this.shouldPollAgentFiles(agentId)) {
-      return
-    }
-    if (this.agentFilePolling?.agentId === agentId) {
-      return
-    }
-    this.stopAgentFilePolling()
-
-    const interval = setInterval(() => {
-      this.pollAgentFilesOnce(agentId).catch(error => {
-        console.error("Failed to poll agent files", error)
-      })
-    }, intervalMs)
-
-    this.agentFilePolling = {
-      agentId,
-      interval,
-      inFlight: false,
-    }
-  }
-
-  stopAgentFilePolling = () => {
-    if (!this.agentFilePolling) {
-      return
-    }
-    clearInterval(this.agentFilePolling.interval)
-    this.agentFilePolling = undefined
   }
 
   init = async () => {
@@ -266,7 +196,6 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     const response = await API.connectAgentSharePointSite(agentId, body)
     await this.fetchAgents()
     await this.fetchAgentKnowledge(agentId)
-    this.startAgentFilePolling(agentId)
     return response
   }
 
