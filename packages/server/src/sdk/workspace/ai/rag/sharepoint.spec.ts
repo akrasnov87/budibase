@@ -47,9 +47,7 @@ jest.mock("../sharepoint", () => {
 })
 
 jest.mock("./files", () => {
-  const actual = jest.requireActual("./files")
   return {
-    ...actual,
     ensureKnowledgeBaseForAgent: (...args: any[]) =>
       mockEnsureKnowledgeBaseForAgent(...args),
   }
