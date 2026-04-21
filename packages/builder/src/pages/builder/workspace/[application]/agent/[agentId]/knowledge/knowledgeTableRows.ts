@@ -86,8 +86,8 @@ export const getSharePointFilesForSite = (
   files: KnowledgeBaseFile[],
   siteId: string
 ) =>
-  files.filter(file =>
-    file.externalSourceId?.startsWith(`sharepoint:${siteId}:`)
+  files.filter(
+    file => file.source?.type === "sharepoint" && file.source.siteId === siteId
   )
 
 export const getSharePointFileProcessingCounts = (

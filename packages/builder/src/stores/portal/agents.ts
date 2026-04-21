@@ -313,7 +313,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
   syncAgentKnowledgeSources = async (
     agentId: string,
-    body?: SyncAgentKnowledgeSourcesRequest
+    body: SyncAgentKnowledgeSourcesRequest
   ): Promise<SyncAgentKnowledgeSourcesResponse> =>
     await API.syncAgentKnowledgeSources(agentId, body)
 }

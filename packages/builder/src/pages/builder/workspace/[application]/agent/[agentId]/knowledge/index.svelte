@@ -241,7 +241,7 @@
 
   let fileTableRows = $derived.by(() =>
     toFileTableRows(
-      files.filter(file => !file.externalSourceId?.startsWith("sharepoint:")),
+      files.filter(file => file.source?.type !== "sharepoint"),
       removeFile,
       activePendingUploads
     )
@@ -253,7 +253,7 @@
       loadingSharePointSites,
       onDelete: removeSharePointSite,
       onSync: async sourceId => {
-        await syncSharePointNow([sourceId])
+        await syncSharePointNow(sourceId)
       },
     })
   })
@@ -414,19 +414,15 @@
     }
   }
 
-  async function syncSharePointNow(sourceIds: string[]) {
+  async function syncSharePointNow(sourceId: string) {
     const agentId = currentAgent?._id
     if (!agentId) {
-      return
-    }
-    if (sourceIds.length === 0) {
-      notifications.error("Please select at least one SharePoint site")
       return
     }
 
     try {
       const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
-        sourceIds,
+        sourceId,
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)

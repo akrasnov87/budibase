@@ -253,7 +253,7 @@ describe("agent files", () => {
 
       await config.api.agent.syncKnowledgeSources(
         created._id!,
-        { sourceIds: ["site-1"] },
+        { sourceId: "site-1" },
         {
           status: 400,
           body: {
@@ -314,7 +314,7 @@ describe("agent files", () => {
     })
   })
 
-  it("sync SharePoint accepts empty body and still returns no-connection error", async () => {
+  it("sync SharePoint with wrong source ids returns no-connection error", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
         name: "SharePoint Sync Empty Agent",
@@ -323,7 +323,7 @@ describe("agent files", () => {
 
       await config.api.agent.syncKnowledgeSources(
         created._id!,
-        {},
+        { sourceId: "wrongId" },
         { status: 400 }
       )
     })

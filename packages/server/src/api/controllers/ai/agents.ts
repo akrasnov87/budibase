@@ -547,8 +547,8 @@ export async function deleteAgent(
   ctx: UserCtx<void, { deleted: true }, { agentId: string }>
 ) {
   const agentId = ctx.params.agentId
-  await sdk.ai.rag.knowledgeSourceSyncQueue.removeAllAgentJobs(agentId ?? "")
-  await sdk.ai.rag.deleteKnowledgeSourceSyncStateForAgent(agentId ?? "")
+  await sdk.ai.rag.knowledgeSourceSyncQueue.removeAllAgentJobs(agentId)
+  await sdk.ai.rag.deleteKnowledgeSourceSyncStateForAgent(agentId)
   await sdk.ai.agents.remove(agentId ?? "")
   ctx.body = { deleted: true }
   ctx.status = 200
