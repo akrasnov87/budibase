@@ -7,7 +7,7 @@ import {
   ConnectAgentSharePointSiteResponse,
   CreateAgentRequest,
   DisconnectAgentSharePointSiteResponse,
-  FetchAgentFilesResponse,
+  FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   KnowledgeSourceOption,
   KnowledgeSourceSyncRun,
@@ -92,7 +92,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
     this.agentFilePolling.inFlight = true
     try {
-      await this.fetchAgentFiles(agentId)
+      await this.fetchAgentKnowledge(agentId)
     } finally {
       if (this.agentFilePolling?.agentId === agentId) {
         this.agentFilePolling.inFlight = false
@@ -253,10 +253,10 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       API.toggleAgentSlackDeployment(agentId, enabled)
     )
 
-  fetchAgentFiles = async (
+  fetchAgentKnowledge = async (
     agentId: string
-  ): Promise<FetchAgentFilesResponse> => {
-    const response = await API.fetchAgentFiles(agentId)
+  ): Promise<FetchAgentKnowledgeResponse> => {
+    const response = await API.fetchAgentKnowledge(agentId)
     this.setAgentFiles(agentId, response.files)
     return response
   }
@@ -293,6 +293,8 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
       response.runs
     )
     await this.fetchAgents()
+    await this.fetchAgentKnowledge(agentId)
+    this.startAgentFilePolling(agentId)
     return response
   }
 

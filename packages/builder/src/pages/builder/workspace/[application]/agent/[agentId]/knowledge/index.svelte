@@ -168,11 +168,7 @@
 
       sharePointBootstrapPolling.inFlight = true
       try {
-        await Promise.all([
-          loadSharePointSites(agentId),
-          fetchFiles(agentId),
-          agentsStore.fetchAgents(),
-        ])
+        await fetchFiles(agentId)
       } finally {
         if (!sharePointBootstrapPolling) {
           return
@@ -224,7 +220,7 @@
   }
 
   const fetchFiles = async (agentId: string) => {
-    await agentsStore.fetchAgentFiles(agentId)
+    await agentsStore.fetchAgentKnowledge(agentId)
   }
 
   const openSharePointFilesStatusModal = (siteId: string, siteName: string) => {
@@ -277,7 +273,7 @@
   const loadInitialKnowledge = async (agentId: string) => {
     loading = true
     try {
-      await agentsStore.fetchAgentFiles(agentId)
+      await agentsStore.fetchAgentKnowledge(agentId)
       await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
       initialKnowledgeLoadedForAgent = agentId
     } finally {
@@ -443,7 +439,6 @@
       })
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
-      await agentsStore.fetchAgents()
       showSharePointSyncResult(result)
     } catch (error) {
       console.error(error)
