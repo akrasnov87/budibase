@@ -77,7 +77,7 @@ export function updateAgentValidator() {
       discordIntegration: DISCORD_INTEGRATION_SCHEMA,
       MSTeamsIntegration: TEAMS_INTEGRATION_SCHEMA,
       slackIntegration: SLACK_INTEGRATION_SCHEMA,
-    })
+    }).unknown(true)
   )
 }
 
