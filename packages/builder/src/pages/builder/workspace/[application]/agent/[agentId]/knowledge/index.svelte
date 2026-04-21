@@ -170,13 +170,12 @@
       try {
         await fetchFiles(agentId)
       } finally {
-        if (!sharePointBootstrapPolling) {
-          return
-        }
-        sharePointBootstrapPolling.remaining -= 1
-        sharePointBootstrapPolling.inFlight = false
-        if (sharePointBootstrapPolling.remaining <= 0) {
-          stopSharePointBootstrapPolling()
+        if (sharePointBootstrapPolling) {
+          sharePointBootstrapPolling.remaining -= 1
+          sharePointBootstrapPolling.inFlight = false
+          if (sharePointBootstrapPolling.remaining <= 0) {
+            stopSharePointBootstrapPolling()
+          }
         }
       }
     }, SHAREPOINT_BOOTSTRAP_INTERVAL_MS)
