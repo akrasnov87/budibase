@@ -57,8 +57,8 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
   private shouldPollAgentFiles = (agentId: string) => {
     const state = get(this.store)
-    const knowledge = state.knowledgeByAgent[agentId] || []
-    return knowledge.files.some(
+    const files = state.knowledgeByAgent[agentId]?.files || []
+    return files.some(
       file => file.status === KnowledgeBaseFileStatus.PROCESSING
     )
   }

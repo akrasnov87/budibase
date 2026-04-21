@@ -42,7 +42,7 @@
     if (!agentId) {
       return [] as KnowledgeBaseFile[]
     }
-    return $agentsStore.knowledgeByAgent[agentId].files || []
+    return $agentsStore.knowledgeByAgent[agentId]?.files || []
   })
 
   let initialKnowledgeLoadedForAgent = $state<string | undefined>()
