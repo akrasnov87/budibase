@@ -44,6 +44,35 @@ export interface FetchAgentKnowledgeSourceOptionsResponse {
   runs: KnowledgeSourceSyncRun[]
 }
 
+export interface SharePointKnowledgeSourceSnapshot {
+  sourceId: string
+  siteId: string
+  name?: string
+  webUrl?: string
+  runStatus?: AgentKnowledgeSourceSyncRunStatus
+  lastRunAt?: string
+  syncedCount: number
+  failedCount: number
+  processingCount: number
+  totalCount: number
+}
+
+export interface FetchAgentKnowledgeResponse extends FetchAgentFilesResponse {
+  hasSharePointConnection: boolean
+  sharePointSources: SharePointKnowledgeSourceSnapshot[]
+}
+
+export interface KnowledgeSourceEntry {
+  id: string
+  name: string
+  path: string
+  type: "folder" | "file"
+}
+
+export interface FetchAgentKnowledgeSourceEntriesResponse {
+  entries: KnowledgeSourceEntry[]
+}
+
 export interface KnowledgeSourceSyncRun {
   sourceId: string
   lastRunAt: string
@@ -63,21 +92,27 @@ export interface SyncAgentKnowledgeSourcesResponse {
   agentId: string
   synced: number
   failed: number
-  skipped: number
+  alreadySynced: number
   unsupported: number
   totalDiscovered: number
 }
 
-export interface SetAgentKnowledgeSourcesRequest {
-  sourceIds: string[]
+export interface ConnectAgentSharePointSiteRequest {
+  siteId: string
 }
 
-export type SetAgentKnowledgeSourcesResponse =
+export type ConnectAgentSharePointSiteResponse =
   FetchAgentKnowledgeSourceOptionsResponse
 
-export interface DisconnectAgentKnowledgeSourcesResponse {
+export interface UpdateAgentSharePointSiteRequest {}
+
+export type UpdateAgentSharePointSiteResponse =
+  FetchAgentKnowledgeSourceOptionsResponse
+
+export interface DisconnectAgentSharePointSiteResponse {
   agentId: string
   disconnected: true
+  siteId: string
 }
 
 export interface FetchChatAppAgentsResponse {
@@ -136,6 +171,7 @@ export type CreateAgentRequest = Optional<
     | "updatedAt"
     | "knowledgeSources"
     | "knowledgeBases"
+    | "publishedAt"
   >,
   "aiconfig"
 >
