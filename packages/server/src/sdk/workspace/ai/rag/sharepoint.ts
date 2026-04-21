@@ -598,8 +598,7 @@ export const syncSharePointSourcesForAgent = async (
     })
     try {
       const source = sourceBySiteId.get(siteId)
-      const knowledgeBaseId = source?.id
-      if (!knowledgeBaseId) {
+      if (!source?.id) {
         throw new HTTPError(
           `SharePoint source not found for site ${siteId}`,
           400
