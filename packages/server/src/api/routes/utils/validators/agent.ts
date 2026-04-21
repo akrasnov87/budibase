@@ -155,7 +155,5 @@ export function connectAgentSharePointSiteValidator() {
 }
 
 export function updateAgentSharePointSiteValidator() {
-  return auth.joiValidator.body(
-    Joi.object({}).required()
-  )
+  return auth.joiValidator.body(Joi.object({}).required())
 }
