@@ -8,6 +8,8 @@ import {
   FetchAgentKnowledgeSourceOptionsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
+  ProvisionAgentTelegramChannelRequest,
+  ProvisionAgentTelegramChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
   SetAgentKnowledgeSourcesRequest,
@@ -97,6 +99,20 @@ export class AgentAPI extends TestAPI {
   ): Promise<ProvisionAgentSlackChannelResponse> => {
     return await this._post<ProvisionAgentSlackChannelResponse>(
       `/api/agent/${agentId}/slack/provision`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
+  provisionTelegramChannel = async (
+    agentId: string,
+    body?: ProvisionAgentTelegramChannelRequest,
+    expectations?: Expectations
+  ): Promise<ProvisionAgentTelegramChannelResponse> => {
+    return await this._post<ProvisionAgentTelegramChannelResponse>(
+      `/api/agent/${agentId}/telegram/provision`,
       {
         body,
         expectations,

@@ -118,6 +118,14 @@ export interface ProvisionAgentSlackChannelResponse
   messagingEndpointUrl: string
 }
 
+export type ProvisionAgentTelegramChannelRequest =
+  ConfigureAgentDeploymentChannelRequest
+
+export interface ProvisionAgentTelegramChannelResponse
+  extends ConfigureAgentDeploymentChannelResponse {
+  messagingEndpointUrl: string
+}
+
 export interface ToggleAgentDeploymentRequest {
   enabled: boolean
 }

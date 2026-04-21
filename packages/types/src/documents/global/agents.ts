@@ -45,6 +45,15 @@ export interface SlackAgentIntegration extends ChatAgentIntegration {
   messagingEndpointUrl?: string
 }
 
+export interface TelegramAgentIntegration extends ChatAgentIntegration {
+  botToken?: string
+  /** Optional secret passed as `secret_token` when registering the Telegram webhook; verified via `x-telegram-bot-api-secret-token`. */
+  webhookSecretToken?: string
+  /** Optional; helps mention detection in groups. */
+  botUserName?: string
+  messagingEndpointUrl?: string
+}
+
 export enum AgentKnowledgeSourceType {
   SHAREPOINT = "sharepoint",
 }
@@ -79,6 +88,7 @@ export interface Agent extends Document {
   discordIntegration?: DiscordAgentIntegration
   MSTeamsIntegration?: MSTeamsAgentIntegration
   slackIntegration?: SlackAgentIntegration
+  telegramIntegration?: TelegramAgentIntegration
   knowledgeSources?: AgentKnowledgeSource[]
 }
 
