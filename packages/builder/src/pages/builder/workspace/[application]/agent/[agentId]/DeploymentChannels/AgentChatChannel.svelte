@@ -62,9 +62,9 @@
   }) =>
     Boolean(
       workspaceId &&
-      workspaceId !== attemptedWorkspaceId &&
-      !hasCurrentChatApp &&
-      !loadingChatApp
+        workspaceId !== attemptedWorkspaceId &&
+        !hasCurrentChatApp &&
+        !loadingChatApp
     )
 
   const canToggleAgentChat = ({
