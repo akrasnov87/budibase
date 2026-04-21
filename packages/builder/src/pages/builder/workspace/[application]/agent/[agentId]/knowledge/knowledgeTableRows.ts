@@ -165,7 +165,7 @@ export const toSharePointConnectionRows = ({
           : `${completed}/${total} files`
       return {
         kind: "sharepoint_connection" as const,
-        __clickable: true,
+        __clickable: hasSynced,
         _id: siteId,
         sourceId: source.id,
         siteId,

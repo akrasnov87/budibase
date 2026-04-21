@@ -6,7 +6,6 @@ import {
   ConnectAgentSharePointSiteRequest,
   ConnectAgentSharePointSiteResponse,
   DisconnectAgentSharePointSiteResponse,
-  KnowledgeBaseFileStatus,
   SharePointKnowledgeSourceSnapshot,
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
@@ -15,6 +14,7 @@ import {
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
   UserCtx,
+  KnowledgeBaseFileStatus,
 } from "@budibase/types"
 import sdk from "../../../sdk"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
@@ -56,28 +56,23 @@ export async function fetchAgentKnowledge(
     await sdk.ai.rag.hasSharePointWorkspaceConnection()
   const runsBySiteId = new Map(syncState.runs.map(run => [run.sourceId, run]))
   const sharePointSources = getSharePointSources(agent)
-    .filter(source => !!source.config.site?.id)
+    .filter(source => source.config.site?.id)
     .map<SharePointKnowledgeSourceSnapshot>(source => {
       const site = source.config.site
       const siteId = site!.id
       const run = runsBySiteId.get(siteId)
       const filesForSource = files.filter(
-        file => file.knowledgeBaseId === source.id
+        file => file.source?.knowledgeSourceId === source.id
       )
 
-      let totalCount = 0
-      let syncedCount = 0
-      let failedCount = 0
-      let processingCount = 0
-
-      totalCount = filesForSource.length
-      syncedCount = filesForSource.filter(
+      const totalCount = filesForSource.length
+      const syncedCount = filesForSource.filter(
         file => file.status === KnowledgeBaseFileStatus.READY
       ).length
-      failedCount = filesForSource.filter(
+      const failedCount = filesForSource.filter(
         file => file.status === KnowledgeBaseFileStatus.FAILED
       ).length
-      processingCount = filesForSource.filter(
+      const processingCount = filesForSource.filter(
         file => file.status === KnowledgeBaseFileStatus.PROCESSING
       ).length
 
