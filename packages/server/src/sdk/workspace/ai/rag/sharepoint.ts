@@ -10,7 +10,6 @@ import {
   type FetchAgentKnowledgeSourceOptionsResponse,
   isKnowledgeFileSupported,
   type KnowledgeSourceEntry,
-  type KnowledgeSourceOption,
   type SyncAgentKnowledgeSourcesResponse,
 } from "@budibase/types"
 import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
@@ -53,11 +52,6 @@ const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_SOURCE_TYPE = "sharepoint"
 const SHAREPOINT_SITE_ID_REGEX =
   /^[^,/?#\s]+,[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12},[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/
-type SharePointSourceSite = {
-  id: string
-  name?: string
-  webUrl?: string
-}
 
 const trimString = (value: unknown) =>
   typeof value === "string" ? value.trim() : ""
@@ -76,37 +70,9 @@ export const hasSharePointWorkspaceConnection = async (): Promise<boolean> => {
   return hasSharePointConnection(getSharePointCurrentWorkspaceConnectionKey())
 }
 
-const normalizeSites = (
-  sites: Array<SharePointSourceSite | KnowledgeSourceOption>
-): SharePointSourceSite[] => {
-  const map = new Map<string, SharePointSourceSite>()
-  for (const site of sites) {
-    const id = trimString(site.id)
-    if (!id) {
-      continue
-    }
-    map.set(id, {
-      id,
-      name: trimString(site.name) || undefined,
-      webUrl: trimString(site.webUrl) || undefined,
-    })
-  }
-  return Array.from(map.values())
-}
-
 const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
   return (agent.knowledgeSources || []).filter(
     source => source.type === AgentKnowledgeSourceType.SHAREPOINT
-  )
-}
-
-const getSharePointSitesFromSources = (
-  agent: Agent
-): SharePointSourceSite[] => {
-  return normalizeSites(
-    getSharePointSources(agent)
-      .map(source => source.config.site)
-      .filter((site): site is SharePointSourceSite => !!site?.id)
   )
 }
 
@@ -482,8 +448,7 @@ export const syncSharePointSourcesForAgent = async (
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
 
-  const existingSites = getSharePointSitesFromSources(agent)
-  const site = existingSites.find(s => s.id === sourceId)
+  const site = agent.knowledgeSources?.find(s => s.id === sourceId)?.config.site
   if (!site) {
     throw new HTTPError(
       "Specified SharePoint site is not connected for this agent",
