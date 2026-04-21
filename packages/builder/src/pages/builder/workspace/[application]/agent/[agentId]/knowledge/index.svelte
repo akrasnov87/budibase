@@ -80,6 +80,14 @@
   let selectedStatusSiteId = $state<string | undefined>()
   let selectedStatusSiteName = $state<string | undefined>()
   let shouldOpenSharePointPickerAfterOauth = $state(false)
+  const SHAREPOINT_BOOTSTRAP_POLLS = 60
+  const SHAREPOINT_BOOTSTRAP_INTERVAL_MS = 1000
+  let sharePointBootstrapPolling = $state<{
+    agentId: string
+    interval: ReturnType<typeof setInterval>
+    inFlight: boolean
+    remaining: number
+  }>()
   let activePendingUploads = $derived(
     activeAgentId ? pendingUploadsByAgent[activeAgentId] || [] : []
   )
@@ -119,6 +127,69 @@
     uploadProgressByAgent = {
       ...uploadProgressByAgent,
       [agentId]: progress,
+    }
+  }
+
+  const stopSharePointBootstrapPolling = () => {
+    if (!sharePointBootstrapPolling) {
+      return
+    }
+    clearInterval(sharePointBootstrapPolling.interval)
+    sharePointBootstrapPolling = undefined
+  }
+
+  const startSharePointBootstrapPolling = (
+    agentId: string,
+    pollCount = SHAREPOINT_BOOTSTRAP_POLLS
+  ) => {
+    if (!agentId || pollCount <= 0) {
+      return
+    }
+    if (sharePointBootstrapPolling?.agentId === agentId) {
+      sharePointBootstrapPolling.remaining = Math.max(
+        sharePointBootstrapPolling.remaining,
+        pollCount
+      )
+      return
+    }
+
+    stopSharePointBootstrapPolling()
+    const interval = setInterval(async () => {
+      if (!sharePointBootstrapPolling) {
+        return
+      }
+      if (sharePointBootstrapPolling.inFlight) {
+        return
+      }
+      if (sharePointBootstrapPolling.remaining <= 0) {
+        stopSharePointBootstrapPolling()
+        return
+      }
+
+      sharePointBootstrapPolling.inFlight = true
+      try {
+        await Promise.all([
+          loadSharePointSites(agentId),
+          fetchFiles(agentId),
+          agentsStore.fetchAgents(),
+        ])
+      } finally {
+        if (!sharePointBootstrapPolling) {
+          return
+        }
+        sharePointBootstrapPolling.remaining -= 1
+        sharePointBootstrapPolling.inFlight = false
+        if (sharePointBootstrapPolling.remaining <= 0) {
+          stopSharePointBootstrapPolling()
+        }
+      }
+    }, SHAREPOINT_BOOTSTRAP_INTERVAL_MS)
+
+    sharePointBootstrapPolling = {
+      agentId,
+      interval,
+      inFlight: false,
+      remaining: pollCount,
     }
   }
 
@@ -339,6 +410,7 @@
       await agentsStore.connectAgentSharePointSite(agentId, {
         siteId: selectedSharePointSiteId,
       })
+      startSharePointBootstrapPolling(agentId)
       const nextSiteIds = Array.from(
         new Set([...effectiveSelectedSiteIds, selectedSharePointSiteId])
       )
@@ -444,6 +516,7 @@
   }
 
   onDestroy(() => {
+    stopSharePointBootstrapPolling()
     agentsStore.stopAgentFilePolling()
   })
 </script>
