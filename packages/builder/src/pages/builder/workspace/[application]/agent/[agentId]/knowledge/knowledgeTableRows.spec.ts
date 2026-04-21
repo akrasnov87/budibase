@@ -51,17 +51,14 @@ describe("knowledgeTableRows", () => {
       makeFile({
         _id: "f1",
         status: KnowledgeBaseFileStatus.READY,
-        externalSourceId: "sharepoint:site-1:drive-1:item-1",
       }),
       makeFile({
         _id: "f2",
         status: KnowledgeBaseFileStatus.PROCESSING,
-        externalSourceId: "sharepoint:site-1:drive-1:item-2",
       }),
       makeFile({
         _id: "f3",
         status: KnowledgeBaseFileStatus.FAILED,
-        externalSourceId: "sharepoint:site-2:drive-1:item-3",
       }),
     ]
 
