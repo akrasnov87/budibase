@@ -51,14 +51,35 @@ describe("knowledgeTableRows", () => {
       makeFile({
         _id: "f1",
         status: KnowledgeBaseFileStatus.READY,
+        source: {
+          type: "sharepoint",
+          knowledgeSourceId: "source-1",
+          siteId: "site-1",
+          driveId: "drive-1",
+          itemId: "item-1",
+        },
       }),
       makeFile({
         _id: "f2",
         status: KnowledgeBaseFileStatus.PROCESSING,
+        source: {
+          type: "sharepoint",
+          knowledgeSourceId: "source-1",
+          siteId: "site-1",
+          driveId: "drive-1",
+          itemId: "item-2",
+        },
       }),
       makeFile({
         _id: "f3",
         status: KnowledgeBaseFileStatus.FAILED,
+        source: {
+          type: "sharepoint",
+          knowledgeSourceId: "source-2",
+          siteId: "site-2",
+          driveId: "drive-1",
+          itemId: "item-3",
+        },
       }),
     ]
 
@@ -106,7 +127,7 @@ describe("knowledgeTableRows", () => {
 
     expect(rows).toHaveLength(1)
     expect(rows[0].hasSynced).toBe(true)
-    expect(rows[0].displayStatus).toBe("Processing")
+    expect(rows[0].displayStatus).toBe("0/1 files")
   })
 
   it("shows completed counts once syncing is done", () => {
