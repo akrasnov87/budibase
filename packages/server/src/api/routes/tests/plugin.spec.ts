@@ -275,7 +275,9 @@ describe("/plugins", () => {
           .expect("Content-Type", /json/)
           .expect(400)
 
-        expect(res.body.message).toContain("Failed to import plugin: JS invalid:")
+        expect(res.body.message).toContain(
+          "Failed to import plugin: JS invalid:"
+        )
         expect(events.plugin.imported).toHaveBeenCalledTimes(0)
       } finally {
         fs.rmSync(tempDir, { recursive: true, force: true })
