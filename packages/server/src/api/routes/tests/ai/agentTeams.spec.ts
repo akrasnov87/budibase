@@ -332,6 +332,33 @@ describe("agent teams integration provisioning", () => {
       expect(conversations[0]?.messages).toHaveLength(2)
     })
 
+    it("keeps the user linked for personal chat payloads that only include from.id", async () => {
+      const { agent, chatAppId, linkExternalUser } =
+        await setupProvisionedTeamsAgent()
+      const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
+
+      const teamsUserId = "29:1ljv6N86roXr5pjPrCJVIz6xHh5QxjI-personal-only"
+      await linkExternalUser(teamsUserId)
+
+      const response = await postTeamsMessage({
+        path,
+        body: {
+          id: "activity-ask-from-id-only-1",
+          type: "message",
+          text: "still linked by id?",
+          from: {
+            id: teamsUserId,
+            name: "Teams User",
+          },
+          conversation: { id: "conversation-1", conversationType: "personal" },
+          channelData: { tenant: { id: "tenant-1" } },
+        },
+      })
+
+      expect(response.body.messages).toContain("Mock assistant response")
+      expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
+    })
+
     it("keeps the user linked when a later Teams payload includes aadObjectId for the same from.id", async () => {
       const { agent, chatAppId, linkExternalUser } =
         await setupProvisionedTeamsAgent()
