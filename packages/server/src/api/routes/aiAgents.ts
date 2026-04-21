@@ -69,7 +69,6 @@ aiRagBuilderAdminRoutes
     "/api/agent/knowledge-sources/sharepoint/connect",
     ai.startSharePointAuth
   )
-  .get("/api/agent/:agentId/files", ai.fetchAgentFiles)
   .get("/api/agent/:agentId/knowledge", ai.fetchAgentKnowledge)
   .post("/api/agent/:agentId/files", ai.uploadAgentFile)
   .delete("/api/agent/:agentId/files/:fileId", ai.deleteAgentFile)

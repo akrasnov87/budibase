@@ -11,7 +11,6 @@ import {
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
-  FetchAgentFilesResponse,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
@@ -43,15 +42,6 @@ const unlinkSafe = async (path?: string) => {
 
 const sanitizeSharePointSourceId = (siteId: string) =>
   `sharepoint_site_${siteId.replace(/[^a-zA-Z0-9_-]/g, "_")}`
-
-export async function fetchAgentFiles(
-  ctx: UserCtx<void, FetchAgentFilesResponse, { agentId: string }>
-) {
-  const { agentId } = ctx.params
-  const files = await sdk.ai.rag.listFilesForAgent(agentId)
-  ctx.body = { files }
-  ctx.status = 200
-}
 
 export async function fetchAgentKnowledge(
   ctx: UserCtx<void, FetchAgentKnowledgeResponse, { agentId: string }>

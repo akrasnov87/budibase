@@ -6,7 +6,7 @@ import {
   DisconnectAgentSharePointSiteResponse,
   CreateAgentRequest,
   CreateAgentResponse,
-  FetchAgentFilesResponse,
+  FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
@@ -136,9 +136,9 @@ export class AgentAPI extends TestAPI {
   fetchFiles = async (
     agentId: string,
     expectations?: Expectations
-  ): Promise<FetchAgentFilesResponse> => {
-    return await this._get<FetchAgentFilesResponse>(
-      `/api/agent/${agentId}/files`,
+  ): Promise<FetchAgentKnowledgeResponse> => {
+    return await this._get<FetchAgentKnowledgeResponse>(
+      `/api/agent/${agentId}/knowledge`,
       {
         expectations,
       }

@@ -25,10 +25,6 @@ export interface FetchAgentsResponse {
   agents: Agent[]
 }
 
-export interface FetchAgentFilesResponse {
-  files: KnowledgeBaseFile[]
-}
-
 export interface AgentFileUploadResponse {
   file: KnowledgeBaseFile
 }
@@ -57,7 +53,8 @@ export interface SharePointKnowledgeSourceSnapshot {
   totalCount: number
 }
 
-export interface FetchAgentKnowledgeResponse extends FetchAgentFilesResponse {
+export interface FetchAgentKnowledgeResponse {
+  files: KnowledgeBaseFile[]
   hasSharePointConnection: boolean
   sharePointSources: SharePointKnowledgeSourceSnapshot[]
 }
