@@ -250,7 +250,6 @@
     flex-direction: column;
     gap: 2px;
     min-height: 46px;
-
     user-select: none;
   }
   .text :global(p:first-child) {
