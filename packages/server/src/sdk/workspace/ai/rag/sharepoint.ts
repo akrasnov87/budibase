@@ -51,6 +51,16 @@ interface SharePointDriveItemsResponse {
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_SOURCE_TYPE = "sharepoint"
 
+export const getSharePointFileDedupKey = ({
+  siteId,
+  driveId,
+  itemId,
+}: {
+  siteId: string
+  driveId: string
+  itemId: string
+}) => `${siteId}:${driveId}:${itemId}`
+
 export const getSharePointWorkspaceConnectionKey = (workspaceId: string) =>
   sharePointConnectionCacheKey("connection", db.getProdWorkspaceID(workspaceId))
 
@@ -445,7 +455,11 @@ export const syncSharePointSourcesForAgent = async (
     if (!fileId || file.source?.type !== "sharepoint") {
       continue
     }
-    const externalId = file.source.itemId
+    const externalId = getSharePointFileDedupKey({
+      siteId: file.source.siteId,
+      driveId: file.source.driveId,
+      itemId: file.source.itemId,
+    })
     existingSharePointFilesByExternalId.set(externalId, {
       fileId,
       siteId: file.source.siteId,
@@ -480,7 +494,11 @@ export const syncSharePointSourcesForAgent = async (
 
           continue
         }
-        const externalSourceId = file.itemId
+        const externalSourceId = getSharePointFileDedupKey({
+          siteId,
+          driveId,
+          itemId: file.itemId,
+        })
         if (existingExternalIds.has(externalSourceId)) {
           skipped++
 
