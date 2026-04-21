@@ -3,8 +3,10 @@ import { BudiStore } from "../BudiStore"
 import {
   Agent,
   AgentFileUploadResponse,
+  ConnectAgentSharePointSiteRequest,
+  ConnectAgentSharePointSiteResponse,
   CreateAgentRequest,
-  DisconnectAgentKnowledgeSourcesResponse,
+  DisconnectAgentSharePointSiteResponse,
   FetchAgentFilesResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   KnowledgeSourceOption,
@@ -14,8 +16,6 @@ import {
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
   KnowledgeBaseFileStatus,
-  SetAgentKnowledgeSourcesRequest,
-  SetAgentKnowledgeSourcesResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
   SyncAgentKnowledgeSourcesRequest,
@@ -278,23 +278,28 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     return response
   }
 
-  setAgentKnowledgeSources = async (
+  connectAgentSharePointSite = async (
     agentId: string,
-    body: SetAgentKnowledgeSourcesRequest
-  ): Promise<SetAgentKnowledgeSourcesResponse> => {
-    const response = await API.setAgentKnowledgeSources(agentId, body)
+    body: ConnectAgentSharePointSiteRequest
+  ): Promise<ConnectAgentSharePointSiteResponse> => {
+    const response = await API.connectAgentSharePointSite(agentId, body)
     this.setAgentKnowledgeSourceOptions(
       agentId,
       response.options,
       response.runs
     )
+    await this.fetchAgents()
     return response
   }
 
-  disconnectAgentKnowledgeSources = async (
-    agentId: string
-  ): Promise<DisconnectAgentKnowledgeSourcesResponse> =>
-    await API.disconnectAgentKnowledgeSources(agentId)
+  disconnectAgentSharePointSite = async (
+    agentId: string,
+    siteId: string
+  ): Promise<DisconnectAgentSharePointSiteResponse> => {
+    const response = await API.disconnectAgentSharePointSite(agentId, siteId)
+    await this.fetchAgents()
+    return response
+  }
 
   syncAgentKnowledgeSources = async (
     agentId: string,

@@ -1,8 +1,10 @@
 import {
   AgentFileUploadResponse,
+  ConnectAgentSharePointSiteRequest,
+  ConnectAgentSharePointSiteResponse,
   CreateAgentRequest,
   CreateAgentResponse,
-  DisconnectAgentKnowledgeSourcesResponse,
+  DisconnectAgentSharePointSiteResponse,
   DuplicateAgentResponse,
   FetchAgentFilesResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
@@ -11,8 +13,6 @@ import {
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
-  SetAgentKnowledgeSourcesRequest,
-  SetAgentKnowledgeSourcesResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
   SyncAgentKnowledgeSourcesRequest,
@@ -20,6 +20,8 @@ import {
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
   ToolMetadata,
+  UpdateAgentSharePointSiteRequest,
+  UpdateAgentSharePointSiteResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
 } from "@budibase/types"
@@ -69,13 +71,19 @@ export interface AgentEndpoints {
   fetchAgentKnowledgeSourceOptions: (
     agentId: string
   ) => Promise<FetchAgentKnowledgeSourceOptionsResponse>
-  setAgentKnowledgeSources: (
+  connectAgentSharePointSite: (
     agentId: string,
-    body: SetAgentKnowledgeSourcesRequest
-  ) => Promise<SetAgentKnowledgeSourcesResponse>
-  disconnectAgentKnowledgeSources: (
-    agentId: string
-  ) => Promise<DisconnectAgentKnowledgeSourcesResponse>
+    body: ConnectAgentSharePointSiteRequest
+  ) => Promise<ConnectAgentSharePointSiteResponse>
+  updateAgentSharePointSite: (
+    agentId: string,
+    siteId: string,
+    body: UpdateAgentSharePointSiteRequest
+  ) => Promise<UpdateAgentSharePointSiteResponse>
+  disconnectAgentSharePointSite: (
+    agentId: string,
+    siteId: string
+  ) => Promise<DisconnectAgentSharePointSiteResponse>
   syncAgentKnowledgeSources: (
     agentId: string,
     body?: SyncAgentKnowledgeSourcesRequest
@@ -211,19 +219,29 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     })
   },
 
-  setAgentKnowledgeSources: async (agentId: string, body) => {
-    return await API.put<
-      SetAgentKnowledgeSourcesRequest,
-      SetAgentKnowledgeSourcesResponse
+  connectAgentSharePointSite: async (agentId: string, body) => {
+    return await API.post<
+      ConnectAgentSharePointSiteRequest,
+      ConnectAgentSharePointSiteResponse
     >({
-      url: `/api/agent/${agentId}/knowledge-sources`,
+      url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites`,
       body,
     })
   },
 
-  disconnectAgentKnowledgeSources: async (agentId: string) => {
-    return await API.delete<void, DisconnectAgentKnowledgeSourcesResponse>({
-      url: `/api/agent/${agentId}/knowledge-sources`,
+  updateAgentSharePointSite: async (agentId: string, siteId: string, body) => {
+    return await API.patch<
+      UpdateAgentSharePointSiteRequest,
+      UpdateAgentSharePointSiteResponse
+    >({
+      url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites/${encodeURIComponent(siteId)}`,
+      body,
+    })
+  },
+
+  disconnectAgentSharePointSite: async (agentId: string, siteId: string) => {
+    return await API.delete<void, DisconnectAgentSharePointSiteResponse>({
+      url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites/${encodeURIComponent(siteId)}`,
     })
   },
 

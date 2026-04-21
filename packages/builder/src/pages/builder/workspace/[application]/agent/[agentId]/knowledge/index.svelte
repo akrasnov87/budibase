@@ -125,23 +125,23 @@
   const showSharePointSyncResult = (
     result: SyncAgentKnowledgeSourcesResponse
   ) => {
-    const skipped = result.skipped - result.unsupported
-    const discovered = result.totalDiscovered ?? result.synced + skipped
+    const alreadySynced = result.alreadySynced
+    const discovered = result.totalDiscovered ?? result.synced + alreadySynced
 
     if (result.synced === 0 && result.failed === 0) {
       if (discovered === 0) {
         notifications.info("No files found in selected SharePoint site(s)")
         return
       }
-      if (skipped > 0) {
+      if (alreadySynced > 0) {
         notifications.info(
-          `SharePoint sync complete (0 new files, ${skipped} already synced)`
+          `SharePoint sync complete (0 new files, ${alreadySynced} already synced)`
         )
         return
       }
     }
 
-    const message = `SharePoint sync complete (${result.synced} synced${result.failed > 0 ? `, ${result.failed} failed` : ""}${skipped > 0 ? `, ${skipped} skipped` : ""})`
+    const message = `SharePoint sync complete (${result.synced} synced${result.failed > 0 ? `, ${result.failed} failed` : ""}${alreadySynced > 0 ? `, ${alreadySynced} already synced` : ""})`
 
     if (result.failed > 0 && result.synced === 0) {
       notifications.error(message)
@@ -336,17 +336,16 @@
       return
     }
     try {
+      await agentsStore.connectAgentSharePointSite(agentId, {
+        siteId: selectedSharePointSiteId,
+      })
       const nextSiteIds = Array.from(
         new Set([...effectiveSelectedSiteIds, selectedSharePointSiteId])
       )
-      await agentsStore.setAgentKnowledgeSources(agentId, {
-        sourceIds: nextSiteIds,
-      })
       pendingSiteIds = nextSiteIds.filter(id => !selectedSiteIds.includes(id))
       sharePointSiteModal?.hide()
       await loadSharePointSites(agentId)
       await fetchFiles(agentId)
-      await agentsStore.fetchAgents()
       pendingSiteIds = []
       notifications.success("SharePoint site added")
     } catch (error) {
@@ -405,14 +404,7 @@
           )
         const nextSiteIds = nextSites.map(site => site.id)
         try {
-          if (nextSiteIds.length === 0) {
-            await agentsStore.disconnectAgentKnowledgeSources(agentId)
-          } else {
-            await agentsStore.setAgentKnowledgeSources(agentId, {
-              sourceIds: nextSiteIds,
-            })
-          }
-          await agentsStore.fetchAgents()
+          await agentsStore.disconnectAgentSharePointSite(agentId, siteId)
           pendingSiteIds = []
           await fetchFiles(agentId)
           if (nextSiteIds.length === 0) {
