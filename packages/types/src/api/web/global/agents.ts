@@ -56,7 +56,7 @@ export interface KnowledgeSourceSyncRun {
 }
 
 export interface SyncAgentKnowledgeSourcesRequest {
-  sourceIds?: string[]
+  sourceId: string
 }
 
 export interface SyncAgentKnowledgeSourcesResponse {

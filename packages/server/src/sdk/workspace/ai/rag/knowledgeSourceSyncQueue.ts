@@ -117,7 +117,7 @@ export function init(concurrency = DEFAULT_CONCURRENCY) {
         await context.doInWorkspaceContext(workspaceId, async () => {
           switch (sourceType) {
             case AgentKnowledgeSourceType.SHAREPOINT:
-              await syncSharePointSourcesForAgent(agentId, [sourceId])
+              await syncSharePointSourcesForAgent(agentId, sourceId)
               break
             default:
               throw new Error(
