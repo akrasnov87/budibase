@@ -20,16 +20,11 @@
   }
 
   const quietStore = treeViewContext.quiet
-
   const dispatch = createEventDispatcher<{ toggle: boolean; select: boolean }>()
 
-  let isOpen = open
   $: isQuiet = !!$quietStore
-  $: if (hasChildren) {
-    isOpen = open
-  }
   $: if (!hasChildren) {
-    isOpen = false
+    open = false
   }
 
   const toggleOpen = (event: MouseEvent) => {
@@ -38,8 +33,8 @@
     if (!hasChildren) {
       return
     }
-    isOpen = !isOpen
-    dispatch("toggle", isOpen)
+    open = !open
+    dispatch("toggle", open)
   }
 
   const handleIndicatorKeydown = (event: KeyboardEvent) => {
@@ -48,15 +43,15 @@
       if (!hasChildren) {
         return
       }
-      isOpen = !isOpen
-      dispatch("toggle", isOpen)
+      open = !open
+      dispatch("toggle", open)
     }
   }
 </script>
 
 <li
   class:is-selected={selected && !isQuiet}
-  class:is-open={hasChildren && isOpen}
+  class:is-open={hasChildren && open}
   class="spectrum-TreeView-item"
   class:is-disabled={disabled}
 >
