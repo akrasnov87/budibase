@@ -2,6 +2,10 @@ import {
   type KnowledgeBaseFileStatus,
   type KnowledgeSourceEntry,
 } from "@budibase/types"
+import {
+  EXCLUDE_ALL_PATTERN,
+  matchesConfiguredPatterns,
+} from "@budibase/shared-core"
 import type { SharePointEntryTreeNode } from "./tree/sharePointEntryTree"
 
 export interface TreeEntryInput {
@@ -12,68 +16,10 @@ export interface TreeEntryInput {
 }
 
 export const SITE_ROOT_PATH = "__site_root__"
-export const EXCLUDE_ALL_PATTERN = "!**"
+export { EXCLUDE_ALL_PATTERN, matchesConfiguredPatterns }
 
 const getFilePath = (file: Pick<TreeEntryInput, "sourcePath" | "filename">) =>
   (file.sourcePath || file.filename).trim()
-
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-
-const globToRegExp = (pattern: string): RegExp => {
-  let regex = "^"
-  for (let i = 0; i < pattern.length; i++) {
-    const char = pattern[i]
-    if (char === "*") {
-      if (pattern[i + 1] === "*") {
-        regex += ".*"
-        i += 1
-      } else {
-        regex += "[^/]*"
-      }
-    } else if (char === "?") {
-      regex += "[^/]"
-    } else {
-      regex += escapeRegExp(char)
-    }
-  }
-  regex += "$"
-  return new RegExp(regex)
-}
-
-export const normalizePath = (value: string) =>
-  value
-    .replace(/^\/+/, "")
-    .replace(/\\/g, "/")
-    .replace(/\/{2,}/g, "/")
-    .trim()
-    .toLowerCase()
-
-export const matchesConfiguredPatterns = (path: string, patterns: string[]) => {
-  if (!patterns.length) {
-    return true
-  }
-  const hasPositivePattern = patterns.some(pattern => !pattern.startsWith("!"))
-  const normalizedPath = normalizePath(path)
-  let included = !hasPositivePattern
-
-  for (const pattern of patterns) {
-    const isNegated = pattern.startsWith("!")
-    const body = (isNegated ? pattern.slice(1) : pattern).trim()
-    if (!body) {
-      continue
-    }
-    const normalizedPattern = normalizePath(body)
-    if (!normalizedPattern) {
-      continue
-    }
-    if (globToRegExp(normalizedPattern).test(normalizedPath)) {
-      included = !isNegated
-    }
-  }
-
-  return included
-}
 
 const toSelectionPattern = (
   path: string,
@@ -204,12 +150,12 @@ export const buildEntryTreeFromSourceEntries = (
   const byPath = new Map<string, SharePointEntryTreeNode>()
 
   for (const entry of entries) {
-    const normalizedPath = normalizePath(entry.path)
-    if (!normalizedPath) {
+    const path = entry.path.trim()
+    if (!path) {
       continue
     }
 
-    const parts = normalizedPath.split("/").filter(Boolean)
+    const parts = path.split("/").filter(Boolean)
     let parent = roots
     let currentPath = ""
 

@@ -1,4 +1,5 @@
 import { context, db, docIds, HTTPError, locks } from "@budibase/backend-core"
+import { matchesConfiguredPatterns } from "@budibase/shared-core"
 import {
   type Agent,
   type AgentKnowledgeSourceFilterConfig,
@@ -246,30 +247,6 @@ const normalizeSourceFilters = (
   return { patterns: normalize(filters?.patterns) }
 }
 
-const escapeRegExp = (value: string) =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
-
-const globToRegExp = (pattern: string) => {
-  let regex = "^"
-  for (let i = 0; i < pattern.length; i++) {
-    const char = pattern[i]
-    if (char === "*") {
-      if (pattern[i + 1] === "*") {
-        regex += ".*"
-        i += 1
-      } else {
-        regex += "[^/]*"
-      }
-    } else if (char === "?") {
-      regex += "[^/]"
-    } else {
-      regex += escapeRegExp(char)
-    }
-  }
-  regex += "$"
-  return new RegExp(regex)
-}
-
 const isSharePointPathIncludedByFilters = (
   path: string,
   filters?: AgentKnowledgeSourceFilterConfig
@@ -279,30 +256,7 @@ const isSharePointPathIncludedByFilters = (
   if (!patterns?.length) {
     return true
   }
-
-  const normalizedPath = path.trim().toLowerCase()
-  const hasPositivePatterns = patterns.some(pattern => !pattern.startsWith("!"))
-  let included = !hasPositivePatterns
-
-  for (const rawPattern of patterns) {
-    const trimmedPattern = rawPattern.trim()
-    if (!trimmedPattern) {
-      continue
-    }
-    const isNegated = trimmedPattern.startsWith("!")
-    const bodyPattern = isNegated
-      ? trimmedPattern.slice(1).trim()
-      : trimmedPattern
-    if (!bodyPattern) {
-      continue
-    }
-    const normalizedPattern = bodyPattern.toLowerCase()
-    if (globToRegExp(normalizedPattern).test(normalizedPath)) {
-      included = !isNegated
-    }
-  }
-
-  return included
+  return matchesConfiguredPatterns(path, patterns)
 }
 
 const collectFilesRecursive = async (
