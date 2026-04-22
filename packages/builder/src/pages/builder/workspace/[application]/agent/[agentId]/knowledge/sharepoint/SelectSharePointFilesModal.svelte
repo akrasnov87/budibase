@@ -5,6 +5,7 @@
     ModalContent,
     RadioGroup,
     TreeView,
+    keepOpen,
     notifications,
   } from "@budibase/bbui"
   import {
@@ -114,11 +115,12 @@
 
   const handleConfirm = async () => {
     if (!agentId || !siteId) {
-      return
+      return keepOpen
     }
     if (selectedEntryPaths.length === 0) {
       notifications.error("Please select at least one folder/file to sync")
-      return
+
+      return keepOpen
     }
 
     const filters = buildPatternsFromSelection(
