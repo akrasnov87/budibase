@@ -143,11 +143,7 @@
     const discovered = result.totalDiscovered ?? result.synced + alreadySynced
 
     if (result.synced === 0 && result.failed === 0) {
-      if (discovered === 0) {
-        notifications.info("No files found in selected SharePoint site(s)")
-        return
-      }
-      if (alreadySynced > 0 || deleted > 0) {
+      if (deleted > 0 || alreadySynced > 0) {
         const details = [
           alreadySynced > 0 ? `${alreadySynced} already synced` : "",
           deleted > 0 ? `${deleted} removed by filters` : "",
@@ -157,6 +153,10 @@
         notifications.info(
           `SharePoint sync complete (0 new files${details ? `, ${details}` : ""})`
         )
+        return
+      }
+      if (discovered === 0) {
+        notifications.info("No files found in selected SharePoint site(s)")
         return
       }
     }

@@ -144,6 +144,7 @@
     } catch (error) {
       console.error(error)
       notifications.error("Failed to update SharePoint files")
+      return keepOpen
     }
   }
 
