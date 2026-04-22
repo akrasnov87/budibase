@@ -1,6 +1,7 @@
 import { context, db, docIds, HTTPError } from "@budibase/backend-core"
 import {
   type Agent,
+  type AgentKnowledgeSourceFilterConfig,
   type AgentKnowledgeSourceSyncState,
   AgentKnowledgeSourceSyncRunStatus,
   AgentKnowledgeSourceType,
@@ -226,6 +227,86 @@ const isSupportedSharePointFile = (file: SharePointFileRef) => {
   })
 }
 
+const normalizeSourceFilters = (
+  filters?: AgentKnowledgeSourceFilterConfig
+): { patterns?: string[] } => {
+  const normalize = (patterns?: string[]) => {
+    if (!patterns) {
+      return undefined
+    }
+    const normalized = Array.from(
+      new Set(patterns.map(pattern => pattern.trim()).filter(Boolean))
+    )
+    return normalized.length > 0 ? normalized : undefined
+  }
+
+  return { patterns: normalize(filters?.patterns) }
+}
+
+const escapeRegExp = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const globToRegExp = (pattern: string) => {
+  let regex = "^"
+  for (let i = 0; i < pattern.length; i++) {
+    const char = pattern[i]
+    if (char === "*") {
+      if (pattern[i + 1] === "*") {
+        regex += ".*"
+        i += 1
+      } else {
+        regex += "[^/]*"
+      }
+    } else if (char === "?") {
+      regex += "[^/]"
+    } else {
+      regex += escapeRegExp(char)
+    }
+  }
+  regex += "$"
+  return new RegExp(regex)
+}
+
+const isSharePointPathIncludedByFilters = (
+  path: string,
+  filters?: AgentKnowledgeSourceFilterConfig
+) => {
+  const { patterns } = normalizeSourceFilters(filters)
+
+  if (!patterns?.length) {
+    return true
+  }
+
+  const normalizedPath = path.trim().toLowerCase()
+  const hasPositivePatterns = patterns.some(pattern => !pattern.startsWith("!"))
+  let included = !hasPositivePatterns
+
+  for (const rawPattern of patterns) {
+    const trimmedPattern = rawPattern.trim()
+    if (!trimmedPattern) {
+      continue
+    }
+    const isNegated = trimmedPattern.startsWith("!")
+    const bodyPattern = isNegated ? trimmedPattern.slice(1).trim() : trimmedPattern
+    if (!bodyPattern) {
+      continue
+    }
+    const normalizedPattern = bodyPattern.toLowerCase()
+    if (globToRegExp(normalizedPattern).test(normalizedPath)) {
+      included = !isNegated
+    }
+  }
+
+  return included
+}
+
+const shouldSyncSharePointFileByFilters = (
+  file: SharePointFileRef,
+  filters?: AgentKnowledgeSourceFilterConfig
+) => {
+  return isSharePointPathIncludedByFilters(file.path, filters)
+}
+
 const collectFilesRecursive = async (
   bearerToken: string,
   driveId: string,
@@ -427,6 +508,8 @@ export const syncSharePointSourcesForAgent = async (
   }
 
   const siteId = site.id
+  const sourceFilters = agent.knowledgeSources?.find(s => s.id === sourceId)
+    ?.config.filters
 
   console.log("Starting SharePoint sync for agent", {
     agentId,
@@ -487,6 +570,10 @@ export const syncSharePointSourcesForAgent = async (
 
       totalDiscovered += files.length
       for (const file of files) {
+        if (!shouldSyncSharePointFileByFilters(file, sourceFilters)) {
+          skipped++
+          continue
+        }
         if (!isSupportedSharePointFile(file)) {
           skipped++
 

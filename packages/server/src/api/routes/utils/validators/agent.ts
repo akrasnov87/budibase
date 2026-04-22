@@ -153,3 +153,15 @@ export function connectAgentSharePointSiteValidator() {
     }).required()
   )
 }
+
+export function updateAgentSharePointSiteValidator() {
+  return auth.joiValidator.body(
+    Joi.object({
+      filters: Joi.object({
+        patterns: Joi.array()
+          .items(Joi.string().trim().disallow(""))
+          .optional(),
+      }).optional(),
+    }).required()
+  )
+}

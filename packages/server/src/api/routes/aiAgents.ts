@@ -16,6 +16,7 @@ import {
   toggleAgentDiscordDeploymentValidator,
   toggleAgentMSTeamsDeploymentValidator,
   toggleAgentSlackDeploymentValidator,
+  updateAgentSharePointSiteValidator,
   updateAgentValidator,
 } from "./utils/validators/agent"
 
@@ -84,6 +85,11 @@ aiRagBuilderAdminRoutes
     "/api/agent/:agentId/knowledge-sources/sharepoint/sites",
     connectAgentSharePointSiteValidator(),
     ai.connectAgentSharePointSite
+  )
+  .patch(
+    "/api/agent/:agentId/knowledge-sources/sharepoint/sites/:siteId",
+    updateAgentSharePointSiteValidator(),
+    ai.updateAgentSharePointSite
   )
   .delete(
     "/api/agent/:agentId/knowledge-sources/sharepoint/sites/:siteId",
