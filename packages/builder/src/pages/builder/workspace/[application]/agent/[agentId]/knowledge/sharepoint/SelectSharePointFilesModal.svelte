@@ -16,7 +16,6 @@
   import {
     buildEntryTreeFromSourceEntries,
     buildPatternsFromSelection,
-    EXCLUDE_ALL_PATTERN,
     flattenNodesByPath,
     isExcludeNewByDefaultPatterns,
     rehydrateFromPatterns,
@@ -33,7 +32,7 @@
   let selectedEntryPaths = $state<string[]>([])
   let loadingEntries = $state(false)
   let allEntries = $state<KnowledgeSourceEntry[]>([])
-  // let includeNewFilesByDefault = $state(true)
+  let includeNewFilesByDefault = $state(true)
   let modal = $state<Modal>()
 
   const sharePointSource = $derived.by(() => {
@@ -56,10 +55,6 @@
   )
   const initialPatterns = $derived(
     sharePointSource?.config.filters?.patterns || []
-  )
-
-  let includeNewFilesByDefault = $derived(
-    sharePointSource?.config.filters?.patterns?.[0] === EXCLUDE_ALL_PATTERN
   )
 
   const entryTree = $derived(buildEntryTreeFromSourceEntries(allEntries))

@@ -12,7 +12,7 @@ export interface TreeEntryInput {
 }
 
 export const SITE_ROOT_PATH = "__site_root__"
-export const EXCLUDE_ALL_PATTERN = "!*"
+export const EXCLUDE_ALL_PATTERN = "!**"
 
 const getFilePath = (file: Pick<TreeEntryInput, "sourcePath" | "filename">) =>
   (file.sourcePath || file.filename).trim()
@@ -57,9 +57,9 @@ export const matchesConfiguredPatterns = (path: string, patterns: string[]) => {
   const normalizedPath = normalizePath(path)
   let included = !hasPositivePattern
 
-  for (const rawPattern of patterns) {
-    const isNegated = rawPattern.startsWith("!")
-    const body = (isNegated ? rawPattern.slice(1) : rawPattern).trim()
+  for (const pattern of patterns) {
+    const isNegated = pattern.startsWith("!")
+    const body = (isNegated ? pattern.slice(1) : pattern).trim()
     if (!body) {
       continue
     }
