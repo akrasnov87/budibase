@@ -80,26 +80,25 @@ export async function discordWebhook(
         applicationId,
         idleTimeoutMinutes,
         channelEnabled,
-      } =
-        await context.doInWorkspaceContext(workspaceId, async () => {
-          const agent = await sdk.ai.agents.getOrThrow(agentId)
-          const integration =
-            sdk.ai.deployments.discord.validateDiscordIntegration(agent)
-          const pk = agent.discordIntegration?.publicKey?.trim()
-          if (!pk) {
-            throw new HTTPError(
-              "Discord public key is not configured for this agent",
-              400
-            )
-          }
-          return {
-            ...integration,
-            publicKey: pk,
-            idleTimeoutMinutes: agent.discordIntegration?.idleTimeoutMinutes,
-            channelEnabled:
-              !!agent.discordIntegration?.interactionsEndpointUrl?.trim(),
-          }
-        })
+      } = await context.doInWorkspaceContext(workspaceId, async () => {
+        const agent = await sdk.ai.agents.getOrThrow(agentId)
+        const integration =
+          sdk.ai.deployments.discord.validateDiscordIntegration(agent)
+        const pk = agent.discordIntegration?.publicKey?.trim()
+        if (!pk) {
+          throw new HTTPError(
+            "Discord public key is not configured for this agent",
+            400
+          )
+        }
+        return {
+          ...integration,
+          publicKey: pk,
+          idleTimeoutMinutes: agent.discordIntegration?.idleTimeoutMinutes,
+          channelEnabled:
+            !!agent.discordIntegration?.interactionsEndpointUrl?.trim(),
+        }
+      })
 
       const chat = new Chat({
         userName: "Budibase",

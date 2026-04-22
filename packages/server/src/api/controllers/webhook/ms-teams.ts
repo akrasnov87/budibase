@@ -268,8 +268,8 @@ export async function MSTeamsWebhook(
             integration:
               sdk.ai.deployments.MSTeams.validateMSTeamsIntegration(agent),
             idleTimeoutMinutes: agent.MSTeamsIntegration?.idleTimeoutMinutes,
-            channelEnabled: !!agent.MSTeamsIntegration?.messagingEndpointUrl
-              ?.trim(),
+            channelEnabled:
+              !!agent.MSTeamsIntegration?.messagingEndpointUrl?.trim(),
           }
         })
 

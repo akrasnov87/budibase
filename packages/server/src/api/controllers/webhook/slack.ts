@@ -217,8 +217,8 @@ export async function slackWebhook(
             integration:
               sdk.ai.deployments.slack.validateSlackIntegration(agent),
             idleTimeoutMinutes: agent.slackIntegration?.idleTimeoutMinutes,
-            channelEnabled: !!agent.slackIntegration?.messagingEndpointUrl
-              ?.trim(),
+            channelEnabled:
+              !!agent.slackIntegration?.messagingEndpointUrl?.trim(),
           }
         })
 
