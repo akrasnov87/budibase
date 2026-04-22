@@ -16,6 +16,7 @@
   import {
     buildEntryTreeFromSourceEntries,
     buildPatternsFromSelection,
+    EXCLUDE_ALL_PATTERN,
     flattenNodesByPath,
     isExcludeNewByDefaultPatterns,
     rehydrateFromPatterns,
@@ -32,7 +33,7 @@
   let selectedEntryPaths = $state<string[]>([])
   let loadingEntries = $state(false)
   let allEntries = $state<KnowledgeSourceEntry[]>([])
-  let includeNewFilesByDefault = $state(true)
+  // let includeNewFilesByDefault = $state(true)
   let modal = $state<Modal>()
 
   const sharePointSource = $derived.by(() => {
@@ -57,6 +58,10 @@
     sharePointSource?.config.filters?.patterns || []
   )
 
+  let includeNewFilesByDefault = $derived(
+    sharePointSource?.config.filters?.patterns?.[0] === EXCLUDE_ALL_PATTERN
+  )
+
   const entryTree = $derived(buildEntryTreeFromSourceEntries(allEntries))
   const selectionTree = $derived(wrapSelectionTreeWithSiteRoot(entryTree))
   const selectionNodeByPath = $derived(flattenNodesByPath(selectionTree))
@@ -67,11 +72,9 @@
       .sort((a, b) => a.localeCompare(b))
   )
 
-  const selectedCountLabel = $derived(`${selectedEntryPaths.length} selected`)
-
-  $effect(() => {
-    console.error(selectedEntryPaths)
-  })
+  const selectedCountLabel = $derived(
+    `${selectedEntryPaths.length} files selected`
+  )
 
   const loadAllEntries = async () => {
     if (!agentId || !siteId) {
@@ -134,6 +137,7 @@
       await agentsStore.applyAgentSharePointSiteFilters(agentId, siteId, {
         filters,
       })
+
       notifications.success("SharePoint folders/files updated")
       hide()
     } catch (error) {
@@ -174,7 +178,10 @@
           { label: "Include new files by default", value: true },
           { label: "Exclude new files by default", value: false },
         ]}
-        bind:value={includeNewFilesByDefault}
+        value={includeNewFilesByDefault}
+        on:change={e => {
+          includeNewFilesByDefault = e.detail === "true"
+        }}
         getOptionLabel={o => o.label}
         getOptionValue={o => o.value}
         getOptionSubtitle={o => o.subtitle}

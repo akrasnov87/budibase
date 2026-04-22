@@ -231,6 +231,7 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
   ): Promise<UpdateAgentSharePointSiteResponse> => {
     const response = await this.updateAgentSharePointSite(agentId, siteId, body)
     await this.fetchAgentKnowledge(agentId)
+    await this.fetchAgents()
     return response
   }
 
