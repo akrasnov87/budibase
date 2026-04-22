@@ -74,7 +74,13 @@ export async function discordWebhook(
     ctx,
     providerName: "Discord",
     createWebhookHandler: async ({ workspaceId, chatAppId, agentId }) => {
-      const { publicKey, botToken, applicationId, idleTimeoutMinutes } =
+      const {
+        publicKey,
+        botToken,
+        applicationId,
+        idleTimeoutMinutes,
+        channelEnabled,
+      } =
         await context.doInWorkspaceContext(workspaceId, async () => {
           const agent = await sdk.ai.agents.getOrThrow(agentId)
           const integration =
@@ -90,6 +96,8 @@ export async function discordWebhook(
             ...integration,
             publicKey: pk,
             idleTimeoutMinutes: agent.discordIntegration?.idleTimeoutMinutes,
+            channelEnabled:
+              !!agent.discordIntegration?.interactionsEndpointUrl?.trim(),
           }
         })
 
@@ -174,6 +182,7 @@ export async function discordWebhook(
               chatAppId,
               agentId,
               provider: AgentChannelProvider.DISCORD,
+              channelEnabled,
               command,
               content: event.text || "",
               user: { externalUserId: userId || "", displayName },
