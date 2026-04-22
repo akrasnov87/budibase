@@ -2,6 +2,7 @@
   import { Body, Modal, ModalContent, TreeView } from "@budibase/bbui"
   import {
     AgentKnowledgeSourceType,
+    KnowledgeBaseFileSourceType,
     type KnowledgeBaseFile,
   } from "@budibase/types"
   import { agentsStore, selectedAgent } from "@/stores/portal"
@@ -41,7 +42,7 @@
     const files = $agentsStore.knowledgeByAgent?.[agentId]?.files || []
     return files.filter(
       file =>
-        file.source?.type === "sharepoint" &&
+        file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT &&
         file.source.knowledgeSourceId === sharePointSource.id
     )
   })
@@ -51,7 +52,9 @@
       sharePointFiles.map(file => ({
         filename: file.filename,
         sourcePath:
-          file.source?.type === "sharepoint" ? file.source.path : undefined,
+          file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT
+            ? file.source.path
+            : undefined,
         status: file.status,
         errorMessage: file.errorMessage,
       }))
