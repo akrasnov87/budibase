@@ -555,7 +555,9 @@ export const syncSharePointSourcesForAgent = async (
   let synced = 0
   let failed = 0
   let skipped = 0
+  let alreadySynced = 0
   let unsupported = 0
+  let filteredOut = 0
   let totalDiscovered = 0
   let deleted = 0
   let deleteFailed = 0
@@ -601,6 +603,7 @@ export const syncSharePointSourcesForAgent = async (
       for (const file of files) {
         if (!isSharePointPathIncludedByFilters(file.path, sourceFilters)) {
           skipped++
+          filteredOut++
           continue
         }
         if (!isSupportedSharePointFile(file)) {
@@ -617,6 +620,7 @@ export const syncSharePointSourcesForAgent = async (
         })
         if (existingExternalIds.has(externalSourceId)) {
           skipped++
+          alreadySynced++
 
           continue
         }
@@ -684,6 +688,8 @@ export const syncSharePointSourcesForAgent = async (
       deleteFailed,
       failed,
       skipped,
+      alreadySynced,
+      filteredOut,
       unsupported,
       totalDiscovered,
     })
@@ -693,7 +699,7 @@ export const syncSharePointSourcesForAgent = async (
     agentId,
     synced,
     failed,
-    alreadySynced: skipped - unsupported,
+    alreadySynced,
     deleted,
     unsupported,
     totalDiscovered,

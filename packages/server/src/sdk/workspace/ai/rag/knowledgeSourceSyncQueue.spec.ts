@@ -257,11 +257,9 @@ describe("knowledgeSourceSyncQueue", () => {
   })
 
   it("enqueues immediate sync jobs without deterministic job ids", async () => {
-    await enqueueAgentJobs(
-      "agent_1",
-      AgentKnowledgeSourceType.SHAREPOINT,
-      ["sharepoint_site_site_1"]
-    )
+    await enqueueAgentJobs("agent_1", AgentKnowledgeSourceType.SHAREPOINT, [
+      "sharepoint_site_site_1",
+    ])
 
     expect(mockQueueAdd).toHaveBeenCalledWith({
       workspaceId: "app_dev_test",

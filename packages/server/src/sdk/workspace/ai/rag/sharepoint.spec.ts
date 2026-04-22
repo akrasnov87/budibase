@@ -281,9 +281,121 @@ describe("rag/sharepoint sync deduplication", () => {
       agentId: "agent_1",
       synced: 0,
       alreadySynced: 0,
+      deleted: 1,
       failed: 0,
       unsupported: 0,
       totalDiscovered: 0,
+    })
+  })
+
+  it("does not inflate already synced count with filtered-out files", async () => {
+    const sourceId = "sharepoint_source_1"
+    const siteId = "site-1"
+
+    mockAgentsGetOrThrow.mockResolvedValue({
+      _id: "agent_1",
+      knowledgeSources: [
+        {
+          id: sourceId,
+          type: AgentKnowledgeSourceType.SHAREPOINT,
+          config: {
+            site: {
+              id: siteId,
+            },
+            filters: {
+              patterns: ["keep/**"],
+            },
+          },
+        },
+      ],
+    } as Agent)
+
+    mockKnowledgeBaseListFiles.mockResolvedValue([
+      {
+        _id: "existing_keep",
+        knowledgeBaseId: "kb_1",
+        source: {
+          type: KnowledgeBaseFileSourceType.SHAREPOINT,
+          knowledgeSourceId: sourceId,
+          siteId,
+          driveId: "drive-a",
+          itemId: "item-keep",
+          path: "keep/file.txt",
+        },
+        filename: "file.txt",
+        objectStoreKey: "key-keep",
+        ragSourceId: "rag-keep",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "sharepoint",
+      } satisfies KnowledgeBaseFile,
+      {
+        _id: "existing_drop",
+        knowledgeBaseId: "kb_1",
+        source: {
+          type: KnowledgeBaseFileSourceType.SHAREPOINT,
+          knowledgeSourceId: sourceId,
+          siteId,
+          driveId: "drive-a",
+          itemId: "item-drop",
+          path: "drop/file.txt",
+        },
+        filename: "file.txt",
+        objectStoreKey: "key-drop",
+        ragSourceId: "rag-drop",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "sharepoint",
+      } satisfies KnowledgeBaseFile,
+    ])
+
+    const fetchMock = jest
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async input => {
+        const url = input.toString()
+
+        if (url.includes(`/sites/${encodeURIComponent(siteId)}/drives`)) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              value: [{ id: "drive-a" }],
+            }),
+          } as Response
+        }
+
+        if (url.includes("/drives/drive-a/root/children")) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              value: [
+                {
+                  id: "item-keep",
+                  name: "file.txt",
+                  file: { mimeType: "text/plain" },
+                },
+                {
+                  id: "item-drop",
+                  name: "file.txt",
+                  file: { mimeType: "text/plain" },
+                },
+              ],
+            }),
+          } as Response
+        }
+
+        throw new Error(`Unexpected fetch URL: ${url}`)
+      })
+
+    const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
+
+    expect(fetchMock).toHaveBeenCalled()
+    expect(result).toMatchObject({
+      synced: 0,
+      alreadySynced: 0,
+      deleted: 1,
+      failed: 0,
+      unsupported: 0,
+      totalDiscovered: 2,
     })
   })
 })
