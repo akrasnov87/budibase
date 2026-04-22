@@ -2760,13 +2760,13 @@
     to-gfm-code-block "^0.1.1"
     uuid "^9.0.1"
 
-"@budibase/nano@10.1.5":
-  version "10.1.5"
-  resolved "https://registry.yarnpkg.com/@budibase/nano/-/nano-10.1.5.tgz#eeaded7bfc707ecabf8fde604425b865a90c06ec"
-  integrity sha512-q1eKIsYKo+iK17zsJYd3VBl+5ufQMPpHYLec0wVsid8wnJVrTQk7RNpBlBUn/EDgXM7t8XNNHlERqHu+CxJu8Q==
+"@budibase/nano@10.1.6":
+  version "10.1.6"
+  resolved "https://registry.yarnpkg.com/@budibase/nano/-/nano-10.1.6.tgz#c847e5a363f0080790e4bd59d815d724bb2d1d2e"
+  integrity sha512-xT9SFsThxbDg+hy8iHzXXfpTXiAZd2VIcYp8BjcEEl+SY9c3xZjaJbyWungiM0hXWJX71Ec3f7aPMx75q+axOg==
   dependencies:
     "@types/tough-cookie" "^4.0.2"
-    axios "^1.1.3"
+    axios "1.15.2"
     http-cookie-agent "^4.0.2"
     node-abort-controller "^3.0.1"
     qs "^6.11.0"
@@ -9521,7 +9521,7 @@ aws-cloudfront-sign@3.0.2:
   resolved "https://registry.yarnpkg.com/aws-cloudfront-sign/-/aws-cloudfront-sign-3.0.2.tgz#da5273b0301bcd70312c8c76293d5fec6d414f0a"
   integrity sha512-Z/yOGZ3Hd1rhYbY13mtRiLCbCDC1Xf/v+dQUyUwMLnyunD/nfDZd/2LMZ9MKxxOhVb2RzEmEwY0F9f+riPaSWQ==
 
-axios@1.7.7, axios@^0.21.1, axios@^1.1.3, axios@^1.12.0, axios@^1.13.5, axios@^1.4.0, axios@^1.6.2, axios@^1.8.2, axios@^1.8.3:
+axios@1.15.2, axios@1.7.7, axios@^0.21.1, axios@^1.12.0, axios@^1.13.5, axios@^1.4.0, axios@^1.6.2, axios@^1.8.2, axios@^1.8.3:
   version "1.7.7"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.7.tgz#2f554296f9892a72ac8d8e4c5b79c14a91d0a47f"
   integrity sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==
