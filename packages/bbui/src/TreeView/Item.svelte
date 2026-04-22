@@ -6,7 +6,7 @@
   import type { TreeViewContext } from "./context"
 
   export let selected: boolean = false
-  export let checked: boolean | undefined = undefined
+  export let showCheckbox: boolean = false
   export let indeterminate: boolean = false
   export let disabled: boolean = false
   export let open: boolean = false
@@ -27,7 +27,6 @@
 
   $: isSelectable = !!$selectableStore
   $: isQuiet = !!$quietStore
-  $: isChecked = checked ?? selected
   $: if (!hasChildren) {
     open = false
   }
@@ -70,10 +69,10 @@
     class="spectrum-TreeView-itemLink"
     {href}
   >
-    {#if isSelectable}
+    {#if showCheckbox}
       <span class="checkbox-wrapper">
         <Checkbox
-          value={isChecked}
+          value={selected}
           {indeterminate}
           size="S"
           quiet={isQuiet}

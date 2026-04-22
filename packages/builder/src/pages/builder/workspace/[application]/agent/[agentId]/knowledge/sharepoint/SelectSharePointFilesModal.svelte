@@ -1,6 +1,5 @@
 <script lang="ts">
   import {
-    ActionButton,
     Body,
     Modal,
     ModalContent,
@@ -64,11 +63,6 @@
   const selectablePaths = $derived(collectSelectablePaths(selectionTree))
   const selectionNodeByPath = $derived(flattenNodesByPath(selectionTree))
 
-  const selectAllLabel = $derived(
-    selectedEntryPaths.length === selectablePaths.length
-      ? "Clear selection"
-      : "Select all"
-  )
   const selectedCountLabel = $derived(`${selectedEntryPaths.length} selected`)
 
   const loadAllEntries = async () => {
@@ -147,20 +141,6 @@
     }
     selectedEntryPaths = Array.from(nextPaths)
   }
-
-  const toggleAll = () => {
-    const allPathSet = new Set(selectablePaths)
-    const selectedPathCount = selectedEntryPaths.filter(path =>
-      allPathSet.has(path)
-    ).length
-
-    if (selectedPathCount === selectablePaths.length) {
-      selectedEntryPaths = []
-      return
-    }
-
-    selectedEntryPaths = [...selectablePaths]
-  }
 </script>
 
 <Modal bind:this={modal}>
@@ -188,9 +168,6 @@
         getOptionSubtitle={o => o.subtitle}
         direction="horizontal"
       ></RadioGroup>
-      <ActionButton quiet size="S" on:click={toggleAll}>
-        {selectAllLabel}
-      </ActionButton>
       <span class="selected-count">{selectedCountLabel}</span>
     </div>
 
@@ -221,6 +198,7 @@
     display: flex;
     align-items: center;
     gap: var(--spacing-xs);
+    justify-content: space-between;
   }
 
   .entries-header :global(.spectrum-ActionButton:first-of-type) {

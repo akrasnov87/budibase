@@ -98,6 +98,8 @@
   <TreeItem
     title={node.name}
     {selected}
+    {indeterminate}
+    showCheckbox
     {disabled}
     open={hasChildren}
     {hasChildren}
