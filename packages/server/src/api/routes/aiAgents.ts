@@ -96,9 +96,9 @@ aiRagBuilderAdminRoutes
     ai.disconnectAgentSharePointSite
   )
   .post(
-    "/api/agent/:agentId/knowledge-sources/sync",
+    "/api/agent/:agentId/knowledge-sources/:sourceId/sync",
     syncAgentKnowledgeSourcesValidator(),
-    ai.syncAgentKnowledgeSources
+    ai.syncAgentKnowledgeSource
   )
 
 publicRoutes.get(

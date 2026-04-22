@@ -17,7 +17,6 @@ import {
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
   SyncAgentDiscordCommandsResponse,
-  SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
   ToolMetadata,
   UpdateAgentSharePointSiteRequest,
@@ -246,9 +245,9 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
 
   syncAgentKnowledgeSources = async (
     agentId: string,
-    body: SyncAgentKnowledgeSourcesRequest
+    sourceId: string
   ): Promise<SyncAgentKnowledgeSourcesResponse> =>
-    await API.syncAgentKnowledgeSources(agentId, body)
+    await API.syncAgentKnowledgeSources(agentId, sourceId)
 }
 export const agentsStore = new AgentsStore()
 export const selectedAgent = derived(agentsStore, state =>

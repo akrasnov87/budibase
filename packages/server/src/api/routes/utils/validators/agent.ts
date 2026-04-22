@@ -139,11 +139,7 @@ export function generateAgentInstructionsValidator() {
 }
 
 export function syncAgentKnowledgeSourcesValidator() {
-  return auth.joiValidator.body(
-    Joi.object({
-      sourceId: Joi.string().trim().disallow("").required(),
-    }).required()
-  )
+  return auth.joiValidator.body(Joi.object({}).optional())
 }
 
 export function connectAgentSharePointSiteValidator() {

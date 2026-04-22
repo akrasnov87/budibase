@@ -362,9 +362,10 @@
     }
 
     try {
-      const result = await agentsStore.syncAgentKnowledgeSources(agentId, {
-        sourceId,
-      })
+      const result = await agentsStore.syncAgentKnowledgeSources(
+        agentId,
+        sourceId
+      )
       await fetchFiles(agentId)
       showSharePointSyncResult(result)
     } catch (error) {

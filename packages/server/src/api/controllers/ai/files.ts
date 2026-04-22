@@ -202,15 +202,15 @@ export async function fetchAgentKnowledgeSourceAllEntries(
   ctx.status = 200
 }
 
-export async function syncAgentKnowledgeSources(
+export async function syncAgentKnowledgeSource(
   ctx: UserCtx<
     SyncAgentKnowledgeSourcesRequest,
     SyncAgentKnowledgeSourcesResponse,
-    { agentId: string }
+    { agentId: string; sourceId: string }
   >
 ) {
-  const { agentId } = ctx.params
-  const { sourceId } = ctx.request.body
+  const { agentId, sourceId } = ctx.params
+
   console.log("Agent knowledge source sync requested", {
     agentId,
     sourceId,

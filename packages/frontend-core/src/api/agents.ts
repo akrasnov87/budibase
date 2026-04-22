@@ -91,7 +91,7 @@ export interface AgentEndpoints {
   ) => Promise<DisconnectAgentSharePointSiteResponse>
   syncAgentKnowledgeSources: (
     agentId: string,
-    body?: SyncAgentKnowledgeSourcesRequest
+    sourceId: string
   ) => Promise<SyncAgentKnowledgeSourcesResponse>
 }
 
@@ -260,16 +260,12 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     })
   },
 
-  syncAgentKnowledgeSources: async (
-    agentId: string,
-    body?: SyncAgentKnowledgeSourcesRequest
-  ) => {
+  syncAgentKnowledgeSources: async (agentId: string, sourceId: string) => {
     return await API.post<
       SyncAgentKnowledgeSourcesRequest | undefined,
       SyncAgentKnowledgeSourcesResponse
     >({
-      url: `/api/agent/${agentId}/knowledge-sources/sync`,
-      body,
+      url: `/api/agent/${agentId}/knowledge-sources/${sourceId}/sync`,
     })
   },
 })

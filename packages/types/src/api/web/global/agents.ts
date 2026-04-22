@@ -81,9 +81,7 @@ export interface KnowledgeSourceSyncRun {
   status: AgentKnowledgeSourceSyncRunStatus
 }
 
-export interface SyncAgentKnowledgeSourcesRequest {
-  sourceId: string
-}
+export interface SyncAgentKnowledgeSourcesRequest {}
 
 export interface SyncAgentKnowledgeSourcesResponse {
   agentId: string
