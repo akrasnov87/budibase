@@ -1,6 +1,7 @@
 const mockContextGetOrThrowWorkspaceId = jest.fn()
 const mockContextGetWorkspaceDb = jest.fn()
 const mockGenerateSyncStateId = jest.fn()
+const mockDoWithLock = jest.fn()
 
 const mockAgentsGetOrThrow = jest.fn()
 const mockKnowledgeBaseListFiles = jest.fn()
@@ -11,18 +12,22 @@ const mockDeleteFileForAgent = jest.fn()
 
 jest.mock("@budibase/backend-core", () => {
   const actual = jest.requireActual("@budibase/backend-core")
-  return {
-    ...actual,
-    context: {
-      ...actual.context,
-      getOrThrowWorkspaceId: () => mockContextGetOrThrowWorkspaceId(),
-      getWorkspaceDB: () => mockContextGetWorkspaceDb(),
-    },
-    docIds: {
-      ...actual.docIds,
-      generateAgentKnowledgeSourceSyncStateID: (...args: any[]) =>
-        mockGenerateSyncStateId(...args),
-    },
+    return {
+      ...actual,
+      context: {
+        ...actual.context,
+        getOrThrowWorkspaceId: () => mockContextGetOrThrowWorkspaceId(),
+        getWorkspaceDB: () => mockContextGetWorkspaceDb(),
+      },
+      locks: {
+        ...actual.locks,
+        doWithLock: (...args: any[]) => mockDoWithLock(...args),
+      },
+      docIds: {
+        ...actual.docIds,
+        generateAgentKnowledgeSourceSyncStateID: (...args: any[]) =>
+          mockGenerateSyncStateId(...args),
+      },
   }
 })
 
@@ -84,6 +89,11 @@ describe("rag/sharepoint sync deduplication", () => {
     })
     mockGenerateSyncStateId.mockReturnValue("sync_state_1")
     mockGetSharePointBearerToken.mockResolvedValue("Bearer token")
+    mockDoWithLock.mockImplementation(
+      async (_options: any, handler: () => Promise<any>) => ({
+        result: await handler(),
+      })
+    )
     mockEnsureKnowledgeBaseForAgent.mockResolvedValue({
       _id: "kb_1",
       name: "KB 1",
@@ -223,7 +233,7 @@ describe("rag/sharepoint sync deduplication", () => {
               id: siteId,
             },
             filters: {
-              patterns: ["!*", "allowed/**"],
+              patterns: ["!**", "allowed/**"],
             },
           },
         },

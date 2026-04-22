@@ -1,10 +1,12 @@
-import { context, db, docIds, HTTPError } from "@budibase/backend-core"
+import { context, db, docIds, HTTPError, locks } from "@budibase/backend-core"
 import {
   type Agent,
   type AgentKnowledgeSourceFilterConfig,
   type AgentKnowledgeSourceSyncState,
   AgentKnowledgeSourceSyncRunStatus,
   AgentKnowledgeSourceType,
+  LockName,
+  LockType,
   type AgentKnowledgeSource,
   DocumentType,
   type FetchAgentKnowledgeSourceEntriesResponse,
@@ -484,7 +486,7 @@ export const deleteKnowledgeSourceSyncStateForAgent = async (
   }
 }
 
-export const syncSharePointSourcesForAgent = async (
+const runSharePointSourcesForAgent = async (
   agentId: string,
   sourceId: string
 ): Promise<SyncAgentKnowledgeSourcesResponse> => {
@@ -704,6 +706,22 @@ export const syncSharePointSourcesForAgent = async (
     unsupported,
     totalDiscovered,
   }
+}
+
+export const syncSharePointSourcesForAgent = async (
+  agentId: string,
+  sourceId: string
+): Promise<SyncAgentKnowledgeSourcesResponse> => {
+  const { result } = await locks.doWithLock(
+    {
+      name: LockName.AGENT_RAG_KNOWLEDGE_BASE,
+      type: LockType.AUTO_EXTEND,
+      resource: `${agentId}:${sourceId}:sharepoint_sync`,
+    },
+    async () => await runSharePointSourcesForAgent(agentId, sourceId)
+  )
+
+  return result
 }
 
 export const deleteSharePointFilesForAgentSite = async (
