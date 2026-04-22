@@ -7,6 +7,7 @@ import {
   DisconnectAgentSharePointSiteResponse,
   DuplicateAgentResponse,
   FetchAgentKnowledgeResponse,
+  FetchAgentKnowledgeSourceEntriesResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentsResponse,
   ProvisionAgentSlackChannelRequest,
@@ -20,6 +21,8 @@ import {
   ToggleAgentDeploymentRequest,
   ToggleAgentDeploymentResponse,
   ToolMetadata,
+  UpdateAgentSharePointSiteRequest,
+  UpdateAgentSharePointSiteResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
 } from "@budibase/types"
@@ -69,10 +72,19 @@ export interface AgentEndpoints {
   fetchAgentKnowledgeSourceOptions: (
     agentId: string
   ) => Promise<FetchAgentKnowledgeSourceOptionsResponse>
+  fetchAgentKnowledgeSourceAllEntries: (
+    agentId: string,
+    siteId: string
+  ) => Promise<FetchAgentKnowledgeSourceEntriesResponse>
   connectAgentSharePointSite: (
     agentId: string,
     body: ConnectAgentSharePointSiteRequest
   ) => Promise<ConnectAgentSharePointSiteResponse>
+  updateAgentSharePointSite: (
+    agentId: string,
+    siteId: string,
+    body: UpdateAgentSharePointSiteRequest
+  ) => Promise<UpdateAgentSharePointSiteResponse>
   disconnectAgentSharePointSite: (
     agentId: string,
     siteId: string
@@ -212,12 +224,29 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     })
   },
 
+  fetchAgentKnowledgeSourceAllEntries: async (agentId: string, siteId: string) => {
+    const query = new URLSearchParams({ siteId })
+    return await API.get<FetchAgentKnowledgeSourceEntriesResponse>({
+      url: `/api/agent/${agentId}/knowledge-sources/sharepoint/entries/all?${query.toString()}`,
+    })
+  },
+
   connectAgentSharePointSite: async (agentId: string, body) => {
     return await API.post<
       ConnectAgentSharePointSiteRequest,
       ConnectAgentSharePointSiteResponse
     >({
       url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites`,
+      body,
+    })
+  },
+
+  updateAgentSharePointSite: async (agentId: string, siteId: string, body) => {
+    return await API.patch<
+      UpdateAgentSharePointSiteRequest,
+      UpdateAgentSharePointSiteResponse
+    >({
+      url: `/api/agent/${agentId}/knowledge-sources/sharepoint/sites/${encodeURIComponent(siteId)}`,
       body,
     })
   },

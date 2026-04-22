@@ -15,13 +15,20 @@
   import KnowledgeAddControls from "./KnowledgeAddControls.svelte"
   import SelectSharePointSiteModal from "./new/SelectSharePointSiteModal.svelte"
   import { onDestroy, onMount } from "svelte"
-  import type { KnowledgeTableRow } from "./renderers/types"
+  import type {
+    KnowledgeTableRow,
+    SharePointSelectionMode,
+  } from "./renderers/types"
   import type { PendingUpload } from "./knowledgeTableRows"
   import {
     toFileTableRows,
     toSharePointConnectionRows,
   } from "./knowledgeTableRows"
+  import {
+    EXCLUDE_ALL_PATTERN,
+  } from "./sharepoint/sharePointModalUtils"
   import DisplaySharePointSiteModal from "./sharepoint/DisplaySharePointSiteModal.svelte"
+  import SelectSharePointFilesModal from "./sharepoint/SelectSharePointFilesModal.svelte"
   import {
     coalesceAgentPollRequests,
     createKnowledgePollingController,
@@ -73,6 +80,7 @@
   )
   let selectSharePointSiteModal = $state<SelectSharePointSiteModal>()
   let displaySharePointSiteModal = $state<DisplaySharePointSiteModal>()
+  let selectSharePointFilesModal = $state<SelectSharePointFilesModal>()
   let selectedSharePointSiteId = $state("")
   let shouldOpenSharePointPickerAfterOauth = $state(false)
   let loadingSharePointSites = $state(false)
@@ -300,7 +308,10 @@
     await selectSharePointSiteModal?.show()
   }
 
-  async function onSharePointSiteCreated(siteId: string) {
+  async function onSharePointSiteCreated(
+    siteId: string,
+    mode: SharePointSelectionMode
+  ) {
     const agentId = currentAgent?._id
     if (agentId) {
       knowledgePollingController.boost(agentId, 60)
@@ -308,6 +319,32 @@
     }
     selectedSharePointSiteId = siteId
     selectSharePointSiteModal?.hide()
+    if (mode === "selective") {
+      if (!agentId) {
+        return
+      }
+      try {
+        await agentsStore.applyAgentSharePointSiteFilters(agentId, siteId, {
+          filters: {
+            patterns: [EXCLUDE_ALL_PATTERN],
+          },
+        })
+      } catch (error) {
+        console.error(error)
+        notifications.error("Failed to initialize selective sync")
+        return
+      }
+      await selectSharePointFilesModal?.show()
+    }
+  }
+
+  async function openSharePointSiteSelectionModal(siteId: string) {
+    const agentId = currentAgent?._id
+    if (!agentId) {
+      return
+    }
+    selectedSharePointSiteId = siteId
+    await selectSharePointFilesModal?.show()
   }
 
   async function openSharePointSiteConfigModal(siteId: string) {
@@ -440,7 +477,14 @@
   bind:this={displaySharePointSiteModal}
   agentId={currentAgent?._id}
   siteId={selectedSharePointSiteId}
-></DisplaySharePointSiteModal>
+  onEdit={openSharePointSiteSelectionModal}
+/>
+
+<SelectSharePointFilesModal
+  bind:this={selectSharePointFilesModal}
+  agentId={currentAgent?._id}
+  siteId={selectedSharePointSiteId}
+/>
 
 <style>
   .section-header {

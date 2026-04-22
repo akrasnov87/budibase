@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { Body, Modal, ModalContent, TreeView } from "@budibase/bbui"
+  import { Body, Modal, ModalContent, TreeView, notifications } from "@budibase/bbui"
   import {
     AgentKnowledgeSourceType,
     type KnowledgeBaseFile,
@@ -11,9 +11,10 @@
   export interface Props {
     agentId?: string
     siteId?: string
+    onEdit?: (_siteId: string) => Promise<void> | void
   }
 
-  let { agentId, siteId }: Props = $props()
+  let { agentId, siteId, onEdit }: Props = $props()
   let modal = $state<Modal>()
 
   const sharePointSource = $derived.by(() => {
@@ -65,6 +66,22 @@
   export function hide() {
     modal?.hide()
   }
+
+  const handleEdit = async () => {
+    if (!siteId || !onEdit) {
+      return
+    }
+
+    try {
+      await onEdit(siteId)
+      hide()
+    } catch (error) {
+      console.error(error)
+      notifications.error(
+        "Failed to load SharePoint files. Check your network connection and try again."
+      )
+    }
+  }
 </script>
 
 <Modal bind:this={modal}>
@@ -73,8 +90,10 @@
     showDivider={false}
     size="XL"
     showCloseIcon={false}
-    showConfirmButton={false}
-    showCancelButton={false}
+    showConfirmButton
+    confirmText="Edit files"
+    onConfirm={handleEdit}
+    onCancel={hide}
   >
     {#if entryTree.length === 0}
       <Body size="S">This SharePoint site does not contain any file.</Body>

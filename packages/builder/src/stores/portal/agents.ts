@@ -8,6 +8,7 @@ import {
   CreateAgentRequest,
   DisconnectAgentSharePointSiteResponse,
   FetchAgentKnowledgeResponse,
+  FetchAgentKnowledgeSourceEntriesResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   SharePointKnowledgeSourceSnapshot,
   ProvisionAgentSlackChannelRequest,
@@ -19,6 +20,8 @@ import {
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
   ToolMetadata,
+  UpdateAgentSharePointSiteRequest,
+  UpdateAgentSharePointSiteResponse,
   UpdateAgentRequest,
   type KnowledgeBaseFile,
 } from "@budibase/types"
@@ -196,12 +199,37 @@ export class AgentsStore extends BudiStore<AgentStoreState> {
     return await API.fetchAgentKnowledgeSourceOptions(agentId)
   }
 
+  fetchAgentKnowledgeSourceAllEntries = async (
+    agentId: string,
+    siteId: string
+  ): Promise<FetchAgentKnowledgeSourceEntriesResponse> => {
+    return await API.fetchAgentKnowledgeSourceAllEntries(agentId, siteId)
+  }
+
   connectAgentSharePointSite = async (
     agentId: string,
     body: ConnectAgentSharePointSiteRequest
   ): Promise<ConnectAgentSharePointSiteResponse> => {
     const response = await API.connectAgentSharePointSite(agentId, body)
     await this.fetchAgents()
+    await this.fetchAgentKnowledge(agentId)
+    return response
+  }
+
+  updateAgentSharePointSite = async (
+    agentId: string,
+    siteId: string,
+    body: UpdateAgentSharePointSiteRequest
+  ): Promise<UpdateAgentSharePointSiteResponse> => {
+    return await API.updateAgentSharePointSite(agentId, siteId, body)
+  }
+
+  applyAgentSharePointSiteFilters = async (
+    agentId: string,
+    siteId: string,
+    body: UpdateAgentSharePointSiteRequest
+  ): Promise<UpdateAgentSharePointSiteResponse> => {
+    const response = await this.updateAgentSharePointSite(agentId, siteId, body)
     await this.fetchAgentKnowledge(agentId)
     return response
   }

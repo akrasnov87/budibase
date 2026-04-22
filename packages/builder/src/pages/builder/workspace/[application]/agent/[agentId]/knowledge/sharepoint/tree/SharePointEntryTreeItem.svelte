@@ -18,6 +18,16 @@
     showStatus = true,
   }: Props = $props()
 
+  const collectPaths = (node: SharePointEntryTreeNode): string[] => {
+    return [node.path, ...node.children.flatMap(child => collectPaths(child))]
+  }
+
+  const collectNodes = (
+    node: SharePointEntryTreeNode
+  ): SharePointEntryTreeNode[] => {
+    return [node, ...node.children.flatMap(child => collectNodes(child))]
+  }
+
   const getSharePointStatusText = (
     status?: SharePointEntryTreeNode["status"]
   ) => {
@@ -47,10 +57,52 @@
   }
 
   let hasChildren = $derived(node.children.length > 0)
+  let allNodes = $derived(collectNodes(node))
+  let nodeByPath = $derived(
+    new Map(allNodes.map(current => [current.path, current] as const))
+  )
+  let nodePaths = $derived(collectPaths(node))
+  let childPaths = $derived(nodePaths.slice(1))
+  let selectedSet = $derived(new Set(selectedPaths))
+  let targetPaths = $derived.by(() => {
+    if (node.type === "file") {
+      return [node.path]
+    }
+    const folderChildren = childPaths.filter(path => !!nodeByPath.get(path))
+    return [node.path, ...folderChildren]
+  })
+  let selected = $derived.by(() => {
+    if (targetPaths.length === 0) {
+      return false
+    }
+    return targetPaths.every(path => selectedSet.has(path))
+  })
+  let indeterminate = $derived.by(() => {
+    if (targetPaths.length === 0) {
+      return false
+    }
+    const selectedCount = targetPaths.filter(path =>
+      selectedSet.has(path)
+    ).length
+    return selectedCount > 0 && selectedCount < targetPaths.length
+  })
+  let disabled = $derived(targetPaths.length === 0)
+
+  const handleSelect = (_event: CustomEvent<boolean>) => {
+    const nextSelected = indeterminate ? true : !selected
+    onTogglePaths?.(targetPaths, nextSelected)
+  }
 </script>
 
 <div class="sharepoint-entry-tree-item">
-  <TreeItem title={node.name} open={hasChildren} {hasChildren}>
+  <TreeItem
+    title={node.name}
+    {selected}
+    {disabled}
+    open={hasChildren}
+    {hasChildren}
+    on:select={handleSelect}
+  >
     <svelte:fragment slot="post">
       {#if showStatus && node.type === "file" && getSharePointStatusText(node.status)}
         <div class="status-container">
