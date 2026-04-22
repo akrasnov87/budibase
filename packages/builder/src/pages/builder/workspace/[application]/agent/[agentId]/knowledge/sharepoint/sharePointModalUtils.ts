@@ -117,7 +117,6 @@ export const rehydrateFromPatterns = (
 
   return includedPaths
 }
-
 export const buildEntryTree = (
   files: TreeEntryInput[]
 ): SharePointEntryTreeNode[] => {
@@ -171,7 +170,8 @@ export const buildEntryTree = (
         }
         byPath.set(currentPath, node)
         parent.push(node)
-      } else if (isLeaf) {
+      }
+      if (isLeaf) {
         node.type = "file"
         node.status = fileNode.status
         node.errorMessage = fileNode.errorMessage

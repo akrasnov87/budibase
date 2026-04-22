@@ -2,6 +2,7 @@
   import { Body, Modal, ModalContent, TreeView, notifications } from "@budibase/bbui"
   import {
     AgentKnowledgeSourceType,
+    KnowledgeBaseFileSourceType,
     type KnowledgeBaseFile,
   } from "@budibase/types"
   import { agentsStore, selectedAgent } from "@/stores/portal"
@@ -42,7 +43,7 @@
     const files = $agentsStore.knowledgeByAgent?.[agentId]?.files || []
     return files.filter(
       file =>
-        file.source?.type === "sharepoint" &&
+        file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT &&
         file.source.knowledgeSourceId === sharePointSource.id
     )
   })
@@ -51,8 +52,7 @@
     buildEntryTree(
       sharePointFiles.map(file => ({
         filename: file.filename,
-        sourcePath:
-          file.source?.type === "sharepoint" ? file.source.path : undefined,
+        sourcePath: file.source?.path,
         status: file.status,
         errorMessage: file.errorMessage,
       }))

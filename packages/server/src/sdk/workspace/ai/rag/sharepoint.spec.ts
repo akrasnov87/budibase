@@ -55,6 +55,7 @@ jest.mock("./files", () => {
 
 import {
   AgentKnowledgeSourceType,
+  KnowledgeBaseFileSourceType,
   KnowledgeBaseFileStatus,
   KnowledgeBaseType,
   type Agent,
@@ -119,7 +120,7 @@ describe("rag/sharepoint sync deduplication", () => {
         _id: "existing_1",
         knowledgeBaseId: "kb_1",
         source: {
-          type: "sharepoint",
+          type: KnowledgeBaseFileSourceType.SHAREPOINT,
           knowledgeSourceId: sourceId,
           siteId,
           driveId: "drive-a",
@@ -184,7 +185,7 @@ describe("rag/sharepoint sync deduplication", () => {
       expect.objectContaining({
         knowledgeBaseId: "kb_1",
         source: {
-          type: "sharepoint",
+          type: KnowledgeBaseFileSourceType.SHAREPOINT,
           knowledgeSourceId: sourceId,
           siteId,
           driveId: "drive-b",
