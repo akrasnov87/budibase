@@ -25,6 +25,9 @@
 
   let isOpen = open
   $: isQuiet = !!$quietStore
+  $: if (hasChildren) {
+    isOpen = open
+  }
   $: if (!hasChildren) {
     isOpen = false
   }
