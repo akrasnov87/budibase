@@ -13,7 +13,7 @@ import {
   logging,
 } from "@budibase/backend-core"
 import Module from "module"
-import vm from "vm"
+import ivm from "isolated-vm"
 import { loadJSFile } from "../../utilities/fileSystem"
 import * as quotas from "../quotas"
 
@@ -44,11 +44,14 @@ export async function storePlugin(
   // validate the JS for a datasource
   if (metadata.schema.type === PluginType.DATASOURCE) {
     const js = loadJSFile(directory, jsFile.name)
+    const isolate = new ivm.Isolate({ memoryLimit: 8 })
     try {
-      new vm.Script(Module.wrap(js), { filename: jsFile.name })
+      isolate.compileScriptSync(Module.wrap(js), { filename: jsFile.name })
     } catch (err: any) {
       const message = err?.message ? err.message : JSON.stringify(err)
       throw new Error(`JS invalid: ${message}`)
+    } finally {
+      isolate.dispose()
     }
   }
   const iconFileName = iconFile ? iconFile.name : null
