@@ -232,7 +232,13 @@
     const hasProcessingFiles = files.some(
       file => file.status === KnowledgeBaseFileStatus.PROCESSING
     )
-    knowledgePollingController.setContinuous(agentId, hasProcessingFiles)
+    const hasUnsyncedSharePointSites = sharePointSourceSnapshots.some(
+      source => !source.lastRunAt
+    )
+    knowledgePollingController.setContinuous(
+      agentId,
+      hasProcessingFiles || hasUnsyncedSharePointSites
+    )
   })
 
   $effect(() => {
@@ -303,7 +309,6 @@
   async function onSharePointSiteCreated(siteId: string) {
     const agentId = currentAgent?._id
     if (agentId) {
-      knowledgePollingController.boost(agentId, 60)
       await fetchFiles(agentId)
     }
     selectedSharePointSiteId = siteId
