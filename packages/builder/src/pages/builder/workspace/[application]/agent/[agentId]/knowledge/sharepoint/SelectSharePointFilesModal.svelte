@@ -32,7 +32,6 @@
   let { agentId, siteId }: Props = $props()
 
   let selectedEntryPaths = $state<string[]>([])
-  let hasHydratedSelection = $state(false)
   let loadingEntries = $state(false)
   let allEntries = $state<KnowledgeSourceEntry[]>([])
   let includeNewFilesByDefault = $state(true)
@@ -96,7 +95,6 @@
 
   export async function show() {
     selectedEntryPaths = []
-    hasHydratedSelection = false
     includeNewFilesByDefault = !isExcludeNewByDefaultPatterns(initialPatterns)
 
     await loadAllEntries()
@@ -163,22 +161,6 @@
 
     selectedEntryPaths = [...selectablePaths]
   }
-
-  $effect(() => {
-    if (hasHydratedSelection) {
-      return
-    }
-
-    selectedEntryPaths = rehydrateFromPatterns(
-      initialPatterns,
-      selectablePaths,
-      selectedEntryPaths
-    )
-
-    if (selectablePaths.length > 0 || initialPatterns.length === 0) {
-      hasHydratedSelection = true
-    }
-  })
 </script>
 
 <Modal bind:this={modal}>
