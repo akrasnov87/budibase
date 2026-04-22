@@ -21,11 +21,10 @@
     selectable: writable(false),
     quiet: writable(false),
   }
-  const selectableStore = treeViewContext.selectable
   const quietStore = treeViewContext.quiet
   const dispatch = createEventDispatcher<{ toggle: boolean; select: boolean }>()
 
-  $: isSelectable = !!$selectableStore
+  $: isSelectable = !!treeViewContext.selectable
   $: isQuiet = !!$quietStore
   $: if (!hasChildren) {
     open = false

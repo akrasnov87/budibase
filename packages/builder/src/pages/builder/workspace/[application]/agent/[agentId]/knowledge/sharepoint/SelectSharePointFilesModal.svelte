@@ -16,7 +16,6 @@
   import {
     buildEntryTreeFromSourceEntries,
     buildPatternsFromSelection,
-    collectSelectablePaths,
     flattenNodesByPath,
     isExcludeNewByDefaultPatterns,
     rehydrateFromPatterns,
@@ -60,10 +59,19 @@
 
   const entryTree = $derived(buildEntryTreeFromSourceEntries(allEntries))
   const selectionTree = $derived(wrapSelectionTreeWithSiteRoot(entryTree))
-  const selectablePaths = $derived(collectSelectablePaths(selectionTree))
   const selectionNodeByPath = $derived(flattenNodesByPath(selectionTree))
+  const selectablePaths = $derived.by(() =>
+    Array.from(selectionNodeByPath.values())
+      .filter(node => node.type === "file")
+      .map(node => node.path)
+      .sort((a, b) => a.localeCompare(b))
+  )
 
   const selectedCountLabel = $derived(`${selectedEntryPaths.length} selected`)
+
+  $effect(() => {
+    console.error(selectedEntryPaths)
+  })
 
   const loadAllEntries = async () => {
     if (!agentId || !siteId) {
@@ -93,7 +101,11 @@
 
     await loadAllEntries()
 
-    selectedEntryPaths = rehydrateFromPatterns(initialPatterns, selectablePaths)
+    const selectablePathSet = new Set(selectablePaths)
+    selectedEntryPaths = rehydrateFromPatterns(
+      initialPatterns,
+      selectablePaths
+    ).filter(path => selectablePathSet.has(path))
 
     modal?.show()
   }
@@ -180,6 +192,7 @@
         <TreeView width="auto" standalone={false} quiet selectable>
           {#each selectionTree as node (node.path)}
             <SharePointEntryTreeItem
+              selectable
               {node}
               selectedPaths={selectedEntryPaths}
               onTogglePaths={toggleEntryPaths}

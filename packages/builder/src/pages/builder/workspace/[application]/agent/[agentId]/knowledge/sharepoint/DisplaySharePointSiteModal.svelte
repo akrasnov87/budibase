@@ -1,5 +1,11 @@
 <script lang="ts">
-  import { Body, Modal, ModalContent, TreeView, notifications } from "@budibase/bbui"
+  import {
+    Body,
+    Modal,
+    ModalContent,
+    TreeView,
+    notifications,
+  } from "@budibase/bbui"
   import {
     AgentKnowledgeSourceType,
     KnowledgeBaseFileSourceType,

@@ -224,7 +224,10 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     })
   },
 
-  fetchAgentKnowledgeSourceAllEntries: async (agentId: string, siteId: string) => {
+  fetchAgentKnowledgeSourceAllEntries: async (
+    agentId: string,
+    siteId: string
+  ) => {
     const query = new URLSearchParams({ siteId })
     return await API.get<FetchAgentKnowledgeSourceEntriesResponse>({
       url: `/api/agent/${agentId}/knowledge-sources/sharepoint/entries/all?${query.toString()}`,

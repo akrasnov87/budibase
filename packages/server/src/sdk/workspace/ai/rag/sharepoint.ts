@@ -288,7 +288,9 @@ const isSharePointPathIncludedByFilters = (
       continue
     }
     const isNegated = trimmedPattern.startsWith("!")
-    const bodyPattern = isNegated ? trimmedPattern.slice(1).trim() : trimmedPattern
+    const bodyPattern = isNegated
+      ? trimmedPattern.slice(1).trim()
+      : trimmedPattern
     if (!bodyPattern) {
       continue
     }

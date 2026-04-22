@@ -24,9 +24,7 @@
     toFileTableRows,
     toSharePointConnectionRows,
   } from "./knowledgeTableRows"
-  import {
-    EXCLUDE_ALL_PATTERN,
-  } from "./sharepoint/sharePointModalUtils"
+  import { EXCLUDE_ALL_PATTERN } from "./sharepoint/sharePointModalUtils"
   import DisplaySharePointSiteModal from "./sharepoint/DisplaySharePointSiteModal.svelte"
   import SelectSharePointFilesModal from "./sharepoint/SelectSharePointFilesModal.svelte"
   import {

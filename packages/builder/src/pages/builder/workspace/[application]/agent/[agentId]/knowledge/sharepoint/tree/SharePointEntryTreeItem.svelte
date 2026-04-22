@@ -5,6 +5,7 @@
   import type { SharePointEntryTreeNode } from "./sharePointEntryTree"
 
   export interface Props {
+    selectable?: boolean
     node: SharePointEntryTreeNode
     selectedPaths?: string[]
     onTogglePaths?: (_paths: string[], _nextSelected: boolean) => void
@@ -12,6 +13,7 @@
   }
 
   let {
+    selectable,
     node,
     selectedPaths,
     onTogglePaths,
@@ -68,8 +70,7 @@
     if (node.type === "file") {
       return [node.path]
     }
-    const folderChildren = childPaths.filter(path => !!nodeByPath.get(path))
-    return [node.path, ...folderChildren]
+    return childPaths.filter(path => nodeByPath.get(path)?.type === "file")
   })
   let selected = $derived.by(() => {
     if (targetPaths.length === 0) {
@@ -99,7 +100,7 @@
     title={node.name}
     {selected}
     {indeterminate}
-    showCheckbox
+    showCheckbox={selectable}
     {disabled}
     open={hasChildren}
     {hasChildren}
@@ -123,6 +124,7 @@
     {#if hasChildren}
       {#each node.children as child (child.path)}
         <SharePointEntryTreeItem
+          {selectable}
           node={child}
           {selectedPaths}
           {onTogglePaths}
