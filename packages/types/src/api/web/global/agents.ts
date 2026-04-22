@@ -95,6 +95,7 @@ export interface SyncAgentKnowledgeSourcesResponse {
 
 export interface ConnectAgentSharePointSiteRequest {
   siteId: string
+  filters?: AgentKnowledgeSourceFilterConfig
 }
 
 export type ConnectAgentSharePointSiteResponse =

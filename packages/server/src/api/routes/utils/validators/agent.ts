@@ -146,6 +146,11 @@ export function connectAgentSharePointSiteValidator() {
   return auth.joiValidator.body(
     Joi.object({
       siteId: Joi.string().trim().disallow("").required(),
+      filters: Joi.object({
+        patterns: Joi.array()
+          .items(Joi.string().trim().disallow(""))
+          .optional(),
+      }).optional(),
     }).required()
   )
 }

@@ -235,6 +235,7 @@ export async function connectAgentSharePointSite(
   if (!siteId) {
     throw new HTTPError("siteId is required", 400)
   }
+  const filters = normalizeSourcePatterns(ctx.request.body?.filters?.patterns)
 
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
   const hasWorkspaceConnection =
@@ -262,6 +263,7 @@ export async function connectAgentSharePointSite(
         name: selectedOption?.name,
         webUrl: selectedOption?.webUrl,
       },
+      filters: filters ? { patterns: filters } : undefined,
     },
   }
   console.log("Connecting SharePoint site to agent", {

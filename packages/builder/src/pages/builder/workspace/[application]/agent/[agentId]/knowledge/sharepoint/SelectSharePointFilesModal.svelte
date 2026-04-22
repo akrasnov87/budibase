@@ -134,6 +134,10 @@
       await agentsStore.applyAgentSharePointSiteFilters(agentId, siteId, {
         filters,
       })
+      if (sourceId) {
+        await agentsStore.syncAgentKnowledgeSources(agentId, sourceId)
+      }
+      await agentsStore.fetchAgentKnowledge(agentId)
 
       notifications.success("SharePoint folders/files updated")
       hide()

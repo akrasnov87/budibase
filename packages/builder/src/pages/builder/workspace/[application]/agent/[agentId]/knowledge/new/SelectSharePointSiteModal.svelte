@@ -11,6 +11,7 @@
   } from "@budibase/bbui"
 
   import { type KnowledgeSourceOption } from "@budibase/types"
+  import { EXCLUDE_ALL_PATTERN } from "../sharepoint/sharePointModalUtils"
   import type { SharePointSelectionMode } from "../renderers/types"
 
   export interface Props {
@@ -91,6 +92,12 @@
     try {
       await agentsStore.connectAgentSharePointSite(agentId, {
         siteId: selectedSiteId,
+        filters:
+          mode === "selective"
+            ? {
+                patterns: [EXCLUDE_ALL_PATTERN],
+              }
+            : undefined,
       })
       notifications.success("SharePoint site added")
       hide()
