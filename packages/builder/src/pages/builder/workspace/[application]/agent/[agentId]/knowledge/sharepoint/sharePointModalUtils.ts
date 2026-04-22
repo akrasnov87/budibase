@@ -8,16 +8,6 @@ export interface TreeEntryInput {
   errorMessage?: string
 }
 
-const normalizePath = (value: string) =>
-  value
-    .replace(/^\/+/, "")
-    .replace(/\\/g, "/")
-    .replace(/\/{2,}/g, "/")
-    .trim()
-
-const getPath = (file: TreeEntryInput) =>
-  normalizePath(file.sourcePath || file.filename)
-
 export const buildEntryTree = (
   files: TreeEntryInput[]
 ): SharePointEntryTreeNode[] => {
@@ -25,7 +15,7 @@ export const buildEntryTree = (
   const byPath = new Map<string, SharePointEntryTreeNode>()
 
   for (const file of files) {
-    const path = getPath(file)
+    const path = file.sourcePath || file.filename
     if (!path) {
       continue
     }

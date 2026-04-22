@@ -51,10 +51,7 @@
     buildEntryTree(
       sharePointFiles.map(file => ({
         filename: file.filename,
-        sourcePath:
-          file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT
-            ? file.source.path
-            : undefined,
+        sourcePath: file.source?.path,
         status: file.status,
         errorMessage: file.errorMessage,
       }))
