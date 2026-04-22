@@ -303,13 +303,6 @@ const isSharePointPathIncludedByFilters = (
   return included
 }
 
-const shouldSyncSharePointFileByFilters = (
-  file: SharePointFileRef,
-  filters?: AgentKnowledgeSourceFilterConfig
-) => {
-  return isSharePointPathIncludedByFilters(file.path, filters)
-}
-
 const collectFilesRecursive = async (
   bearerToken: string,
   driveId: string,
@@ -519,6 +512,7 @@ export const syncSharePointSourcesForAgent = async (
     sourceId: sourceId,
     siteId,
     runAt: lastRunAt,
+    sourceFilters,
   })
 
   const bearerToken = await getSharePointBearerToken(
@@ -563,6 +557,35 @@ export const syncSharePointSourcesForAgent = async (
   let skipped = 0
   let unsupported = 0
   let totalDiscovered = 0
+  let deleted = 0
+  let deleteFailed = 0
+
+  const existingSourceFiles = existingFiles.filter(
+    file =>
+      file._id &&
+      file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT &&
+      file.source.knowledgeSourceId === sourceId &&
+      file.source.siteId === siteId
+  )
+  const filteredOutFileIds = existingSourceFiles
+    .filter(file => {
+      const candidatePath = file.source?.path || file.filename
+      return !isSharePointPathIncludedByFilters(
+        candidatePath || "",
+        sourceFilters
+      )
+    })
+    .map(file => file._id)
+    .filter((fileId): fileId is string => !!fileId)
+  if (filteredOutFileIds.length > 0) {
+    const deleteResults = await Promise.allSettled(
+      filteredOutFileIds.map(fileId => deleteFileForAgent(agentId, fileId))
+    )
+    deleted = deleteResults.filter(
+      result => result.status === "fulfilled"
+    ).length
+    deleteFailed = deleteResults.length - deleted
+  }
 
   try {
     const driveIds = await listDrives(bearerToken, siteId)
@@ -576,7 +599,7 @@ export const syncSharePointSourcesForAgent = async (
 
       totalDiscovered += files.length
       for (const file of files) {
-        if (!shouldSyncSharePointFileByFilters(file, sourceFilters)) {
+        if (!isSharePointPathIncludedByFilters(file.path, sourceFilters)) {
           skipped++
           continue
         }
@@ -657,6 +680,8 @@ export const syncSharePointSourcesForAgent = async (
       agentId,
       siteId,
       synced,
+      deleted,
+      deleteFailed,
       failed,
       skipped,
       unsupported,
@@ -669,6 +694,7 @@ export const syncSharePointSourcesForAgent = async (
     synced,
     failed,
     alreadySynced: skipped - unsupported,
+    deleted,
     unsupported,
     totalDiscovered,
   }

@@ -140,6 +140,7 @@
     result: SyncAgentKnowledgeSourcesResponse
   ) => {
     const alreadySynced = result.alreadySynced
+    const deleted = result.deleted || 0
     const discovered = result.totalDiscovered ?? result.synced + alreadySynced
 
     if (result.synced === 0 && result.failed === 0) {
@@ -147,9 +148,10 @@
         notifications.info("No files found in selected SharePoint site(s)")
         return
       }
-      if (alreadySynced > 0) {
+      if (alreadySynced > 0 || deleted > 0) {
         const details = [
           alreadySynced > 0 ? `${alreadySynced} already synced` : "",
+          deleted > 0 ? `${deleted} removed by filters` : "",
         ]
           .filter(Boolean)
           .join(", ")
@@ -160,7 +162,7 @@
       }
     }
 
-    const message = `SharePoint sync complete (${result.synced} synced${result.failed > 0 ? `, ${result.failed} failed` : ""}${alreadySynced > 0 ? `, ${alreadySynced} already synced` : ""})`
+    const message = `SharePoint sync complete (${result.synced} synced${result.failed > 0 ? `, ${result.failed} failed` : ""}${alreadySynced > 0 ? `, ${alreadySynced} already synced` : ""}${deleted > 0 ? `, ${deleted} removed by filters` : ""})`
 
     if (result.failed > 0 && result.synced === 0) {
       notifications.error(message)

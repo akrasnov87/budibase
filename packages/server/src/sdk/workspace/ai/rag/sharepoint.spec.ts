@@ -7,6 +7,7 @@ const mockKnowledgeBaseListFiles = jest.fn()
 const mockKnowledgeBaseUploadFile = jest.fn()
 const mockGetSharePointBearerToken = jest.fn()
 const mockEnsureKnowledgeBaseForAgent = jest.fn()
+const mockDeleteFileForAgent = jest.fn()
 
 jest.mock("@budibase/backend-core", () => {
   const actual = jest.requireActual("@budibase/backend-core")
@@ -50,6 +51,7 @@ jest.mock("./files", () => {
   return {
     ensureKnowledgeBaseForAgent: (...args: any[]) =>
       mockEnsureKnowledgeBaseForAgent(...args),
+    deleteFileForAgent: (...args: any[]) => mockDeleteFileForAgent(...args),
   }
 })
 
@@ -90,6 +92,7 @@ describe("rag/sharepoint sync deduplication", () => {
         googleFileStoreId: "store_1",
       },
     })
+    mockDeleteFileForAgent.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -202,6 +205,85 @@ describe("rag/sharepoint sync deduplication", () => {
       failed: 0,
       unsupported: 0,
       totalDiscovered: 1,
+    })
+  })
+
+  it("deletes existing files that no longer match source filters", async () => {
+    const sourceId = "sharepoint_source_1"
+    const siteId = "site-1"
+
+    mockAgentsGetOrThrow.mockResolvedValue({
+      _id: "agent_1",
+      knowledgeSources: [
+        {
+          id: sourceId,
+          type: AgentKnowledgeSourceType.SHAREPOINT,
+          config: {
+            site: {
+              id: siteId,
+            },
+            filters: {
+              patterns: ["!*", "allowed/**"],
+            },
+          },
+        },
+      ],
+    } as Agent)
+
+    mockKnowledgeBaseListFiles.mockResolvedValue([
+      {
+        _id: "existing_filtered_out",
+        knowledgeBaseId: "kb_1",
+        source: {
+          type: KnowledgeBaseFileSourceType.SHAREPOINT,
+          knowledgeSourceId: sourceId,
+          siteId,
+          driveId: "drive-a",
+          itemId: "item-1",
+          path: "blocked/file.txt",
+        },
+        filename: "file.txt",
+        objectStoreKey: "key-existing",
+        ragSourceId: "rag-existing",
+        status: KnowledgeBaseFileStatus.READY,
+        uploadedBy: "sharepoint",
+      } satisfies KnowledgeBaseFile,
+    ])
+
+    const fetchMock = jest
+      .spyOn(globalThis, "fetch")
+      .mockImplementation(async input => {
+        const url = input.toString()
+
+        if (url.includes(`/sites/${encodeURIComponent(siteId)}/drives`)) {
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({
+              value: [],
+            }),
+          } as Response
+        }
+
+        throw new Error(`Unexpected fetch URL: ${url}`)
+      })
+
+    const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
+
+    expect(fetchMock).toHaveBeenCalled()
+    expect(mockDeleteFileForAgent).toHaveBeenCalledTimes(1)
+    expect(mockDeleteFileForAgent).toHaveBeenCalledWith(
+      "agent_1",
+      "existing_filtered_out"
+    )
+    expect(mockKnowledgeBaseUploadFile).not.toHaveBeenCalled()
+    expect(result).toMatchObject({
+      agentId: "agent_1",
+      synced: 0,
+      alreadySynced: 0,
+      failed: 0,
+      unsupported: 0,
+      totalDiscovered: 0,
     })
   })
 })

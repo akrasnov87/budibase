@@ -88,6 +88,7 @@ export interface SyncAgentKnowledgeSourcesResponse {
   synced: number
   failed: number
   alreadySynced: number
+  deleted: number
   unsupported: number
   totalDiscovered: number
 }
