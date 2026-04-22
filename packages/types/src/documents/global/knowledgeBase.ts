@@ -26,6 +26,7 @@ export interface SharePointKnowledgeBaseFileSource {
   siteId: string
   driveId: string
   itemId: string
+  path: string
 }
 
 export type KnowledgeBaseFileSource = SharePointKnowledgeBaseFileSource

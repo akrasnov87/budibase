@@ -124,6 +124,7 @@ describe("rag/sharepoint sync deduplication", () => {
           siteId,
           driveId: "drive-a",
           itemId: "item-1",
+          path: "existing.txt",
         },
         filename: "existing.txt",
         objectStoreKey: "key-existing",
@@ -188,6 +189,7 @@ describe("rag/sharepoint sync deduplication", () => {
           siteId,
           driveId: "drive-b",
           itemId: "item-1",
+          path: "new.txt",
         },
         filename: "new.txt",
       })

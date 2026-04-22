@@ -50,6 +50,8 @@
     buildEntryTree(
       sharePointFiles.map(file => ({
         filename: file.filename,
+        sourcePath:
+          file.source?.type === "sharepoint" ? file.source.path : undefined,
         status: file.status,
         errorMessage: file.errorMessage,
       }))

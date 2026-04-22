@@ -520,6 +520,7 @@ export const syncSharePointSourcesForAgent = async (
               siteId,
               driveId,
               itemId: file.itemId,
+              path: file.path,
             },
             filename: file.filename,
             mimetype: file.mimetype,

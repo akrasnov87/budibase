@@ -57,6 +57,7 @@ describe("knowledgeTableRows", () => {
           siteId: "site-1",
           driveId: "drive-1",
           itemId: "item-1",
+          path: "folder-1/file-1.txt",
         },
       }),
       makeFile({
@@ -68,6 +69,7 @@ describe("knowledgeTableRows", () => {
           siteId: "site-1",
           driveId: "drive-1",
           itemId: "item-2",
+          path: "folder-1/file-2.txt",
         },
       }),
       makeFile({
@@ -79,6 +81,7 @@ describe("knowledgeTableRows", () => {
           siteId: "site-2",
           driveId: "drive-1",
           itemId: "item-3",
+          path: "folder-2/file-3.txt",
         },
       }),
     ]

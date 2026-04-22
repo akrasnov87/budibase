@@ -78,6 +78,7 @@ describe("agentsStore sharepoint and file syncing", () => {
           siteId: "site-1",
           driveId: "drive-1",
           itemId: "item-1",
+          path: "folder-1/notes.md",
         },
         ragSourceId: "rag_source_1",
         filename: "notes.md",
