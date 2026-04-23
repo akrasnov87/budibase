@@ -30,7 +30,6 @@
 
   $: query = $queries.list.find(query => query._id === value?.queryId)
 
-
   const getFieldDefault = (name: string) => {
     if (!query?.fields) {
       return
