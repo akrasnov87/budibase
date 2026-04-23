@@ -265,7 +265,7 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
       SyncAgentKnowledgeSourcesRequest | undefined,
       SyncAgentKnowledgeSourcesResponse
     >({
-      url: `/api/agent/${agentId}/knowledge-sources/${sourceId}/sync`,
+      url: `/api/agent/${agentId}/knowledge-sources/${encodeURIComponent(sourceId)}/sync`,
     })
   },
 })
