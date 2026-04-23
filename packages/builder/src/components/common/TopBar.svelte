@@ -21,6 +21,17 @@
 
   let publishPopoverAnchor: HTMLElement | undefined
   let publishSuccessPopover: PopoverAPI | undefined
+  let topBarEl: HTMLElement | undefined
+
+  $: if (topBarEl) {
+    const observer = new ResizeObserver(([entry]) => {
+      document.documentElement.style.setProperty(
+        "--top-bar-height",
+        `${entry.borderBoxSize[0].blockSize}px`
+      )
+    })
+    observer.observe(topBarEl)
+  }
 
   $: hasBeenPublished($deploymentStore.publishCount)
 
@@ -34,7 +45,7 @@
   }
 </script>
 
-<div class="top-bar">
+<div class="top-bar" bind:this={topBarEl}>
   {#if icon}
     <div class="icon-container">
       <Icon name={icon} size="M" weight="regular" />

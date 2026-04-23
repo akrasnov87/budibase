@@ -20,9 +20,12 @@ const resolvePathParams = (
   return path.replace(/:([^/]+)/g, (_match, key) => params[key] ?? `:${key}`)
 }
 
+export type SettingsLocked = "self" | "subtree"
+
 export interface Settings {
   open: boolean
   route?: MatchedRoute
+  locked?: SettingsLocked
 }
 
 export interface BBState {
@@ -35,7 +38,25 @@ export const INITIAL_GLOBAL_STATE: BBState = {
   },
 }
 
+type BeforeCloseGuard = () => Promise<boolean>
+
 export class BBStore extends BudiStore<BBState> {
+  private beforeCloseGuard: BeforeCloseGuard | null = null
+
+  registerBeforeClose(guard: BeforeCloseGuard) {
+    this.beforeCloseGuard = guard
+    return () => {
+      if (this.beforeCloseGuard === guard) {
+        this.beforeCloseGuard = null
+      }
+    }
+  }
+
+  async runBeforeClose(): Promise<boolean> {
+    if (!this.beforeCloseGuard) return true
+    return this.beforeCloseGuard()
+  }
+
   constructor() {
     super(INITIAL_GLOBAL_STATE)
     this.clearSettings = this.clearSettings.bind(this)
@@ -47,7 +68,14 @@ export class BBStore extends BudiStore<BBState> {
     this.store.set({ ...INITIAL_GLOBAL_STATE })
   }
 
-  settings(path?: string, params?: Record<string, any>) {
+  settings(path?: string, { locked }: { locked?: SettingsLocked } = {}) {
+    const currentState = get(this.store).settings
+
+    // blocks all navigation when locked
+    if (currentState.locked === "self" && locked === undefined) {
+      return
+    }
+
     if (!path) {
       this.update(state => ({
         ...state,
@@ -61,17 +89,19 @@ export class BBStore extends BudiStore<BBState> {
 
     const matchedRoute = settingsRouteResolver?.(path)
     if (matchedRoute) {
+      if (currentState.locked === "subtree" && locked === undefined) {
+        const currentSection = currentState.route?.entry?.section
+        if (currentSection && matchedRoute.entry.section !== currentSection) {
+          return
+        }
+      }
+
       this.update(state => ({
         ...state,
         settings: {
           ...state.settings,
-          route: {
-            ...matchedRoute,
-            params: {
-              ...matchedRoute.params,
-              ...(params || {}),
-            },
-          },
+          route: matchedRoute,
+          locked: locked ?? currentState.locked,
           open: true,
         },
       }))
@@ -94,6 +124,7 @@ export class BBStore extends BudiStore<BBState> {
       settings: {
         ...state.settings,
         ...(matchedRoute ? { route: matchedRoute } : {}),
+        locked: undefined,
         open: false,
       },
     }))

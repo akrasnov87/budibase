@@ -7,6 +7,7 @@
   $: matched = $bb.settings.route
   $: route = matched?.entry
   $: params = matched?.params || {}
+  $: locked = $bb.settings.locked
 
   $: handleSectionClick = () => {
     if (route?.crumbs?.length) {
@@ -42,7 +43,10 @@
   {#if route?.nav?.length}
     <!-- svelte-ignore a11y-click-events-have-key-events -->
     <!-- svelte-ignore a11y-no-static-element-interactions -->
-    <div class="section-header" on:click={handleSectionClick}>
+    <div
+      class="section-header"
+      on:click={locked ? undefined : handleSectionClick}
+    >
       {route?.section || ""}
     </div>
     <Divider noMargin size={"S"} />
@@ -55,7 +59,7 @@
             class="nav-tab"
             class:match={nav.path === route.path}
             class:error={nav.error?.()}
-            on:click={() => bb.settings(nav.path)}
+            on:click={locked ? undefined : () => bb.settings(nav.path)}
           >
             {resolveTitle(nav.title, nav.path)}
             {#if nav.error?.()}
@@ -86,10 +90,18 @@
               {#each route?.crumbs || [] as crumb, idx}
                 {@const isLast = idx == (route?.crumbs?.length || 0) - 1}
                 {@const crumbPath = resolvePathParams(crumb.path, params)}
-                <Breadcrumb
-                  text={resolveTitle(crumb.title, crumbPath)}
-                  {...!isLast && { onClick: () => bb.settings(crumbPath) }}
-                />
+                {#if isLast}
+                  <Breadcrumb>
+                    <div class="last-crumb-content">
+                      {resolveTitle(crumb.title, crumbPath)}
+                    </div>
+                  </Breadcrumb>
+                {:else}
+                  <Breadcrumb
+                    text={resolveTitle(crumb.title, crumbPath)}
+                    {...!locked && { onClick: () => bb.settings(crumbPath) }}
+                  />
+                {/if}
               {/each}
             {/if}
           </Breadcrumbs>

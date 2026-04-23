@@ -12,6 +12,7 @@
   export let offset: number | undefined = undefined
   export let useAnchorWidth = false
   export let roundedPopover: boolean = false
+  export let customZIndex: number | undefined = undefined
 
   const actionMenuContext = getContext("actionMenu")
 
@@ -77,6 +78,7 @@
   {animate}
   {offset}
   {useAnchorWidth}
+  {customZIndex}
   resizable={false}
   borderRadius={roundedPopover ? "12px" : undefined}
   on:open
