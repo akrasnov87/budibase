@@ -139,7 +139,7 @@
     show: () => void
     hide: () => void
     toggle: () => void
-    cancel: (from: ModalCancelFrom) => Promise<void>
+    cancel: (_: ModalCancelFrom) => Promise<void>
   })
 
   onMount(() => {
