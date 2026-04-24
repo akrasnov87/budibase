@@ -134,11 +134,26 @@ const applyChatStreamPathParams = (
   chat: ChatAgentRequest,
   params: UserCtx<ChatAgentRequest, void>["params"]
 ) => {
-  if (params?.chatAppId) {
-    chat.chatAppId = params.chatAppId
+  const chatAppId = params?.chatAppId
+  if (chatAppId && chat.chatAppId && chat.chatAppId !== chatAppId) {
+    throw new HTTPError("chatAppId in body does not match path", 400)
   }
-  if (params?.chatConversationId && params.chatConversationId !== "new") {
-    chat._id = params.chatConversationId
+
+  const chatConversationId = params?.chatConversationId
+  if (
+    chatConversationId &&
+    chatConversationId !== "new" &&
+    chat._id &&
+    chat._id !== chatConversationId
+  ) {
+    throw new HTTPError("chatConversationId in body does not match path", 400)
+  }
+
+  if (chatAppId) {
+    chat.chatAppId = chatAppId
+  }
+  if (chatConversationId && chatConversationId !== "new") {
+    chat._id = chatConversationId
   }
 }
 

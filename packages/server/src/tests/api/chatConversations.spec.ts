@@ -929,12 +929,12 @@ describe("chat conversation title helpers", () => {
   })
 })
 
-describe("chat conversation path resolution", () => {
+describe("chat conversation path validation", () => {
   const config = new TestConfiguration()
   let basicUser: User
   let bodyChatApp: ChatApp
   let pathChatApp: ChatApp
-  let bodyConversation: ChatConversation
+  let pathConversation: ChatConversation
 
   beforeAll(async () => {
     await config.init("chat-conversation-validation")
@@ -962,7 +962,7 @@ describe("chat conversation path resolution", () => {
           live: true,
           createdAt: now,
         }
-        bodyConversation = {
+        pathConversation = {
           _id: docIds.generateChatConversationID(),
           chatAppId: pathChatApp._id!,
           agentId: "agent-1",
@@ -974,7 +974,7 @@ describe("chat conversation path resolution", () => {
 
         await db.put(bodyChatApp)
         await db.put(pathChatApp)
-        await db.put(bodyConversation)
+        await db.put(pathConversation)
       }
     )
   })
@@ -983,12 +983,12 @@ describe("chat conversation path resolution", () => {
     config.end()
   })
 
-  it("uses chatAppId from the path over the body", async () => {
+  it("rejects mismatched chatAppId between path and body", async () => {
     const headers = await config.defaultHeaders({}, true)
 
     const res = await config
       .getRequest()!
-      .post("/api/chatapps/chatapp-path/conversations/new/stream")
+      .post(`/api/chatapps/${pathChatApp._id}/conversations/new/stream`)
       .set(headers)
       .send({
         chatAppId: bodyChatApp._id,
@@ -997,25 +997,27 @@ describe("chat conversation path resolution", () => {
         title: "hello",
       })
 
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(400)
   })
 
-  it("uses chatConversationId from the path over the body", async () => {
+  it("rejects mismatched chatConversationId between path and body", async () => {
     const headers = await config.defaultHeaders({}, true)
 
     const res = await config
       .getRequest()!
-      .post(`/api/chatapps/${pathChatApp._id}/conversations/convo-path/stream`)
+      .post(
+        `/api/chatapps/${pathChatApp._id}/conversations/${pathConversation._id}/stream`
+      )
       .set(headers)
       .send({
         chatAppId: pathChatApp._id,
         agentId: "agent-1",
-        _id: bodyConversation._id,
+        _id: docIds.generateChatConversationID(),
         messages: [],
         title: "hello",
       })
 
-    expect(res.status).toBe(404)
+    expect(res.status).toBe(400)
   })
 
   it("rejects preview mode for non-builder users before input validation", async () => {
