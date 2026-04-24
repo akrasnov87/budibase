@@ -4,6 +4,7 @@ import {
   context,
   docIds,
   HTTPError,
+  logging,
   redis,
 } from "@budibase/backend-core"
 import { ChatCommands, type SupportedChatCommand } from "@budibase/shared-core"
@@ -475,7 +476,7 @@ export const handleChatMessage = async ({
           providerScopeKey ? `_${encodeURIComponent(providerScopeKey)}` : ""
         }_${encodeURIComponent(user.externalUserId)}`
 
-        console.warn("chat_link_lookup_miss", {
+        logging.logWarn("chat_link_lookup_miss", {
           workspaceId,
           chatAppId,
           agentId,

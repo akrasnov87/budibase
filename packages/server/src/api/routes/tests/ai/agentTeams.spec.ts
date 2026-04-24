@@ -435,7 +435,7 @@ describe("agent teams integration provisioning", () => {
         expect(response.body.messages.join(" ")).toContain(ChatCommands.LINK)
 
         const linkLookupMissCall = warnSpy.mock.calls.find(
-          ([message]) => message === "chat_link_lookup_miss"
+          ([message]) => message === "bb-warn: chat_link_lookup_miss"
         )
         expect(linkLookupMissCall).toBeTruthy()
 
