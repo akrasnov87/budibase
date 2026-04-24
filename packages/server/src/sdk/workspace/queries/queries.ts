@@ -9,6 +9,10 @@ export interface EnrichContextOpts {
   escapeNewlines?: boolean
 }
 
+const DEFAULT_ENRICH_CONTEXT_OPTS: Required<EnrichContextOpts> = {
+  escapeNewlines: true,
+}
+
 function updateSchema(query: Query): Query {
   if (!query.schema) {
     return query
@@ -92,7 +96,7 @@ export async function enrichContext(
   opts: EnrichContextOpts = {}
 ): Promise<Record<string, any>> {
   const options: Required<EnrichContextOpts> = {
-    escapeNewlines: true,
+    ...DEFAULT_ENRICH_CONTEXT_OPTS,
     ...opts,
   }
   const enrichedQuery: Record<string, any> = {}
