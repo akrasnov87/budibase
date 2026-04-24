@@ -234,7 +234,10 @@ const createTeamsMessageHandler = ({
         channelEnabled,
         command,
         content,
-        user: { externalUserId, displayName },
+        user: {
+          externalUserId,
+          displayName,
+        },
         channel,
         scope,
         idleTimeoutMinutes,

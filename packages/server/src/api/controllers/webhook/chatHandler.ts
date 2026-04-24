@@ -467,6 +467,18 @@ export const handleChatMessage = async ({
     }
 
     if (!existingLink) {
+      if (provider === AgentChannelProvider.MSTEAMS) {
+        console.warn("chat_link_lookup_miss", {
+          workspaceId,
+          chatAppId,
+          agentId,
+          provider,
+          externalUserIdTried: user.externalUserId,
+          providerTenantId: channel.tenantId,
+          teamId: channel.teamId,
+        })
+      }
+
       const prompt = await createLinkPromptMessage({
         linkedAlready: false,
         prefix: `Your ${providerDisplayName(provider)} account is not linked yet.`,
