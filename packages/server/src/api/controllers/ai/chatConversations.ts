@@ -122,6 +122,14 @@ interface ResolvedChatStreamRequest {
   userId: string
 }
 
+interface getExistingChatForStreamParams {
+  canUsePreview: boolean
+  chat: ChatAgentRequest
+  chatAppId?: string
+  db: ReturnType<typeof context.getWorkspaceDB>
+  userId: string
+}
+
 const applyChatStreamPathParams = (
   chat: ChatAgentRequest,
   params: UserCtx<ChatAgentRequest, void>["params"]
@@ -140,13 +148,7 @@ const getExistingChatForStream = async ({
   chatAppId,
   db,
   userId,
-}: {
-  canUsePreview: boolean
-  chat: ChatAgentRequest
-  chatAppId?: string
-  db: ReturnType<typeof context.getWorkspaceDB>
-  userId: string
-}) => {
+}: getExistingChatForStreamParams) => {
   if (!chat._id) {
     return undefined
   }

@@ -931,9 +931,44 @@ describe("chat conversation title helpers", () => {
 
 describe("chat conversation path resolution", () => {
   const config = new TestConfiguration()
+  let bodyChatApp: ChatApp
+  let pathChatApp: ChatApp
+  let bodyConversation: ChatConversation
 
   beforeAll(async () => {
     await config.init("chat-conversation-validation")
+    await context.doInWorkspaceContext(
+      config.getProdWorkspaceId(),
+      async () => {
+        const db = context.getWorkspaceDB()
+        const now = new Date().toISOString()
+        bodyChatApp = {
+          _id: docIds.generateChatAppID(),
+          agents: [{ agentId: "agent-1", isEnabled: true, isDefault: true }],
+          live: true,
+          createdAt: now,
+        }
+        pathChatApp = {
+          _id: docIds.generateChatAppID(),
+          agents: [{ agentId: "agent-1", isEnabled: true, isDefault: true }],
+          live: true,
+          createdAt: now,
+        }
+        bodyConversation = {
+          _id: docIds.generateChatConversationID(),
+          chatAppId: pathChatApp._id!,
+          agentId: "agent-1",
+          userId: config.getUser()._id!,
+          messages: [],
+          title: "body conversation",
+          createdAt: now,
+        }
+
+        await db.put(bodyChatApp)
+        await db.put(pathChatApp)
+        await db.put(bodyConversation)
+      }
+    )
   })
 
   afterAll(() => {
@@ -948,7 +983,7 @@ describe("chat conversation path resolution", () => {
       .post("/api/chatapps/chatapp-path/conversations/new/stream")
       .set(headers)
       .send({
-        chatAppId: "chatapp-body",
+        chatAppId: bodyChatApp._id,
         agentId: "agent-1",
         messages: [],
         title: "hello",
@@ -962,12 +997,12 @@ describe("chat conversation path resolution", () => {
 
     const res = await config
       .getRequest()!
-      .post("/api/chatapps/chatapp-path/conversations/convo-path/stream")
+      .post(`/api/chatapps/${pathChatApp._id}/conversations/convo-path/stream`)
       .set(headers)
       .send({
-        chatAppId: "chatapp-path",
+        chatAppId: pathChatApp._id,
         agentId: "agent-1",
-        _id: "convo-body",
+        _id: bodyConversation._id,
         messages: [],
         title: "hello",
       })
