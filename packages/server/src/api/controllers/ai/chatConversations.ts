@@ -180,7 +180,13 @@ const resolveChatStreamRequest = async (
   const db = context.getWorkspaceDB()
   const chatAppId = chat.chatAppId
   const isBuilderOrAdmin = usersSdk.users.isAdminOrBuilder(ctx.user)
-  const canUsePreview = chat.isPreview === true && isBuilderOrAdmin
+  const requestedPreview = chat.isPreview === true
+
+  if (requestedPreview && !isBuilderOrAdmin) {
+    throw new HTTPError("Forbidden", 403)
+  }
+
+  const canUsePreview = requestedPreview
 
   if (!canUsePreview && !chatAppId) {
     throw new HTTPError("chatAppId is required", 400)

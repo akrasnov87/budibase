@@ -931,12 +931,20 @@ describe("chat conversation title helpers", () => {
 
 describe("chat conversation path resolution", () => {
   const config = new TestConfiguration()
+  let basicUser: User
   let bodyChatApp: ChatApp
   let pathChatApp: ChatApp
   let bodyConversation: ChatConversation
 
   beforeAll(async () => {
     await config.init("chat-conversation-validation")
+    basicUser = await config.createUser({
+      roles: {
+        [config.getProdWorkspaceId()]: roles.BUILTIN_ROLE_IDS.BASIC,
+      },
+      builder: { global: false },
+      admin: { global: false },
+    })
     await context.doInWorkspaceContext(
       config.getProdWorkspaceId(),
       async () => {
@@ -1008,6 +1016,25 @@ describe("chat conversation path resolution", () => {
       })
 
     expect(res.status).toBe(404)
+  })
+
+  it("rejects preview mode for non-builder users before input validation", async () => {
+    const headers = await config.withUser(basicUser, async () =>
+      config.defaultHeaders({}, true)
+    )
+
+    const res = await config
+      .getRequest()!
+      .post("/api/chatapps/chatapp-path/conversations/new/stream")
+      .set(headers)
+      .send({
+        agentId: "agent-1",
+        isPreview: true,
+        messages: [],
+        title: "hello",
+      })
+
+    expect(res.status).toBe(403)
   })
 })
 
