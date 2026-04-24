@@ -444,6 +444,7 @@ describe("agent teams integration provisioning", () => {
             provider: AgentChannelProvider.MSTEAMS,
             externalUserIdTried:
               "29:1ljv6N86roXr5pjPrCJVIz6xHh5QxjI-id-mismatch",
+            linkIdTried: expect.any(String),
           })
         )
       } finally {

@@ -468,12 +468,20 @@ export const handleChatMessage = async ({
 
     if (!existingLink) {
       if (provider === AgentChannelProvider.MSTEAMS) {
+        const providerScopeKey = channel.tenantId || channel.teamId
+        const linkIdTried = `${DocumentType.CHAT_IDENTITY_LINK}_${encodeURIComponent(
+          context.getTenantId()
+        )}_${provider}${
+          providerScopeKey ? `_${encodeURIComponent(providerScopeKey)}` : ""
+        }_${encodeURIComponent(user.externalUserId)}`
+
         console.warn("chat_link_lookup_miss", {
           workspaceId,
           chatAppId,
           agentId,
           provider,
           externalUserIdTried: user.externalUserId,
+          linkIdTried,
           providerTenantId: channel.tenantId,
           teamId: channel.teamId,
         })
