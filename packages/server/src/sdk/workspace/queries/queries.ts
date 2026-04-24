@@ -5,7 +5,7 @@ import { BaseQueryVerbs } from "../../../constants"
 import { getQueryParams, isProdWorkspaceID } from "../../../db/utils"
 import { getEnvironmentVariables } from "../../utils"
 
-interface EnrichContextOpts {
+export interface EnrichContextOpts {
   escapeNewlines?: boolean
 }
 
