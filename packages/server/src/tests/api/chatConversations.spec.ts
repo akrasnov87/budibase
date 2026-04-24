@@ -37,11 +37,31 @@ jest.mock("@budibase/pro", () => {
 
 jest.mock("ai", () => {
   const actual = jest.requireActual("ai")
+  const mockStreamText = jest.fn()
+
+  class MockToolLoopAgent {
+    private settings: Record<string, any>
+
+    constructor(settings: Record<string, any>) {
+      this.settings = settings
+    }
+
+    async stream(options: Record<string, any>) {
+      const { instructions, ...settings } = this.settings
+      return mockStreamText({
+        ...settings,
+        ...options,
+        system: instructions,
+      })
+    }
+  }
+
   return {
     ...actual,
     convertToModelMessages: jest.fn(),
     pruneMessages: jest.fn(),
-    streamText: jest.fn(),
+    streamText: mockStreamText,
+    ToolLoopAgent: MockToolLoopAgent,
   }
 })
 
@@ -909,7 +929,7 @@ describe("chat conversation title helpers", () => {
   })
 })
 
-describe("chat conversation path validation", () => {
+describe("chat conversation path resolution", () => {
   const config = new TestConfiguration()
 
   beforeAll(async () => {
@@ -920,7 +940,7 @@ describe("chat conversation path validation", () => {
     config.end()
   })
 
-  it("rejects mismatched chatAppId between path and body", async () => {
+  it("uses chatAppId from the path over the body", async () => {
     const headers = await config.defaultHeaders({}, true)
 
     const res = await config
@@ -934,10 +954,10 @@ describe("chat conversation path validation", () => {
         title: "hello",
       })
 
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(404)
   })
 
-  it("rejects mismatched chatConversationId between path and body", async () => {
+  it("uses chatConversationId from the path over the body", async () => {
     const headers = await config.defaultHeaders({}, true)
 
     const res = await config
@@ -952,7 +972,7 @@ describe("chat conversation path validation", () => {
         title: "hello",
       })
 
-    expect(res.status).toBe(400)
+    expect(res.status).toBe(404)
   })
 })
 
