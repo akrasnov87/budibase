@@ -29,7 +29,6 @@
   import { getLogStepData } from "../../AutomationStepHelpers"
   import type {
     Automation,
-    AutomationStep,
     AutomationStepResult,
     AutomationTriggerResult,
     Branch,
