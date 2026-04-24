@@ -5,6 +5,10 @@ import { BaseQueryVerbs } from "../../../constants"
 import { getQueryParams, isProdWorkspaceID } from "../../../db/utils"
 import { getEnvironmentVariables } from "../../utils"
 
+interface EnrichContextOpts {
+  escapeNewlines?: boolean
+}
+
 function updateSchema(query: Query): Query {
   if (!query.schema) {
     return query
@@ -67,13 +71,14 @@ export async function fetch(opts: { enrich: boolean } = { enrich: true }) {
 
 export async function enrichArrayContext(
   fields: any[],
-  inputs = {}
+  inputs = {},
+  opts: EnrichContextOpts = {}
 ): Promise<any[]> {
   const map: Record<string, any> = {}
   for (let index in fields) {
     map[index] = fields[index]
   }
-  const output = await enrichContext(map, inputs)
+  const output = await enrichContext(map, inputs, opts)
   const outputArray: any[] = []
   for (let [key, value] of Object.entries(output)) {
     outputArray[parseInt(key)] = value
@@ -83,14 +88,15 @@ export async function enrichArrayContext(
 
 export async function enrichContext(
   fields: Record<string, any>,
-  inputs = {}
+  inputs = {},
+  opts: EnrichContextOpts = {}
 ): Promise<Record<string, any>> {
   const enrichedQuery: Record<string, any> = {}
   if (!fields || !inputs) {
     return enrichedQuery
   }
   if (Array.isArray(fields)) {
-    return enrichArrayContext(fields, inputs)
+    return enrichArrayContext(fields, inputs, opts)
   }
   const env = await getEnvironmentVariables()
   const parameters = { ...inputs, env }
@@ -101,13 +107,13 @@ export async function enrichContext(
     }
     if (typeof fields[key] === "object") {
       // enrich nested fields object
-      enrichedQuery[key] = await enrichContext(fields[key], parameters)
+      enrichedQuery[key] = await enrichContext(fields[key], parameters, opts)
     } else if (typeof fields[key] === "string") {
       // enrich string value as normal
       enrichedQuery[key] = processStringSync(fields[key], parameters, {
         noEscaping: true,
         noHelpers: true,
-        escapeNewlines: true,
+        escapeNewlines: opts.escapeNewlines ?? true,
       })
     } else {
       enrichedQuery[key] = fields[key]
