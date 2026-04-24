@@ -91,12 +91,16 @@ export async function enrichContext(
   inputs = {},
   opts: EnrichContextOpts = {}
 ): Promise<Record<string, any>> {
+  const options: Required<EnrichContextOpts> = {
+    escapeNewlines: true,
+    ...opts,
+  }
   const enrichedQuery: Record<string, any> = {}
   if (!fields || !inputs) {
     return enrichedQuery
   }
   if (Array.isArray(fields)) {
-    return enrichArrayContext(fields, inputs, opts)
+    return enrichArrayContext(fields, inputs, options)
   }
   const env = await getEnvironmentVariables()
   const parameters = { ...inputs, env }
@@ -107,13 +111,13 @@ export async function enrichContext(
     }
     if (typeof fields[key] === "object") {
       // enrich nested fields object
-      enrichedQuery[key] = await enrichContext(fields[key], parameters, opts)
+      enrichedQuery[key] = await enrichContext(fields[key], parameters, options)
     } else if (typeof fields[key] === "string") {
       // enrich string value as normal
       enrichedQuery[key] = processStringSync(fields[key], parameters, {
         noEscaping: true,
         noHelpers: true,
-        escapeNewlines: opts.escapeNewlines ?? true,
+        escapeNewlines: options.escapeNewlines,
       })
     } else {
       enrichedQuery[key] = fields[key]
