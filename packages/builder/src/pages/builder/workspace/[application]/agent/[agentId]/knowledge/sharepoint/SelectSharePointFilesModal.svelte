@@ -15,6 +15,7 @@
   import { agentsStore, selectedAgent } from "@/stores/portal"
   import SharePointEntryTreeItem from "./tree/SharePointEntryTreeItem.svelte"
   import {
+    buildFileDescendantPathsByNodePath,
     buildEntryTreeFromSourceEntries,
     buildPatternsFromSelection,
     flattenNodesByPath,
@@ -61,6 +62,9 @@
   const entryTree = $derived(buildEntryTreeFromSourceEntries(allEntries))
   const selectionTree = $derived(wrapSelectionTreeWithSiteRoot(entryTree))
   const selectionNodeByPath = $derived(flattenNodesByPath(selectionTree))
+  const fileDescendantPathsByNodePath = $derived(
+    buildFileDescendantPathsByNodePath(selectionTree)
+  )
   const selectablePaths = $derived.by(() =>
     Array.from(selectionNodeByPath.values())
       .filter(node => node.type === "file")
@@ -204,6 +208,7 @@
               selectable
               {node}
               selectedPaths={selectedEntryPaths}
+              {fileDescendantPathsByNodePath}
               onTogglePaths={toggleEntryPaths}
               showStatus={false}
             />

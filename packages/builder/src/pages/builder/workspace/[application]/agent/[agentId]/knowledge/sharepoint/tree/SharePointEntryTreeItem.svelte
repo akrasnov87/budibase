@@ -8,6 +8,7 @@
     selectable?: boolean
     node: SharePointEntryTreeNode
     selectedPaths?: string[]
+    fileDescendantPathsByNodePath?: Map<string, string[]>
     onTogglePaths?: (_paths: string[], _nextSelected: boolean) => void
     showStatus?: boolean
   }
@@ -16,19 +17,10 @@
     selectable,
     node,
     selectedPaths,
+    fileDescendantPathsByNodePath,
     onTogglePaths,
     showStatus = true,
   }: Props = $props()
-
-  const collectPaths = (node: SharePointEntryTreeNode): string[] => {
-    return [node.path, ...node.children.flatMap(child => collectPaths(child))]
-  }
-
-  const collectNodes = (
-    node: SharePointEntryTreeNode
-  ): SharePointEntryTreeNode[] => {
-    return [node, ...node.children.flatMap(child => collectNodes(child))]
-  }
 
   const getSharePointStatusText = (
     status?: SharePointEntryTreeNode["status"]
@@ -59,18 +51,12 @@
   }
 
   let hasChildren = $derived(node.children.length > 0)
-  let allNodes = $derived(collectNodes(node))
-  let nodeByPath = $derived(
-    new Map(allNodes.map(current => [current.path, current] as const))
-  )
-  let nodePaths = $derived(collectPaths(node))
-  let childPaths = $derived(nodePaths.slice(1))
   let selectedSet = $derived(new Set(selectedPaths))
   let targetPaths = $derived.by(() => {
     if (node.type === "file") {
       return [node.path]
     }
-    return childPaths.filter(path => nodeByPath.get(path)?.type === "file")
+    return fileDescendantPathsByNodePath?.get(node.path) || []
   })
   let selected = $derived.by(() => {
     if (targetPaths.length === 0) {
@@ -127,6 +113,7 @@
           {selectable}
           node={child}
           {selectedPaths}
+          {fileDescendantPathsByNodePath}
           {onTogglePaths}
           {showStatus}
         />

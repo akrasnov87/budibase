@@ -244,6 +244,30 @@ export const flattenNodesByPath = (
   return byPath
 }
 
+export const buildFileDescendantPathsByNodePath = (
+  nodes: SharePointEntryTreeNode[]
+): Map<string, string[]> => {
+  const byPath = new Map<string, string[]>()
+
+  const collect = (node: SharePointEntryTreeNode): string[] => {
+    if (node.type === "file") {
+      const ownPath = [node.path]
+      byPath.set(node.path, ownPath)
+      return ownPath
+    }
+
+    const descendantFilePaths = node.children.flatMap(child => collect(child))
+    byPath.set(node.path, descendantFilePaths)
+    return descendantFilePaths
+  }
+
+  for (const node of nodes) {
+    collect(node)
+  }
+
+  return byPath
+}
+
 export const buildPatternsFromSelection = (
   selectedEntryPaths: string[],
   selectablePaths: string[],
