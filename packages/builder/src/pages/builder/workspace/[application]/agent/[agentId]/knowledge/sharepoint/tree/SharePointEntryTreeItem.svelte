@@ -156,7 +156,6 @@
       >
         <div class="error-header">
           <Body size="S">The file failed to sync with this error:</Body>
-
           <Icon name="copy" size="S" hoverable on:click={copy} />
         </div>
         <pre class="error-detail">{node.errorMessage}</pre>
@@ -180,6 +179,7 @@
     border: 1px solid var(--spectrum-global-color-gray-300);
     border-radius: 6px;
     padding: var(--spacing-m);
+    margin: 0;
     font-size: 12px;
     line-height: 1.4;
   }
