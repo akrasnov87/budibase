@@ -109,12 +109,20 @@ export const retryKnowledgeBaseFileIngestion = async (fileId: string) => {
   file.processedAt = undefined
   await updateKnowledgeBaseFile(file)
 
-  await enqueueRagFileIngestion({
-    workspaceId,
-    knowledgeBaseId: file.knowledgeBaseId,
-    fileId,
-    objectStoreKey: file.objectStoreKey,
-  })
+  try {
+    await enqueueRagFileIngestion({
+      workspaceId,
+      knowledgeBaseId: file.knowledgeBaseId,
+      fileId,
+      objectStoreKey: file.objectStoreKey,
+    })
 
-  return file
+    return file
+  } catch (error: any) {
+    file.status = KnowledgeBaseFileStatus.FAILED
+    file.errorMessage =
+      error?.message || "Failed to requeue knowledge base file ingestion"
+    await updateKnowledgeBaseFile(file)
+    throw error
+  }
 }
