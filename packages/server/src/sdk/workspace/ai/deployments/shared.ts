@@ -55,7 +55,7 @@ const ensureAgentOnChatApp = async (
 
   const updatedAgents = normalizeDefaultAgent([
     ...existingAgents,
-    { agentId, isEnabled, isDefault: false },
+    { agentId, isEnabled: isEnabled === true, isDefault: false },
   ])
 
   return await chatApps.update({ ...chatApp, agents: updatedAgents })

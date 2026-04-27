@@ -1,5 +1,9 @@
 import { context, docIds, features, roles } from "@budibase/backend-core"
-import { AgentChannelProvider, DocumentType, FeatureFlag } from "@budibase/types"
+import {
+  AgentChannelProvider,
+  DocumentType,
+  FeatureFlag,
+} from "@budibase/types"
 import type {
   Agent,
   ChatApp,
