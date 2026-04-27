@@ -102,16 +102,16 @@
 
   const isActiveModal = () => isActiveOverlay(modalId)
 
-  function handleKey(e: KeyboardEvent): void {
+  async function handleKey(e: KeyboardEvent): Promise<void> {
     if (visible && e.key === "Escape" && isActiveModal()) {
       e.stopImmediatePropagation()
-      cancel(ModalCancelFrom.ESCAPE_KEY)
+      await cancel(ModalCancelFrom.ESCAPE_KEY)
     }
   }
 
-  function handleOutsideClick(): void {
+  async function handleOutsideClick(): Promise<void> {
     if (closeOnOutsideClick && isActiveModal()) {
-      cancel(ModalCancelFrom.OUTSIDE_CLICK)
+      await cancel(ModalCancelFrom.OUTSIDE_CLICK)
     }
   }
 
