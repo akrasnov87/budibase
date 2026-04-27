@@ -1,17 +1,17 @@
 <script lang="ts">
   import { Breadcrumbs, Breadcrumb } from "@/components/portal/page"
   import { bb } from "@/stores/bb"
-  import type { Route, MatchedRoute } from "@/types/routing"
+  import type { MatchedRoute } from "@/types/routing"
 
   export let matched: MatchedRoute | undefined
   export let locked: string | undefined
   export let resolveTitle: (
-    title: string | ((_path: string | undefined) => string) | undefined,
-    path: string | undefined
+    _title: string | ((_path: string | undefined) => string) | undefined,
+    _path: string | undefined
   ) => string | undefined
   export let resolvePathParams: (
-    path: string | undefined,
-    params: Record<string, string>
+    _path: string | undefined,
+    _params: Record<string, string>
   ) => string | undefined
 
   $: route = matched?.entry

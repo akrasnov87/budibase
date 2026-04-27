@@ -6,12 +6,12 @@
   export let stack: MatchedRoute[]
   export let currentRoute: MatchedRoute | undefined
   export let resolveTitle: (
-    title: string | ((_path: string | undefined) => string) | undefined,
-    path: string | undefined
+    _title: string | ((_path: string | undefined) => string) | undefined,
+    _path: string | undefined
   ) => string | undefined
   export let resolvePathParams: (
-    path: string | undefined,
-    params: Record<string, string>
+    _path: string | undefined,
+    _params: Record<string, string>
   ) => string | undefined
 </script>
 
