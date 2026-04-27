@@ -77,6 +77,7 @@
   import restUtils from "@/helpers/data/utils"
   import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
   import ConnectedQueryScreens from "./ConnectedQueryScreens.svelte"
+  import ConnectedQueryAutomations from "./ConnectedQueryAutomations.svelte"
   import RestBodyInput from "./RestBodyInput.svelte"
   import CodeEditor from "../common/CodeEditor/CodeEditor.svelte"
   import { EditorModes } from "../common/CodeEditor"
@@ -1058,6 +1059,11 @@
             icon={"link-simple-horizontal-break"}
             sourceId={editableQuery._id}
             buttonText="Usage"
+          />
+          <ConnectedQueryAutomations
+            icon={"path"}
+            sourceId={editableQuery._id}
+            buttonText="Automations"
           />
         {/if}
       </div>

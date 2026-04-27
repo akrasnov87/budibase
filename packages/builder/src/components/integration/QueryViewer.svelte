@@ -25,6 +25,7 @@
   import QueryViewerSavePromptModal from "./QueryViewerSavePromptModal.svelte"
   import { Utils } from "@budibase/frontend-core"
   import ConnectedQueryScreens from "./ConnectedQueryScreens.svelte"
+  import ConnectedQueryAutomations from "./ConnectedQueryAutomations.svelte"
   import { getErrorMessage } from "@/helpers/errors"
 
   $: goto = $gotoStore
@@ -174,6 +175,7 @@
       </div>
       <div class="controls">
         <ConnectedQueryScreens sourceId={query._id} />
+        <ConnectedQueryAutomations sourceId={query._id} />
         <ActionButton
           icon="play"
           disabled={loading}
