@@ -133,15 +133,6 @@ export const isTeamsMentionActivity = (activity?: MSTeamsActivity) => {
   )
 }
 
-const shouldShowTeamsProgress = ({
-  command,
-  content,
-}: {
-  command: SupportedChatCommand
-  content: string
-}) =>
-  command === ChatCommands.ASK || (command === ChatCommands.NEW && !!content)
-
 const createTeamsMessageHandler = ({
   workspaceId,
   chatAppId,
@@ -214,7 +205,9 @@ const createTeamsMessageHandler = ({
       externalUserId,
     }
 
-    const shouldShowProgress = shouldShowTeamsProgress({ command, content })
+    const shouldShowProgress =
+      command === ChatCommands.ASK ||
+      (command === ChatCommands.NEW && !!content)
     let progressMessage: SentMessage | undefined
     let hasUsedProgressMessage = false
     let delayTimer: ReturnType<typeof setTimeout> | undefined
