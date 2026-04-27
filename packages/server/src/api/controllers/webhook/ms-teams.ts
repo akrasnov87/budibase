@@ -7,7 +7,7 @@ import {
   type MSTeamsActivity,
   type MSTeamsConversationScope,
 } from "@budibase/types"
-import { Chat, type Thread, type Message } from "chat"
+import { Chat, type Thread, type Message, type SentMessage } from "chat"
 import { createTeamsAdapter } from "@chat-adapter/teams"
 import sdk from "../../../sdk"
 import { handleChatMessage } from "./chatHandler"
@@ -17,6 +17,11 @@ import { runChatWebhook } from "./runChatWebhook"
 
 const TEAMS_FALLBACK_ERROR_MESSAGE =
   "Sorry, something went wrong while processing your request."
+const TEAMS_PROCESSING_MESSAGE = "Got it. I'm working on it..."
+const TEAMS_DELAY_MESSAGE =
+  "Still working. This is taking a little longer than usual..."
+const TEAMS_DELAY_MS = 10_000
+const TEAMS_STREAMING_UPDATE_INTERVAL_MS = 750
 
 export const stripTeamsMentions = (
   text: string,
@@ -128,6 +133,14 @@ export const isTeamsMentionActivity = (activity?: MSTeamsActivity) => {
   )
 }
 
+const shouldShowTeamsProgress = ({
+  command,
+  content,
+}: {
+  command: SupportedChatCommand
+  content: string
+}) => command === ChatCommands.ASK || (command === ChatCommands.NEW && !!content)
+
 const createTeamsMessageHandler = ({
   workspaceId,
   chatAppId,
@@ -200,13 +213,61 @@ const createTeamsMessageHandler = ({
       externalUserId,
     }
 
+    const shouldShowProgress = shouldShowTeamsProgress({ command, content })
+    let progressMessage: SentMessage | undefined
+    let hasUsedProgressMessage = false
+    let delayTimer: ReturnType<typeof setTimeout> | undefined
+    let delayUpdateInFlight: Promise<void> | undefined
+
+    const clearDelayTimer = () => {
+      if (delayTimer) {
+        clearTimeout(delayTimer)
+        delayTimer = undefined
+      }
+    }
+
+    const editOrPost = async (text: string) => {
+      if (progressMessage && !hasUsedProgressMessage) {
+        clearDelayTimer()
+        await delayUpdateInFlight
+        hasUsedProgressMessage = true
+        progressMessage = await progressMessage.edit(text)
+        return
+      }
+      await thread.post(text)
+    }
+
     try {
       await thread.subscribe()
+
+      if (shouldShowProgress) {
+        const typingThread = thread as Thread & {
+          startTyping?: () => Promise<void>
+        }
+        await typingThread.startTyping?.()
+        progressMessage = await thread.post(TEAMS_PROCESSING_MESSAGE)
+        delayTimer = setTimeout(() => {
+          if (!progressMessage || hasUsedProgressMessage) {
+            return
+          }
+          delayUpdateInFlight = progressMessage
+            .edit(TEAMS_DELAY_MESSAGE)
+            .then(updatedMessage => {
+              progressMessage = updatedMessage
+            })
+            .catch(error => {
+              console.error("Teams progress update failed", error)
+            })
+        }, TEAMS_DELAY_MS)
+      }
 
       await handleChatMessage({
         reply: async (text: string) => {
           const chunks = splitTeamsMessage(text)
-          for (const chunk of chunks) {
+          const firstChunk = chunks[0] || "No response generated."
+          const remainingChunks = chunks.slice(1)
+          await editOrPost(firstChunk)
+          for (const chunk of remainingChunks) {
             await thread.post(chunk)
           }
         },
@@ -248,7 +309,9 @@ const createTeamsMessageHandler = ({
         error instanceof HTTPError
           ? error.message
           : TEAMS_FALLBACK_ERROR_MESSAGE
-      await thread.post(msg)
+      await editOrPost(msg)
+    } finally {
+      clearDelayTimer()
     }
   }
 }
@@ -288,6 +351,8 @@ export async function MSTeamsWebhook(
         },
         state: await getTeamsState(),
         logger: "silent",
+        fallbackStreamingPlaceholderText: TEAMS_PROCESSING_MESSAGE,
+        streamingUpdateIntervalMs: TEAMS_STREAMING_UPDATE_INTERVAL_MS,
       })
 
       const handler = createTeamsMessageHandler({

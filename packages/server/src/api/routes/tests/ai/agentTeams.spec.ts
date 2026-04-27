@@ -6,6 +6,7 @@ interface MockWebhookChatPayload {
 }
 
 interface ChatMockModule {
+  getMockChatOptions: () => Record<string, unknown>[]
   resetMockChatState: () => void
   setMockPostEphemeralResult: (
     provider: "slack" | "teams",
@@ -52,9 +53,11 @@ import {
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { webhookChat } from "../../../controllers/ai/chatConversations"
 
-const { resetMockChatState, setMockPostEphemeralResult } = jest.requireActual(
-  "chat"
-) as ChatMockModule
+const {
+  getMockChatOptions,
+  resetMockChatState,
+  setMockPostEphemeralResult,
+} = jest.requireActual("chat") as ChatMockModule
 const mockedWebhookChat = webhookChat as jest.MockedFunction<typeof webhookChat>
 
 const extractLinkUrl = (messages: string[]) => {
@@ -329,7 +332,14 @@ describe("agent teams integration provisioning", () => {
         },
       })
 
-      expect(response.body.messages).toContain("Mock assistant response")
+      expect(response.body.messages).toEqual(["Mock assistant response"])
+      const chatOptions = getMockChatOptions()
+      expect(chatOptions[chatOptions.length - 1]).toEqual(
+        expect.objectContaining({
+          fallbackStreamingPlaceholderText: "Got it. I'm working on it...",
+          streamingUpdateIntervalMs: 750,
+        })
+      )
       expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
       const firstPart =
         mockedWebhookChat.mock.calls[0]?.[0].chat.messages[0]?.parts[0]
