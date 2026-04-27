@@ -66,6 +66,9 @@
   )
 
   const openErrorModal = (event: MouseEvent | KeyboardEvent) => {
+    if (!hasError) {
+      return
+    }
     event.preventDefault()
     event.stopPropagation()
     errorModal?.show()
@@ -120,14 +123,11 @@
     open={hasChildren}
     {hasChildren}
     on:select={handleSelect}
+    on:click={openErrorModal}
   >
     <svelte:fragment slot="post">
       {#if showStatus && node.type === "file" && getSharePointStatusText(node.status)}
-        <StatusLight
-          size="S"
-          {...getSharePointStatusLightProps(node.status)}
-          on:click={openErrorModal}
-        >
+        <StatusLight size="S" {...getSharePointStatusLightProps(node.status)}>
           {getSharePointStatusText(node.status)}
         </StatusLight>
       {/if}
