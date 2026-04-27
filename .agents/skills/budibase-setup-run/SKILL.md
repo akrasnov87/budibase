@@ -1,6 +1,6 @@
 ---
 name: budibase-setup-run
-description: Set up, bootstrap, run, and troubleshoot the Budibase monorepo for local development and automated VM environments. Use when an AI coding agent or developer needs to install prerequisites, clone Budibase, run yarn setup/build/dev/dev:agent, start or verify the local dev stack, log in locally, run package tests, reset Docker-backed data, or explain Budibase development ports and services.
+description: Set up, bootstrap, run, and troubleshoot the Budibase monorepo for local development and automated VM environments. Use when an AI coding agent or developer needs to install prerequisites, clone Budibase, run yarn setup/build/dev/dev:agent, start or verify the local dev stack, log in locally, run package tests, or explain Budibase development ports and services.
 ---
 
 # Budibase Setup Run
@@ -180,13 +180,6 @@ yarn mode:cloud
 yarn mode:account
 ```
 
-Clear all local Budibase Docker data and restart:
-
-```bash
-yarn nuke:docker
-yarn dev
-```
-
 ## Troubleshooting
 
 If Docker commands fail, ensure Docker Desktop or the Docker daemon is running before rerunning setup.
@@ -197,16 +190,10 @@ If ports are stale, run:
 yarn kill-all
 ```
 
-If dependencies or builds look corrupt, use the lighter reset first:
+If dependencies or build outputs look corrupt, rebuild without deleting Docker-backed data:
 
 ```bash
 yarn restore
-```
-
-Use the full reset only when needed because it removes package installs and Docker-backed development data:
-
-```bash
-yarn nuke
 ```
 
 If the user is in a cloud VM with nested Docker, Docker may need to be started manually and the socket made accessible before `yarn dev`:
