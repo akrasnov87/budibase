@@ -120,11 +120,14 @@
     open={hasChildren}
     {hasChildren}
     on:select={handleSelect}
-    on:click={openErrorModal}
   >
     <svelte:fragment slot="post">
       {#if showStatus && node.type === "file" && getSharePointStatusText(node.status)}
-        <StatusLight size="S" {...getSharePointStatusLightProps(node.status)}>
+        <StatusLight
+          size="S"
+          {...getSharePointStatusLightProps(node.status)}
+          on:click={openErrorModal}
+        >
           {getSharePointStatusText(node.status)}
         </StatusLight>
       {/if}
