@@ -66,6 +66,9 @@
   )
 
   const openErrorModal = (event: MouseEvent | KeyboardEvent) => {
+    if (!hasError) {
+      return
+    }
     event.preventDefault()
     event.stopPropagation()
     errorModal?.show()
