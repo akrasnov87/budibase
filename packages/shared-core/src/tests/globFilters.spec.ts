@@ -22,6 +22,25 @@ describe("globFilters", () => {
     ).toBe(false)
   })
 
+  it("matches slashless patterns against nested file basenames", () => {
+    expect(matchesConfiguredPatterns("folder/sub/file.tmp", ["*.tmp"])).toBe(
+      true
+    )
+    expect(matchesConfiguredPatterns("file.tmp", ["*.tmp"])).toBe(true)
+    expect(matchesConfiguredPatterns("folder/sub/file.txt", ["*.tmp"])).toBe(
+      false
+    )
+  })
+
+  it("applies slashless negated patterns to nested file basenames", () => {
+    expect(
+      matchesConfiguredPatterns("folder/sub/file.tmp", ["!**", "!*.tmp"])
+    ).toBe(false)
+    expect(
+      matchesConfiguredPatterns("folder/sub/file.txt", ["!**", "*.txt"])
+    ).toBe(true)
+  })
+
   it("does not normalize case or separators", () => {
     expect(matchesConfiguredPatterns("Folder/File.TXT", ["folder/**"])).toBe(
       false

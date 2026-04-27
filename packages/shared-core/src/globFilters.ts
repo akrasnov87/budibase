@@ -1,6 +1,7 @@
 import { minimatch } from "minimatch"
 
 export const EXCLUDE_ALL_PATTERN = "!**"
+const MATCH_OPTIONS = { matchBase: true } as const
 
 export const matchesConfiguredPatterns = (path: string, patterns: string[]) => {
   if (!patterns.length) {
@@ -19,7 +20,7 @@ export const matchesConfiguredPatterns = (path: string, patterns: string[]) => {
     if (!body) {
       continue
     }
-    if (minimatch(candidatePath, body)) {
+    if (minimatch(candidatePath, body, MATCH_OPTIONS)) {
       included = !isNegated
     }
   }
