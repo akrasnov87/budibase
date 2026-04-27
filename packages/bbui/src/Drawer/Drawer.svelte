@@ -64,8 +64,8 @@
   import Button from "../Button/Button.svelte"
   import Icon from "../Icon/Icon.svelte"
   import {
-    pushOverlay,
-    popOverlay,
+    addOverlay,
+    removeOverlay,
     overlayStack,
     BASE_Z_INDEX,
   } from "../Modal/overlayStack"
@@ -117,7 +117,7 @@
     visible = true
     dispatch("drawerShow", drawerId)
     openDrawers.update(state => [...state, drawerId])
-    pushOverlay(drawerId)
+    addOverlay(drawerId)
   }
 
   export function hide() {
@@ -127,7 +127,7 @@
     visible = false
     dispatch("drawerHide", drawerId)
     openDrawers.update(state => state.filter(id => id !== drawerId))
-    popOverlay(drawerId)
+    removeOverlay(drawerId)
     unobserve()
   }
 

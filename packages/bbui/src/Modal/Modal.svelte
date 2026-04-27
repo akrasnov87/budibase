@@ -26,8 +26,8 @@
   import {
     BASE_Z_INDEX,
     overlayStack,
-    pushOverlay,
-    popOverlay,
+    addOverlay,
+    removeOverlay,
     isActiveOverlay,
   } from "./overlayStack"
 
@@ -69,7 +69,7 @@
       return
     }
     visible = true
-    pushOverlay(modalId)
+    addOverlay(modalId)
   }
 
   export function hide(): void {
@@ -77,7 +77,7 @@
       return
     }
     visible = false
-    popOverlay(modalId)
+    removeOverlay(modalId)
   }
 
   export function toggle(): void {
@@ -151,7 +151,7 @@
 
   onDestroy(() => {
     if (visible) {
-      popOverlay(modalId)
+      removeOverlay(modalId)
     }
   })
 </script>

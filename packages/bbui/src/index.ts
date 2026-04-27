@@ -71,8 +71,8 @@ export { default as MenuSeparator } from "./Menu/Separator.svelte"
 export { default as Modal, type ModalAPI } from "./Modal/Modal.svelte"
 export { keepOpen, default as ModalContent } from "./Modal/ModalContent.svelte"
 export {
-  pushOverlay,
-  popOverlay,
+  addOverlay,
+  removeOverlay,
   isActiveOverlay,
   overlayStack,
   BASE_Z_INDEX,

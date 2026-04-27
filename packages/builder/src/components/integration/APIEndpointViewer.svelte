@@ -108,7 +108,7 @@
     }
   }
 
-  let _activeDatasourceId: string | undefined = datasourceId
+  let activeDatasourceId: string | undefined = datasourceId
   let connectionSelectRef: ConnectionSelect
   let panelZIndex: number = 1001
 
@@ -141,7 +141,7 @@
   // ── DATASOURCE / MODE ────────────────────────────────────────────────────
   $: selectedDatasourceId =
     datasourceId ||
-    _activeDatasourceId ||
+    activeDatasourceId ||
     $workspaceConnections.draft?.query?.datasourceId
   $: datasource = structuredClone(
     $datasources.list.find(
@@ -151,14 +151,14 @@
   $: isCustomMode = !hasRestTemplate(datasource)
 
   // ── QUERY INITIALISATION ─────────────────────────────────────────────────
-  $: if (!datasourceId && queryId && !_activeDatasourceId) {
+  $: if (!datasourceId && queryId && !activeDatasourceId) {
     const dsId = $queries.list.find(q => q._id === queryId)?.datasourceId
-    if (dsId) _activeDatasourceId = dsId
+    if (dsId) activeDatasourceId = dsId
   }
 
   $: storeQuery =
     queryId &&
-    _activeDatasourceId ===
+    activeDatasourceId ===
       $queries.list.find(q => q._id === queryId)?.datasourceId
       ? resolveStoreQuery($queries.list, queryId, undefined)
       : resolveStoreQuery($queries.list, undefined, selectedDatasourceId)
@@ -681,9 +681,9 @@
     } = e.detail
     selectedAuth = true
     const datasourceChanged =
-      newDatasourceId && newDatasourceId !== _activeDatasourceId
+      newDatasourceId && newDatasourceId !== activeDatasourceId
     if (datasourceChanged) {
-      _activeDatasourceId = newDatasourceId
+      activeDatasourceId = newDatasourceId
     }
     if (isNewQuery && datasourceChanged) {
       const newQuery = getSelectedQuery("", newDatasourceId) as Query

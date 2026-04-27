@@ -8,8 +8,8 @@
     ActionButton,
     Icon,
     Divider,
-    pushOverlay,
-    popOverlay,
+    addOverlay,
+    removeOverlay,
     overlayStack,
     BASE_Z_INDEX,
     isActiveOverlay,
@@ -41,10 +41,10 @@
 
   $effect(() => {
     if (expanded) {
-      pushOverlay(overlayId)
+      addOverlay(overlayId)
       tick().then(() => popoverPortalOverride.set(expandedContentEl))
     } else {
-      popOverlay(overlayId)
+      removeOverlay(overlayId)
       popoverPortalOverride.set(undefined)
     }
   })
@@ -143,7 +143,7 @@
   }
 
   onDestroy(() => {
-    popOverlay(overlayId)
+    removeOverlay(overlayId)
     document.removeEventListener("keydown", handleKey)
   })
 

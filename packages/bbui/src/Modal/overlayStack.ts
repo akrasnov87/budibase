@@ -3,11 +3,11 @@ import { writable } from "svelte/store"
 export const BASE_Z_INDEX = 1001
 export const overlayStack = writable<string[]>([])
 
-export const pushOverlay = (id: string) => {
+export const addOverlay = (id: string) => {
   overlayStack.update(stack => [...stack, id])
 }
 
-export const popOverlay = (id: string) => {
+export const removeOverlay = (id: string) => {
   overlayStack.update(stack => stack.filter(s => s !== id))
 }
 
