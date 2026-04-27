@@ -21,6 +21,8 @@
   export let options: O[] = []
   export let getOptionLabel = (option: O) => `${option}`
   export let getOptionValue = (option: O) => `${option}`
+  export let popoverAutoWidth = false
+  export let wrapText = false
 
   const dispatch = createEventDispatcher<{
     change: string
@@ -66,6 +68,7 @@
     dispatch("pick", value)
     selectOption(value)
   }
+
 </script>
 
 <div
@@ -112,10 +115,15 @@
   {open}
   align={PopoverAlignment.Left}
   on:close={() => (open = false)}
-  useAnchorWidth
+  useAnchorWidth={!popoverAutoWidth}
+  minAnchorWidth={popoverAutoWidth}
+  maxWidth={popoverAutoWidth ? 400 : undefined}
+  closeOnScroll
 >
   <div
     class="popover-content"
+    class:auto-width={popoverAutoWidth}
+    class:wrap-text={wrapText}
     use:clickOutside={() => {
       open = false
     }}
@@ -174,6 +182,25 @@
   }
   .popover-content:not(.auto-width) .spectrum-Menu-itemLabel {
     width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .popover-content.auto-width .spectrum-Menu-item {
+    padding-right: var(--spacing-xl);
+  }
+  .popover-content.wrap-text .spectrum-Menu-item {
+    height: auto;
+    min-height: var(--spectrum-menu-item-height);
+    align-items: flex-start;
+  }
+  .popover-content.wrap-text .spectrum-Menu-itemLabel {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+    overflow-wrap: anywhere;
+    width: auto;
     flex: 1 1 auto;
   }
 </style>

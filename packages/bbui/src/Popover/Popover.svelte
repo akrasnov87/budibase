@@ -23,6 +23,7 @@
     PopoverAlignment.Right
   export let portalTarget: string | undefined = undefined
   export let minWidth: number | undefined = undefined
+  export let minAnchorWidth = false
   export let maxWidth: number | undefined = undefined
   export let maxHeight: number | undefined = undefined
   export let borderRadius: string | undefined = undefined
@@ -38,6 +39,7 @@
   export let clickOutsideOverride = false
   export let resizable = true
   export let wrap = false
+  export let closeOnScroll = false
 
   const dispatch = createEventDispatcher<{ open: void; close: void }>()
   const animationDuration = 260
@@ -127,11 +129,13 @@
         maxHeight,
         maxWidth,
         minWidth,
+        minAnchorWidth,
         useAnchorWidth,
         offset,
         customUpdate: handlePositionUpdate,
         resizable,
         wrap,
+        onScroll: closeOnScroll ? hide : undefined,
       }}
       use:clickOutside={{
         callback: dismissible ? handleOutsideClick : () => {},

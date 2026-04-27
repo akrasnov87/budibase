@@ -31,11 +31,13 @@ interface Opts {
   maxHeight?: number
   maxWidth?: number
   minWidth?: number
+  minAnchorWidth?: boolean
   useAnchorWidth: boolean
   offset: number
   customUpdate?: UpdateHandler
   resizable: boolean
   wrap: boolean
+  onScroll?: () => void
 }
 
 export default function positionDropdown(element: HTMLElement, opts: Opts) {
@@ -44,7 +46,16 @@ export default function positionDropdown(element: HTMLElement, opts: Opts) {
 
   // We need a static reference to this function so that we can properly
   // clean up the scroll listener.
-  const scrollUpdate = () => updatePosition(latestOpts)
+  const scrollUpdate = (event: Event) => {
+    if (event.target instanceof Node && element.contains(event.target)) {
+      return
+    }
+    if (latestOpts.onScroll) {
+      latestOpts.onScroll()
+      return
+    }
+    updatePosition(latestOpts)
+  }
 
   // Updates the position of the dropdown
   const updatePosition = (opts: Opts) => {
@@ -54,6 +65,7 @@ export default function positionDropdown(element: HTMLElement, opts: Opts) {
       maxHeight,
       maxWidth,
       minWidth,
+      minAnchorWidth,
       useAnchorWidth,
       offset = 5,
       customUpdate,
@@ -72,7 +84,7 @@ export default function positionDropdown(element: HTMLElement, opts: Opts) {
     const screenOffset = 8
     let styles: Styles = {
       maxHeight,
-      minWidth: useAnchorWidth ? anchorBounds.width : minWidth,
+      minWidth: useAnchorWidth || minAnchorWidth ? anchorBounds.width : minWidth,
       maxWidth: useAnchorWidth ? anchorBounds.width : maxWidth,
       left: 0,
       top: 0,
