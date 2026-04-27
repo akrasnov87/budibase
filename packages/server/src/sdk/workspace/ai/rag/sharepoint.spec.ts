@@ -104,6 +104,7 @@ const makeSharePointFile = ({
   driveId,
   itemId,
   path,
+  status = KnowledgeBaseFileStatus.READY,
 }: {
   id: string
   sourceId: string
@@ -111,6 +112,7 @@ const makeSharePointFile = ({
   driveId: string
   itemId: string
   path: string
+  status?: KnowledgeBaseFileStatus
 }): KnowledgeBaseFile =>
   ({
     _id: id,
@@ -126,7 +128,7 @@ const makeSharePointFile = ({
     filename: "file.txt",
     objectStoreKey: `key-${id}`,
     ragSourceId: `rag-${id}`,
-    status: KnowledgeBaseFileStatus.READY,
+    status,
     uploadedBy: "sharepoint",
   }) satisfies KnowledgeBaseFile
 
@@ -415,6 +417,82 @@ describe("rag/sharepoint sync deduplication", () => {
       failed: 0,
       unsupported: 0,
       totalDiscovered: 2,
+    })
+  })
+
+  it("retries files that previously failed ingestion", async () => {
+    const sourceId = "sharepoint_source_1"
+    const siteId = "site-1"
+
+    mockAgentsGetOrThrow.mockResolvedValue(
+      makeSharePointAgent(sourceId, siteId)
+    )
+
+    mockKnowledgeBaseListFiles.mockResolvedValue([
+      makeSharePointFile({
+        id: "existing_failed",
+        sourceId,
+        siteId,
+        driveId: "drive-a",
+        itemId: "item-1",
+        path: "failed.txt",
+        status: KnowledgeBaseFileStatus.FAILED,
+      }),
+    ])
+
+    const fetchMock = createFetchMock([
+      {
+        match: `/sites/${encodeURIComponent(siteId)}/drives`,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            value: [{ id: "drive-a" }],
+          }),
+        } as Response,
+      },
+      {
+        match: "/drives/drive-a/root/children",
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            value: [
+              {
+                id: "item-1",
+                name: "failed.txt",
+                file: { mimeType: "text/plain" },
+              },
+            ],
+          }),
+        } as Response,
+      },
+      {
+        match: "/drives/drive-a/items/item-1/content",
+        response: {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () => toArrayBuffer("retry content"),
+        } as Response,
+      },
+    ])
+
+    const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
+
+    expect(fetchMock).toHaveBeenCalled()
+    expect(mockDeleteFileForAgent).toHaveBeenCalledTimes(1)
+    expect(mockDeleteFileForAgent).toHaveBeenCalledWith(
+      "agent_1",
+      "existing_failed"
+    )
+    expect(mockKnowledgeBaseUploadFile).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({
+      agentId: "agent_1",
+      synced: 1,
+      alreadySynced: 0,
+      failed: 0,
+      unsupported: 0,
+      totalDiscovered: 1,
     })
   })
 })
