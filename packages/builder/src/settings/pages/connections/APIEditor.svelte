@@ -584,8 +584,12 @@
       cancelText: "Discard and continue",
       size: "M",
       onConfirm: async () => {
-        await onSave()
-        return true
+        try {
+          await onSave()
+          return true
+        } catch {
+          return false
+        }
       },
       onCancel: () => true,
       onClose: () => false,
@@ -624,7 +628,16 @@
           {/if}
         {/if}
         {#if $bb.settings.locked && saveDisabled}
-          <Button secondary size="M" on:click={bb.clearSettings}>Close</Button>
+          <Button
+            secondary
+            size="M"
+            on:click={async () => {
+              const ok = await confirmIfDirty()
+              if (ok) bb.clearSettings()
+            }}
+          >
+            Close
+          </Button>
         {:else}
           <Button size="M" disabled={saveDisabled} on:click={onSave} cta>
             {hasDraft && isNewConnection ? "Save and close" : "Save"}

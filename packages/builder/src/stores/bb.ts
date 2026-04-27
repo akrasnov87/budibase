@@ -26,6 +26,7 @@ export interface Settings {
   open: boolean
   route?: MatchedRoute
   locked?: SettingsLocked
+  subtreeStack?: MatchedRoute[]
 }
 
 export interface BBState {
@@ -68,10 +69,46 @@ export class BBStore extends BudiStore<BBState> {
     this.store.set({ ...INITIAL_GLOBAL_STATE })
   }
 
+  private subtreeNavigate(matchedRoute: MatchedRoute) {
+    const currentState = get(this.store).settings
+    const currentRoute = currentState.route
+    const stack = currentState.subtreeStack ?? []
+
+    // Navigating back - pop to it
+    const existingIdx = stack.findIndex(
+      r => r.entry.path === matchedRoute.entry.path
+    )
+    if (existingIdx !== -1) {
+      const restored = stack[existingIdx]
+      this.update(state => ({
+        ...state,
+        settings: {
+          ...state.settings,
+          route: restored,
+          subtreeStack: stack.slice(0, existingIdx),
+          open: true,
+        },
+      }))
+      return
+    }
+
+    // Navigating forward
+    const newStack = currentRoute ? [...stack, currentRoute] : stack
+    this.update(state => ({
+      ...state,
+      settings: {
+        ...state.settings,
+        route: matchedRoute,
+        subtreeStack: newStack,
+        open: true,
+      },
+    }))
+  }
+
   settings(path?: string, { locked }: { locked?: SettingsLocked } = {}) {
     const currentState = get(this.store).settings
 
-    // blocks all navigation when locked
+    // blocks all navigation when self-locked
     if (currentState.locked === "self" && locked === undefined) {
       return
     }
@@ -88,24 +125,38 @@ export class BBStore extends BudiStore<BBState> {
     }
 
     const matchedRoute = settingsRouteResolver?.(path)
-    if (matchedRoute) {
-      if (currentState.locked === "subtree" && locked === undefined) {
-        const currentSection = currentState.route?.entry?.section
-        if (currentSection && matchedRoute.entry.section !== currentSection) {
-          return
-        }
-      }
+    if (!matchedRoute) return
 
+    // Entering subtree mode — initialise with empty stack
+    if (locked === "subtree") {
       this.update(state => ({
         ...state,
         settings: {
           ...state.settings,
           route: matchedRoute,
-          locked: locked ?? currentState.locked,
+          locked: "subtree",
+          subtreeStack: [],
           open: true,
         },
       }))
+      return
     }
+
+    // Already in subtree mode — push/pop the stack
+    if (currentState.locked === "subtree") {
+      this.subtreeNavigate(matchedRoute)
+      return
+    }
+
+    this.update(state => ({
+      ...state,
+      settings: {
+        ...state.settings,
+        route: matchedRoute,
+        locked: locked ?? currentState.locked,
+        open: true,
+      },
+    }))
   }
 
   clearSettings() {

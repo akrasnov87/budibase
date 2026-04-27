@@ -176,6 +176,7 @@
             <APIEndpointViewer
               bind:this={apiViewer}
               saveAndClose={true}
+              settingsLocked={true}
               on:savedQuery={handleSavedQuery}
             />
           {:else}
@@ -183,6 +184,7 @@
               bind:this={apiViewer}
               datasourceId={dataSource?._id}
               queryId={query?._id}
+              settingsLocked={true}
             />
           {/if}
         </div>

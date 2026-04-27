@@ -998,7 +998,7 @@
           restTemplateId={datasource?.restTemplateId}
           datasourceId={selectedDatasourceId || storeQuery?.datasourceId}
           editText="Edit connection + auth"
-          settingsLocked
+          {settingsLocked}
           disabled={!isNewQuery}
           on:change={onConnectionChange}
         />

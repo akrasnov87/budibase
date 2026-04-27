@@ -76,8 +76,8 @@
         }
         if (isExpanded) {
           setTimeout(() => {
-            const target = document.querySelector(
-              ".expandable-panel-expanded .expandable-panel-content"
+            const target = expandedContentEl?.querySelector(
+              ".expandable-panel-content"
             )
             if (target && node.parentNode !== target) {
               target.appendChild(node)

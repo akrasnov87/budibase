@@ -28,14 +28,19 @@
   } satisfies UIWorkspaceConnection
 
   $: selected = $workspaceConnections.selected ?? newConnection
+  $: icon =
+    selected.icon ??
+    (template?.icon
+      ? { type: "asset" as const, value: template.icon }
+      : undefined)
 </script>
 
 {#if selected}
   <RouteCrumb>
-    {#if selected.icon?.type === "asset"}
-      <img src={selected.icon.value} height={16} width={16} alt="" />
-    {:else if selected.icon?.type === "icon"}
-      <Icon name={selected.icon.value} size="S" />
+    {#if icon?.type === "asset"}
+      <img src={icon.value} height={16} width={16} alt="" />
+    {:else if icon?.type === "icon"}
+      <Icon name={icon.value} size="S" />
     {/if}
     <span>{selected.name}</span>
   </RouteCrumb>

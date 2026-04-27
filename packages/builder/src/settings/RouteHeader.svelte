@@ -1,13 +1,15 @@
 <script lang="ts">
   import { Divider, Layout, StatusLight } from "@budibase/bbui"
-  import { Breadcrumbs, Breadcrumb } from "@/components/portal/page"
   import { bb } from "@/stores/bb"
   import NewPill from "@/components/common/NewPill.svelte"
+  import SubtreeCrumbs from "./components/SubtreeCrumbs.svelte"
+  import RouteCrumbs from "./components/RouteCrumbs.svelte"
 
   $: matched = $bb.settings.route
   $: route = matched?.entry
-  $: params = matched?.params || {}
   $: locked = $bb.settings.locked
+  $: hardLocked = locked === "self"
+  $: subtreeStack = $bb.settings.subtreeStack
 
   $: handleSectionClick = () => {
     if (route?.crumbs?.length) {
@@ -45,7 +47,7 @@
     <!-- svelte-ignore a11y-no-static-element-interactions -->
     <div
       class="section-header"
-      on:click={locked ? undefined : handleSectionClick}
+      on:click={hardLocked ? undefined : handleSectionClick}
     >
       {route?.section || ""}
     </div>
@@ -59,7 +61,7 @@
             class="nav-tab"
             class:match={nav.path === route.path}
             class:error={nav.error?.()}
-            on:click={locked ? undefined : () => bb.settings(nav.path)}
+            on:click={hardLocked ? undefined : () => bb.settings(nav.path)}
           >
             {resolveTitle(nav.title, nav.path)}
             {#if nav.error?.()}
@@ -82,29 +84,21 @@
     <Layout paddingX="L" paddingY="L">
       <div class="page-heading">
         <div class="crumbs">
-          <!-- Drill down -->
-          <Breadcrumbs>
-            {#if !route?.crumbs?.length}
-              <Breadcrumb text={route?.section} />
-            {:else}
-              {#each route?.crumbs || [] as crumb, idx}
-                {@const isLast = idx == (route?.crumbs?.length || 0) - 1}
-                {@const crumbPath = resolvePathParams(crumb.path, params)}
-                {#if isLast}
-                  <Breadcrumb>
-                    <div class="last-crumb-content">
-                      {resolveTitle(crumb.title, crumbPath)}
-                    </div>
-                  </Breadcrumb>
-                {:else}
-                  <Breadcrumb
-                    text={resolveTitle(crumb.title, crumbPath)}
-                    {...!locked && { onClick: () => bb.settings(crumbPath) }}
-                  />
-                {/if}
-              {/each}
-            {/if}
-          </Breadcrumbs>
+          {#if locked === "subtree"}
+            <SubtreeCrumbs
+              stack={subtreeStack || []}
+              currentRoute={matched}
+              {resolveTitle}
+              {resolvePathParams}
+            />
+          {:else}
+            <RouteCrumbs
+              {matched}
+              {locked}
+              {resolveTitle}
+              {resolvePathParams}
+            />
+          {/if}
         </div>
         <!-- Registered on the page itself -->
         <div class="page-actions no-padding"></div>

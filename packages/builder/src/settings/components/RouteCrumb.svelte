@@ -14,14 +14,12 @@
     const targetEl = document.querySelector(target)
     if (!targetEl || !container) return
 
-    const previousContent = targetEl.innerHTML
     targetEl.replaceChildren(container)
 
     return () => {
       if (container?.parentNode) {
         container.parentNode.removeChild(container)
       }
-      targetEl.innerHTML = previousContent
     }
   })
 </script>
