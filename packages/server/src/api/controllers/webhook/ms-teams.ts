@@ -132,11 +132,13 @@ const createTeamsMessageHandler = ({
   workspaceId,
   chatAppId,
   agentId,
+  channelEnabled,
   idleTimeoutMinutes,
 }: {
   workspaceId: string
   chatAppId: string
   agentId: string
+  channelEnabled: boolean
   idleTimeoutMinutes?: number
 }) => {
   return async (thread: Thread, message: Message) => {
@@ -154,8 +156,8 @@ const createTeamsMessageHandler = ({
     const conversationId = raw?.conversation?.id?.trim() || ""
     const threadId = thread.id
     const externalUserId =
-      raw?.from?.aadObjectId?.trim() ||
       raw?.from?.id?.trim() ||
+      raw?.from?.aadObjectId?.trim() ||
       message.author.userId
     const displayName = raw?.from?.name?.trim() || message.author.fullName
     const channelId = raw?.channelData?.channel?.id?.trim()
@@ -229,9 +231,13 @@ const createTeamsMessageHandler = ({
         chatAppId,
         agentId,
         provider: AgentChannelProvider.MSTEAMS,
+        channelEnabled,
         command,
         content,
-        user: { externalUserId, displayName },
+        user: {
+          externalUserId,
+          displayName,
+        },
         channel,
         scope,
         idleTimeoutMinutes,
@@ -258,13 +264,15 @@ export async function MSTeamsWebhook(
     ctx,
     providerName: "Teams",
     createWebhookHandler: async ({ workspaceId, chatAppId, agentId }) => {
-      const { integration, idleTimeoutMinutes } =
+      const { integration, idleTimeoutMinutes, channelEnabled } =
         await context.doInWorkspaceContext(workspaceId, async () => {
           const agent = await sdk.ai.agents.getOrThrow(agentId)
           return {
             integration:
               sdk.ai.deployments.MSTeams.validateMSTeamsIntegration(agent),
             idleTimeoutMinutes: agent.MSTeamsIntegration?.idleTimeoutMinutes,
+            channelEnabled:
+              !!agent.MSTeamsIntegration?.messagingEndpointUrl?.trim(),
           }
         })
 
@@ -286,6 +294,7 @@ export async function MSTeamsWebhook(
         workspaceId,
         chatAppId,
         agentId,
+        channelEnabled,
         idleTimeoutMinutes,
       })
       chat.onDirectMessage(async (thread, message) => {
