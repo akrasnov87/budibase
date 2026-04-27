@@ -599,13 +599,16 @@ const runSharePointSourcesForAgent = async (
               synced++
               retried++
             } catch (error) {
-              console.error("Failed to retry SharePoint file ingestion for agent", {
-                agentId,
-                siteId,
-                driveId,
-                itemId: file.itemId,
-                error,
-              })
+              console.error(
+                "Failed to retry SharePoint file ingestion for agent",
+                {
+                  agentId,
+                  siteId,
+                  driveId,
+                  itemId: file.itemId,
+                  error,
+                }
+              )
               failed++
             }
             continue
