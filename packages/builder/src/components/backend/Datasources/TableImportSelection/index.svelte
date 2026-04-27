@@ -59,7 +59,7 @@
         <InlineAlert
           type="error"
           header="Error fetching {tableType}"
-          message={$store.error.message}
+          message={$store.error.description ?? $store.error.message}
         />
       {/if}
     </Layout>
