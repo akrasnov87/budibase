@@ -227,14 +227,29 @@ const createTeamsMessageHandler = ({
       }
     }
 
-    const editOrPost = async (text: string) => {
-      if (progressMessage && !hasUsedProgressMessage) {
-        clearDelayTimer()
-        await delayUpdateInFlight
-        hasUsedProgressMessage = true
+    const editProgressMessage = async (text: string) => {
+      if (!progressMessage || hasUsedProgressMessage) {
+        return false
+      }
+
+      clearDelayTimer()
+      await delayUpdateInFlight
+      hasUsedProgressMessage = true
+
+      try {
         progressMessage = await progressMessage.edit(text)
+        return true
+      } catch (error) {
+        console.error("Teams progress final update failed", error)
+        return false
+      }
+    }
+
+    const editOrPost = async (text: string) => {
+      if (await editProgressMessage(text)) {
         return
       }
+
       await thread.post(text)
     }
 
@@ -245,7 +260,11 @@ const createTeamsMessageHandler = ({
         const typingThread = thread as Thread & {
           startTyping?: () => Promise<void>
         }
-        await typingThread.startTyping?.()
+        try {
+          await typingThread.startTyping?.()
+        } catch (error) {
+          console.error("Teams typing indicator failed", error)
+        }
         progressMessage = await thread.post(TEAMS_PROCESSING_MESSAGE)
         delayTimer = setTimeout(() => {
           if (!progressMessage || hasUsedProgressMessage) {
@@ -280,13 +299,17 @@ const createTeamsMessageHandler = ({
             linkUrl: prompt.linkUrl,
           })
           if (delivery.usedDirectMessageFallback) {
-            await thread.post("I sent you a DM with your Budibase link.")
+            await editOrPost("I sent you a DM with your Budibase link.")
             return
           }
           if (!delivery.delivered) {
-            await thread.post(
+            await editOrPost(
               "I couldn't send a private Budibase link. Please try again in a direct message."
             )
+            return
+          }
+          if (progressMessage && !hasUsedProgressMessage) {
+            await editOrPost("I sent you a private Budibase link.")
           }
         },
         workspaceId,
