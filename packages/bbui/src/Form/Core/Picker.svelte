@@ -280,8 +280,7 @@
   align={align || PopoverAlignment.Left}
   {open}
   on:close={() => (open = false)}
-  useAnchorWidth={!effectivePopoverAutoWidth}
-  minAnchorWidth={effectivePopoverAutoWidth}
+  widthMode={effectivePopoverAutoWidth ? "min-to-anchor" : "fixed-to-anchor"}
   maxWidth={effectivePopoverAutoWidth ? 400 : undefined}
   customHeight={customPopoverHeight}
   {maxHeight}

@@ -114,8 +114,7 @@
   {open}
   align={PopoverAlignment.Left}
   on:close={() => (open = false)}
-  useAnchorWidth={!popoverAutoWidth}
-  minAnchorWidth={popoverAutoWidth}
+  widthMode={popoverAutoWidth ? "min-to-anchor" : "fixed-to-anchor"}
   maxWidth={popoverAutoWidth ? 400 : undefined}
   closeOnScroll
 >

@@ -15,7 +15,7 @@
   import positionDropdown, {
     type UpdateHandler,
   } from "../Actions/positionDropdown"
-  import { PopoverAlignment } from "../constants"
+  import { PopoverAlignment, type PopoverWidthMode } from "../constants"
   import Context from "../context"
 
   export let anchor: HTMLElement | undefined
@@ -23,12 +23,11 @@
     PopoverAlignment.Right
   export let portalTarget: string | undefined = undefined
   export let minWidth: number | undefined = undefined
-  export let minAnchorWidth = false
   export let maxWidth: number | undefined = undefined
   export let maxHeight: number | undefined = undefined
   export let borderRadius: string | undefined = undefined
   export let open = false
-  export let useAnchorWidth = false
+  export let widthMode: PopoverWidthMode = "no-anchor"
   export let dismissible = true
   export let offset = 4
   export let customHeight: string | undefined = undefined
@@ -129,8 +128,7 @@
         maxHeight,
         maxWidth,
         minWidth,
-        minAnchorWidth,
-        useAnchorWidth,
+        widthMode,
         offset,
         customUpdate: handlePositionUpdate,
         resizable,
