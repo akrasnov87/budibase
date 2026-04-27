@@ -51,7 +51,7 @@
     "@budibase/backend-core": "*",
     "@budibase/client": "*",
     "@budibase/frontend-core": "*",
-    "@budibase/nano": "10.1.5",
+    "@budibase/nano": "10.1.6",
     "@budibase/pro": "*",
     "@budibase/shared-core": "*",
     "@budibase/string-templates": "*",
