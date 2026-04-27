@@ -1,6 +1,12 @@
 <script lang="ts">
   import { KnowledgeBaseFileStatus } from "@budibase/types"
-  import { StatusLight, TreeItem } from "@budibase/bbui"
+  import {
+    Body,
+    Modal,
+    ModalContent,
+    StatusLight,
+    TreeItem,
+  } from "@budibase/bbui"
   import SharePointEntryTreeItem from "./SharePointEntryTreeItem.svelte"
   import type { SharePointEntryTreeNode } from "./sharePointEntryTree"
 
@@ -46,23 +52,33 @@
     }
   }
 
+  let errorModal = $state<Modal>()
   let hasChildren = $derived(node.children.length > 0)
+  let hasError = $derived(
+    node.status === KnowledgeBaseFileStatus.FAILED && !!node.errorMessage
+  )
+
+  const openErrorModal = (event: MouseEvent | KeyboardEvent) => {
+    event.preventDefault()
+    event.stopPropagation()
+    errorModal?.show()
+  }
 </script>
 
 <div class="sharepoint-entry-tree-item">
-  <TreeItem title={node.name} open={hasChildren} {hasChildren}>
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <TreeItem
+    title={node.name}
+    open={hasChildren}
+    {hasChildren}
+    on:click={openErrorModal}
+  >
     <svelte:fragment slot="post">
       {#if showStatus && node.type === "file" && getSharePointStatusText(node.status)}
-        <div class="status-container">
-          <StatusLight size="S" {...getSharePointStatusLightProps(node.status)}>
-            {getSharePointStatusText(node.status)}
-          </StatusLight>
-          {#if node.status === "failed" && node.errorMessage}
-            <span class="error-message" title={node.errorMessage}>
-              {node.errorMessage}
-            </span>
-          {/if}
-        </div>
+        <StatusLight size="S" {...getSharePointStatusLightProps(node.status)}>
+          {getSharePointStatusText(node.status)}
+        </StatusLight>
       {/if}
     </svelte:fragment>
 
@@ -77,25 +93,37 @@
       {/each}
     {/if}
   </TreeItem>
+
+  {#if hasError}
+    <Modal bind:this={errorModal}>
+      <ModalContent
+        title={`SharePoint sync error - ${node.name}`}
+        showDivider={false}
+        size="L"
+        showCloseIcon
+        showConfirmButton={false}
+        showCancelButton={false}
+      >
+        <Body size="S">The file failed to sync with this error:</Body>
+        <pre class="error-detail">{node.errorMessage}</pre>
+      </ModalContent>
+    </Modal>
+  {/if}
 </div>
 
 <style>
-  .status-container {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 2px;
-    min-width: 0;
-  }
-
-  .error-message {
-    font-size: 11px;
-    line-height: 1.2;
+  .error-detail {
+    margin-top: 0;
+    max-height: 320px;
+    overflow: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
     color: var(--spectrum-semantic-negative-color-default);
-    max-width: 280px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    border: 1px solid var(--spectrum-global-color-gray-300);
+    border-radius: 6px;
+    padding: var(--spacing-m);
+    font-size: 12px;
+    line-height: 1.4;
   }
 
   .sharepoint-entry-tree-item :global(.spectrum-TreeView-itemLink) {
