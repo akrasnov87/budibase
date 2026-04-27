@@ -117,6 +117,36 @@ describe("agent teams integration provisioning", () => {
     })
   })
 
+  it("preserves internal agent chat state when provisioning teams", async () => {
+    const agent = await config.api.agent.create({
+      name: "Teams Agent With Internal Chat",
+      MSTeamsIntegration: {
+        appId: "teams-app-id",
+        appPassword: "teams-app-password",
+        tenantId: "azure-tenant-id",
+      },
+    })
+
+    await config.doInContext(config.getDevWorkspaceId(), async () => {
+      const db = context.getWorkspaceDB()
+      await db.put({
+        _id: docIds.generateChatAppID(),
+        agents: [{ agentId: agent._id!, isEnabled: true, isDefault: true }],
+        live: true,
+        createdAt: new Date().toISOString(),
+      })
+    })
+
+    await config.api.agent.provisionMSTeamsChannel(agent._id!)
+
+    const chatApp = await getPersistedChatApp()
+    expect(chatApp?.agents).toContainEqual({
+      agentId: agent._id,
+      isEnabled: true,
+      isDefault: true,
+    })
+  })
+
   it("obfuscates teams secrets in responses and preserves them on update", async () => {
     const created = await config.api.agent.create({
       name: "Teams Obfuscation Agent",
