@@ -592,11 +592,22 @@ const runSharePointSourcesForAgent = async (
             existingEntry.knowledgeSourceId === sourceId
 
           if (shouldRetryFailedIngestion && existingEntry?.fileId) {
-            await knowledgeBaseSdk.retryKnowledgeBaseFileIngestion(
-              existingEntry.fileId
-            )
-            synced++
-            retried++
+            try {
+              await knowledgeBaseSdk.retryKnowledgeBaseFileIngestion(
+                existingEntry.fileId
+              )
+              synced++
+              retried++
+            } catch (error) {
+              console.error("Failed to retry SharePoint file ingestion for agent", {
+                agentId,
+                siteId,
+                driveId,
+                itemId: file.itemId,
+                error,
+              })
+              failed++
+            }
             continue
           } else {
             skipped++
