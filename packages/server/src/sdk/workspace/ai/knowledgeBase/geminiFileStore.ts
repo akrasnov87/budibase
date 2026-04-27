@@ -154,11 +154,11 @@ export async function ingestGeminiFile({
   })
 
   const payload = (await response.json()) as RagIngestResponse
-  if (payload.status === "failed") {
-    throw new HTTPError(
-      payload.error || "Gemini ingest did not return file_id",
-      500
-    )
+  if (payload.status === "failed" && payload.error) {
+    throw new HTTPError(payload.error, 500)
+  }
+  if (!payload.file_id) {
+    throw new HTTPError("Gemini ingest did not return file_id", 500)
   }
   return {
     fileId: payload.file_id,
