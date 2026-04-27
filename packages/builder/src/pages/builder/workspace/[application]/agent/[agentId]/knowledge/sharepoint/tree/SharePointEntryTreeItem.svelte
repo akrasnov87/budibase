@@ -5,15 +5,19 @@
   import type { SharePointEntryTreeNode } from "./sharePointEntryTree"
 
   export interface Props {
+    selectable?: boolean
     node: SharePointEntryTreeNode
     selectedPaths?: string[]
+    fileDescendantPathsByNodePath?: Map<string, string[]>
     onTogglePaths?: (_paths: string[], _nextSelected: boolean) => void
     showStatus?: boolean
   }
 
   let {
+    selectable,
     node,
     selectedPaths,
+    fileDescendantPathsByNodePath,
     onTogglePaths,
     showStatus = true,
   }: Props = $props()
@@ -47,10 +51,47 @@
   }
 
   let hasChildren = $derived(node.children.length > 0)
+  let selectedSet = $derived(new Set(selectedPaths))
+  let targetPaths = $derived.by(() => {
+    if (node.type === "file") {
+      return [node.path]
+    }
+    return fileDescendantPathsByNodePath?.get(node.path) || []
+  })
+  let selected = $derived.by(() => {
+    if (targetPaths.length === 0) {
+      return false
+    }
+    return targetPaths.every(path => selectedSet.has(path))
+  })
+  let indeterminate = $derived.by(() => {
+    if (targetPaths.length === 0) {
+      return false
+    }
+    const selectedCount = targetPaths.filter(path =>
+      selectedSet.has(path)
+    ).length
+    return selectedCount > 0 && selectedCount < targetPaths.length
+  })
+  let disabled = $derived(targetPaths.length === 0)
+
+  const handleSelect = (_event: CustomEvent<boolean>) => {
+    const nextSelected = indeterminate ? true : !selected
+    onTogglePaths?.(targetPaths, nextSelected)
+  }
 </script>
 
 <div class="sharepoint-entry-tree-item">
-  <TreeItem title={node.name} open={hasChildren} {hasChildren}>
+  <TreeItem
+    title={node.name}
+    {selected}
+    {indeterminate}
+    showCheckbox={selectable}
+    {disabled}
+    open={hasChildren}
+    {hasChildren}
+    on:select={handleSelect}
+  >
     <svelte:fragment slot="post">
       {#if showStatus && node.type === "file" && getSharePointStatusText(node.status)}
         <div class="status-container">
@@ -69,8 +110,10 @@
     {#if hasChildren}
       {#each node.children as child (child.path)}
         <SharePointEntryTreeItem
+          {selectable}
           node={child}
           {selectedPaths}
+          {fileDescendantPathsByNodePath}
           {onTogglePaths}
           {showStatus}
         />
