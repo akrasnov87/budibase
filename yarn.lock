@@ -8590,17 +8590,10 @@ aws-cloudfront-sign@3.0.2:
   resolved "https://registry.yarnpkg.com/aws-cloudfront-sign/-/aws-cloudfront-sign-3.0.2.tgz#da5273b0301bcd70312c8c76293d5fec6d414f0a"
   integrity sha512-Z/yOGZ3Hd1rhYbY13mtRiLCbCDC1Xf/v+dQUyUwMLnyunD/nfDZd/2LMZ9MKxxOhVb2RzEmEwY0F9f+riPaSWQ==
 
-<<<<<<< HEAD
-axios@1.15.2, axios@^0.21.1, axios@^1.12.0, axios@^1.13.5, axios@^1.4.0, axios@^1.6.2, axios@^1.8.2, axios@^1.8.3:
+axios@1.15.2, axios@^0.21.1, axios@^1.12.0, axios@^1.13.4, axios@^1.13.5, axios@^1.4.0, axios@^1.6.2, axios@^1.8.2:
   version "1.15.2"
   resolved "https://registry.yarnpkg.com/axios/-/axios-1.15.2.tgz#eb8fb6d30349abace6ade5b4cb4d9e8a0dc23e5b"
   integrity sha512-wLrXxPtcrPTsNlJmKjkPnNPK2Ihe0hn0wGSaTEiHRPxwjvJwT3hKmXF4dpqxmPO9SoNb2FsYXj/xEo0gHN+D5A==
-=======
-axios@1.7.7, axios@^0.21.1, axios@^1.1.3, axios@^1.12.0, axios@^1.13.4, axios@^1.13.5, axios@^1.4.0, axios@^1.6.2, axios@^1.8.2:
-  version "1.7.7"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.7.7.tgz#2f554296f9892a72ac8d8e4c5b79c14a91d0a47f"
-  integrity sha512-S4kL7XrjgBmvdGut0sN3yJxqYzrDOnivkBiN0OFs6hLiUam3UPvswUo0kqGyhqUZGEOytHyumEdXsAkgCOUf3Q==
->>>>>>> master
   dependencies:
     follow-redirects "^1.15.11"
     form-data "^4.0.5"
