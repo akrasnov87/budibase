@@ -84,7 +84,8 @@ export default function positionDropdown(element: HTMLElement, opts: Opts) {
     const screenOffset = 8
     let styles: Styles = {
       maxHeight,
-      minWidth: useAnchorWidth || minAnchorWidth ? anchorBounds.width : minWidth,
+      minWidth:
+        useAnchorWidth || minAnchorWidth ? anchorBounds.width : minWidth,
       maxWidth: useAnchorWidth ? anchorBounds.width : maxWidth,
       left: 0,
       top: 0,

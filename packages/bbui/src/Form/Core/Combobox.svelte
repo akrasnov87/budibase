@@ -68,7 +68,6 @@
     dispatch("pick", value)
     selectOption(value)
   }
-
 </script>
 
 <div
