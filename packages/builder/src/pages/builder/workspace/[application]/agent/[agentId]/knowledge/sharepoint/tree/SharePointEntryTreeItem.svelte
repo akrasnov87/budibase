@@ -2,8 +2,11 @@
   import { KnowledgeBaseFileStatus } from "@budibase/types"
   import {
     Body,
+    Helpers,
+    Icon,
     Modal,
     ModalContent,
+    notifications,
     StatusLight,
     TreeItem,
   } from "@budibase/bbui"
@@ -63,6 +66,14 @@
     event.stopPropagation()
     errorModal?.show()
   }
+
+  const copy = () => {
+    if (!node.errorMessage) {
+      return
+    }
+    Helpers.copyToClipboard(node.errorMessage)
+    notifications.success("Error copied to clipboard")
+  }
 </script>
 
 <div class="sharepoint-entry-tree-item">
@@ -104,7 +115,11 @@
         showConfirmButton={false}
         showCancelButton={false}
       >
-        <Body size="S">The file failed to sync with this error:</Body>
+        <div class="error-header">
+          <Body size="S">The file failed to sync with this error:</Body>
+
+          <Icon name="copy" size="S" hoverable on:click={copy} />
+        </div>
         <pre class="error-detail">{node.errorMessage}</pre>
       </ModalContent>
     </Modal>
@@ -112,8 +127,12 @@
 </div>
 
 <style>
+  .error-header {
+    display: flex;
+    justify-content: space-between;
+  }
+
   .error-detail {
-    margin-top: 0;
     max-height: 320px;
     overflow: auto;
     white-space: pre-wrap;
