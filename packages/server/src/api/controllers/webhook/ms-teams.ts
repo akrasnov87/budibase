@@ -139,7 +139,8 @@ const shouldShowTeamsProgress = ({
 }: {
   command: SupportedChatCommand
   content: string
-}) => command === ChatCommands.ASK || (command === ChatCommands.NEW && !!content)
+}) =>
+  command === ChatCommands.ASK || (command === ChatCommands.NEW && !!content)
 
 const createTeamsMessageHandler = ({
   workspaceId,

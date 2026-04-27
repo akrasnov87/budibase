@@ -53,11 +53,8 @@ import {
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 import { webhookChat } from "../../../controllers/ai/chatConversations"
 
-const {
-  getMockChatOptions,
-  resetMockChatState,
-  setMockPostEphemeralResult,
-} = jest.requireActual("chat") as ChatMockModule
+const { getMockChatOptions, resetMockChatState, setMockPostEphemeralResult } =
+  jest.requireActual("chat") as ChatMockModule
 const mockedWebhookChat = webhookChat as jest.MockedFunction<typeof webhookChat>
 
 const extractLinkUrl = (messages: string[]) => {
