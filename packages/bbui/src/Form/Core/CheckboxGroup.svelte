@@ -59,7 +59,7 @@
 
 <div
   class={`spectrum-FieldGroup spectrum-FieldGroup--${direction}`}
-  class:is-horizontal={useGridLayout}
+  class:horizontal={useGridLayout}
   style:grid-template-columns={horizontalColumns}
 >
   {#if showSelectAll && options?.length > 0}
@@ -133,7 +133,7 @@
   .readonly {
     pointer-events: none;
   }
-  .is-horizontal {
+  .horizontal {
     display: grid;
     align-items: start;
     column-gap: var(--spectrum-global-dimension-size-200);
@@ -157,7 +157,7 @@
     margin-bottom: 8px;
     padding: 0;
   }
-  .is-horizontal .select-all-checkbox {
+  .horizontal .select-all-checkbox {
     grid-column: 1 / -1;
     margin-bottom: 0;
   }
