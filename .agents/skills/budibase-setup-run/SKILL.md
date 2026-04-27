@@ -196,12 +196,13 @@ If dependencies or build outputs look corrupt, rebuild without deleting Docker-b
 yarn restore
 ```
 
-If the user is in a cloud VM with nested Docker, Docker may need to be started manually and the socket made accessible before `yarn dev`:
+If the user is in a cloud VM with nested Docker, Docker may need to be started manually before `yarn dev`:
 
 ```bash
 sudo dockerd
-sudo chmod 666 /var/run/docker.sock
 ```
+
+Do not change `/var/run/docker.sock` to be world-writable. If Docker permission errors persist, use the environment's approved Docker group, rootless Docker, or VM provisioning setup.
 
 If local mode changes do not appear in the browser, clear Budibase cookies for `localhost`.
 
