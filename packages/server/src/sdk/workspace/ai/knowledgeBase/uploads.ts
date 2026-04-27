@@ -6,7 +6,11 @@ import {
 } from "@budibase/types"
 import { ObjectStoreBuckets } from "../../../../constants"
 import { enqueueRagFileIngestion } from "../rag/queue"
-import { createKnowledgeBaseFile, updateKnowledgeBaseFile } from "./files"
+import {
+  createKnowledgeBaseFile,
+  getKnowledgeBaseFileOrThrow,
+  updateKnowledgeBaseFile,
+} from "./files"
 import { find as findKnowledgeBase } from "./crud"
 
 interface UploadKnowledgeBaseFileInput {
@@ -87,4 +91,30 @@ export const uploadKnowledgeBaseFile = async (
       })
     throw error
   }
+}
+
+export const retryKnowledgeBaseFileIngestion = async (fileId: string) => {
+  const workspaceId = context.getOrThrowWorkspaceId()
+  const file = await getKnowledgeBaseFileOrThrow(fileId)
+
+  if (!file.objectStoreKey) {
+    throw new HTTPError("Knowledge base file does not have an object key", 400)
+  }
+  if (file.status !== KnowledgeBaseFileStatus.FAILED) {
+    throw new HTTPError("Knowledge base file is not in failed state", 400)
+  }
+
+  file.status = KnowledgeBaseFileStatus.PROCESSING
+  file.errorMessage = undefined
+  file.processedAt = undefined
+  await updateKnowledgeBaseFile(file)
+
+  await enqueueRagFileIngestion({
+    workspaceId,
+    knowledgeBaseId: file.knowledgeBaseId,
+    fileId,
+    objectStoreKey: file.objectStoreKey,
+  })
+
+  return file
 }

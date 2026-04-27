@@ -592,26 +592,12 @@ const runSharePointSourcesForAgent = async (
             existingEntry.knowledgeSourceId === sourceId
 
           if (shouldRetryFailedIngestion && existingEntry?.fileId) {
-            try {
-              await deleteFileForAgent(agentId, existingEntry.fileId)
-              existingExternalIds.delete(externalSourceId)
-              existingSharePointFilesByExternalId.delete(externalSourceId)
-              retried++
-            } catch (error) {
-              console.error(
-                "Failed to delete previously failed SharePoint ingestion before retry",
-                {
-                  agentId,
-                  siteId,
-                  driveId,
-                  itemId: file.itemId,
-                  existingFileId: existingEntry.fileId,
-                  error,
-                }
-              )
-              failed++
-              continue
-            }
+            await knowledgeBaseSdk.retryKnowledgeBaseFileIngestion(
+              existingEntry.fileId
+            )
+            synced++
+            retried++
+            continue
           } else {
             skipped++
             alreadySynced++
