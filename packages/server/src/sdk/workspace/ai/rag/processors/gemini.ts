@@ -50,7 +50,7 @@ export class GeminiRagProcessor implements RagProcessor {
       })
 
       input.status = KnowledgeBaseFileStatus.READY
-      input.ragSourceId = ingested.fileId || input.ragSourceId
+      input.ragSourceId = ingested.fileId
       input.processedAt = new Date().toISOString()
       input.errorMessage = undefined
       await updateKnowledgeBaseFile(input)
