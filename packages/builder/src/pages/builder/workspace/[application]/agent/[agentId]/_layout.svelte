@@ -11,6 +11,7 @@
   import { syncURLToState } from "@/helpers/urlStateSync"
   import { agentsStore, featureFlags, selectedAgent } from "@/stores/portal"
   import { deploymentStore } from "@/stores/builder"
+  import { workspaceDeploymentStore } from "@/stores/builder/workspaceDeployment"
   import { FeatureFlag } from "@budibase/types"
   import * as routify from "@roxi/routify"
   import { onDestroy } from "svelte"
@@ -48,17 +49,15 @@
   })
   let currentAgent = $derived($selectedAgent)
   let hasLiveUnpublishedChanges = $derived.by(() => {
-    if (!currentAgent?.live || !currentAgent.publishedAt || !currentAgent.updatedAt) {
+    if (!currentAgent?._id || !currentAgent.live) {
+      return false
+    }
+    const publishStatus = $workspaceDeploymentStore.agents[currentAgent._id]
+    if (!publishStatus?.publishedAt) {
       return false
     }
 
-    const publishedAt = new Date(currentAgent.publishedAt).getTime()
-    const updatedAt = new Date(currentAgent.updatedAt).getTime()
-    if (!Number.isFinite(publishedAt) || !Number.isFinite(updatedAt)) {
-      return false
-    }
-
-    return updatedAt > publishedAt
+    return publishStatus.unpublishedChanges === true
   })
 
   $effect(() => {
@@ -171,8 +170,8 @@
       <Banner type="warning" showCloseButton={false}>
         <div class="publish-banner-content">
           <span
-            >This live agent has unpublished changes. Publish to apply updates to
-            live environments.</span
+            >This live agent has unpublished changes. Publish to apply updates
+            to live environments.</span
           >
           <Button
             cta
