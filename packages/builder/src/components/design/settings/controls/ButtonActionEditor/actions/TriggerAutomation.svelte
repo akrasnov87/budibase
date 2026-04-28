@@ -147,13 +147,12 @@
     {/if}
   </div>
 
-  <div class="params">
-    <Label small />
+  <div class="options">
     <Checkbox
       text="Do not display default notification"
       bind:value={parameters.notificationOverride}
     />
-    <ConfirmationSettings {parameters} {bindings} />
+    <ConfirmationSettings {parameters} {bindings} layout="stacked" />
   </div>
 </div>
 
@@ -190,12 +189,10 @@
     grid-template-columns: 15% auto;
   }
 
-  .params {
+  .options {
     margin-top: var(--spacing-l);
-    display: grid;
-    column-gap: var(--spacing-l);
-    row-gap: var(--spacing-s);
-    grid-template-columns: 60px 1fr;
-    align-items: center;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-l);
   }
 </style>
