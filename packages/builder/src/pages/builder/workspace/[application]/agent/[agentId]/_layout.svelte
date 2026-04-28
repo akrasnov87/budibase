@@ -1,6 +1,7 @@
 <script lang="ts">
   import {
     ActionButton,
+    Banner,
     Button,
     Icon,
     Layout,
@@ -46,6 +47,19 @@
     return "Configuration"
   })
   let currentAgent = $derived($selectedAgent)
+  let hasLiveUnpublishedChanges = $derived.by(() => {
+    if (!currentAgent?.live || !currentAgent.publishedAt || !currentAgent.updatedAt) {
+      return false
+    }
+
+    const publishedAt = new Date(currentAgent.publishedAt).getTime()
+    const updatedAt = new Date(currentAgent.updatedAt).getTime()
+    if (!Number.isFinite(publishedAt) || !Number.isFinite(updatedAt)) {
+      return false
+    }
+
+    return updatedAt > publishedAt
+  })
 
   $effect(() => {
     if (!ragEnabled && $isActive("./knowledge")) {
@@ -152,6 +166,26 @@
       >
     </div>
   </div>
+  {#if hasLiveUnpublishedChanges}
+    <div class="publish-banner">
+      <Banner type="warning" showCloseButton={false}>
+        <div class="publish-banner-content">
+          <span
+            >This live agent has unpublished changes. Publish to apply updates to
+            live environments.</span
+          >
+          <Button
+            cta
+            size="S"
+            disabled={$deploymentStore.isPublishing}
+            on:click={() => deploymentStore.publishApp()}
+          >
+            Publish
+          </Button>
+        </div>
+      </Banner>
+    </div>
+  {/if}
   <div class="config-page" class:full-width={activeTab === "Logs"}>
     <div
       class="config-content"
@@ -198,6 +232,18 @@
     height: 0;
     overflow: hidden;
     gap: var(--spacing-l);
+  }
+
+  .publish-banner {
+    padding: var(--spacing-s) var(--spacing-l) 0;
+  }
+
+  .publish-banner-content {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-m);
   }
 
   .config-content {
