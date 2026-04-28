@@ -18,7 +18,6 @@
     onDestroy,
   } from "svelte"
   import { fade, fly } from "svelte/transition"
-  import { writable } from "svelte/store"
   import Portal from "svelte-portal"
   import Context from "../context"
   import { ModalCancelFrom } from "../constants"
