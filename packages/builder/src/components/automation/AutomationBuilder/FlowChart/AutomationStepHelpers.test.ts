@@ -7,10 +7,7 @@ import {
   branchStep,
   nestedLoopBranchAutomation,
 } from "@/test/automationFixtures"
-import {
-  getLogStepData,
-  processLogSteps,
-} from "./AutomationStepHelpers"
+import { getLogStepData, processLogSteps } from "./AutomationStepHelpers"
 
 vi.mock("@/stores/builder", () => {
   return {
@@ -80,5 +77,4 @@ describe("AutomationStepHelpers", () => {
       items: branchResults,
     })
   })
-
 })
