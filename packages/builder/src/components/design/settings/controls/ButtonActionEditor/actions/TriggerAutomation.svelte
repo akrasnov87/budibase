@@ -4,6 +4,7 @@
   import DrawerBindableInput from "@/components/common/bindings/DrawerBindableInput.svelte"
   import { TriggerStepID } from "@/constants/backend/automations"
   import { sdk as coreSdk } from "@budibase/shared-core"
+  import ConfirmationSettings from "./ConfirmationSettings.svelte"
 
   export let parameters = {}
   export let bindings = []
@@ -146,21 +147,13 @@
     {/if}
   </div>
 
-  <div class="param-margin">
+  <div class="params">
     <Label small />
     <Checkbox
       text="Do not display default notification"
       bind:value={parameters.notificationOverride}
     />
-    <Checkbox text="Require confirmation" bind:value={parameters.confirm} />
-
-    {#if parameters.confirm}
-      <Label small>Confirm text</Label>
-      <Input
-        placeholder="Are you sure you want to trigger this automation?"
-        bind:value={parameters.confirmText}
-      />
-    {/if}
+    <ConfirmationSettings {parameters} {bindings} />
   </div>
 </div>
 
@@ -171,10 +164,6 @@
   }
   .timeout-width {
     width: 30%;
-  }
-
-  .param-margin {
-    margin-top: var(--spacing-l);
   }
 
   .field-name {
@@ -199,5 +188,14 @@
   }
   .fields:first-child {
     grid-template-columns: 15% auto;
+  }
+
+  .params {
+    margin-top: var(--spacing-l);
+    display: grid;
+    column-gap: var(--spacing-l);
+    row-gap: var(--spacing-s);
+    grid-template-columns: 60px 1fr;
+    align-items: center;
   }
 </style>
