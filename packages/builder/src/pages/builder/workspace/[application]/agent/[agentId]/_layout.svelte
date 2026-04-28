@@ -165,26 +165,6 @@
       >
     </div>
   </div>
-  {#if hasLiveUnpublishedChanges}
-    <div class="publish-banner">
-      <Banner type="warning" showCloseButton={false}>
-        <div class="publish-banner-content">
-          <span
-            >This live agent has unpublished changes. Publish to apply updates
-            to live environments.</span
-          >
-          <Button
-            cta
-            size="S"
-            disabled={$deploymentStore.isPublishing}
-            on:click={() => deploymentStore.publishApp()}
-          >
-            Publish
-          </Button>
-        </div>
-      </Banner>
-    </div>
-  {/if}
   <div class="config-page" class:full-width={activeTab === "Logs"}>
     <div
       class="config-content"
@@ -192,6 +172,18 @@
       class:logs-tab={activeTab === "Logs"}
     >
       <div class="config-form">
+        {#if hasLiveUnpublishedChanges}
+          <div class="publish-banner">
+            <Banner type="warning" showCloseButton={false}>
+              <div class="publish-banner-content">
+                <span
+                  >This live agent has unpublished changes. Publish to apply
+                  updates to live environments.</span
+                >
+              </div>
+            </Banner>
+          </div>
+        {/if}
         {#if activeTab === "Logs"}
           <!-- svelte-ignore slot_element_deprecated -->
           <slot />
@@ -234,7 +226,7 @@
   }
 
   .publish-banner {
-    padding: var(--spacing-s) var(--spacing-l) 0;
+    margin: 0;
   }
 
   .publish-banner-content {

@@ -10,6 +10,7 @@
     type SharePointKnowledgeSourceSnapshot,
   } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
+  import { workspaceDeploymentStore } from "@/stores/builder"
   import { agentsStore, selectedAgent } from "@/stores/portal"
   import KnowledgeTable from "./KnowledgeTable.svelte"
   import KnowledgeAddControls from "./KnowledgeAddControls.svelte"
@@ -133,6 +134,10 @@
 
   const stopSharePointBootstrapPolling = () => {
     knowledgePollingController.stop()
+  }
+
+  const refreshDeploymentStatus = async () => {
+    await workspaceDeploymentStore.fetch()
   }
 
   const showSharePointSyncResult = (
@@ -354,6 +359,7 @@
         sourceId
       )
       await fetchFiles(agentId)
+      await refreshDeploymentStatus()
       showSharePointSyncResult(result)
     } catch (error) {
       console.error(error)
@@ -380,6 +386,7 @@
         try {
           await agentsStore.disconnectAgentSharePointSite(agentId, siteId)
           await fetchFiles(agentId)
+          await refreshDeploymentStatus()
           notifications.success("SharePoint site removed")
         } catch (error) {
           console.error(error)
@@ -404,6 +411,7 @@
         try {
           await agentsStore.deleteAgentFile(agentId, fileId)
           await fetchFiles(agentId)
+          await refreshDeploymentStatus()
           notifications.success("File removed")
         } catch (error) {
           console.error(error)
@@ -441,6 +449,7 @@
       }}
       onUploaded={async agentId => {
         await fetchFiles(agentId)
+        await refreshDeploymentStatus()
       }}
       onSharePoint={() =>
         openSharePointFlow().catch(error => {

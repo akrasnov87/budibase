@@ -13,6 +13,7 @@
     type KnowledgeSourceEntry,
   } from "@budibase/types"
   import { agentsStore, selectedAgent } from "@/stores/portal"
+  import { workspaceDeploymentStore } from "@/stores/builder"
   import SharePointEntryTreeItem from "./tree/SharePointEntryTreeItem.svelte"
   import {
     buildFileDescendantPathsByNodePath,
@@ -142,6 +143,7 @@
         await agentsStore.syncAgentKnowledgeSources(agentId, sourceId)
       }
       await agentsStore.fetchAgentKnowledge(agentId)
+      await workspaceDeploymentStore.fetch()
 
       notifications.success("SharePoint folders/files updated")
       hide()
