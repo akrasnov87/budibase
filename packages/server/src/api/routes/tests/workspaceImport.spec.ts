@@ -1,4 +1,5 @@
 import path from "path"
+import sdk from "../../../sdk"
 import { getAppObjectStorageEtags } from "../../../tests/utilities/objectStore"
 import * as setup from "./utilities"
 
@@ -218,5 +219,48 @@ describe("/applications/:appId/import", () => {
     expect(screens.length).toBe(2)
     expect(screens[0].routing.route).toBe("/derp")
     expect(screens[1].routing.route).toBe("/blank")
+  })
+
+  it("should override existing snippet code when importing over an existing workspace", async () => {
+    const appId = config.getDevWorkspaceId()
+    const snippetName = `importSnippet_${Date.now()}`
+    const importedSnippetCode = "return 'imported-version'"
+    const existingSnippetCode = "return 'existing-version'"
+
+    await config.api.workspace.update(appId!, {
+      snippets: [{ name: snippetName, code: importedSnippetCode }],
+    })
+
+    const exportPath = await sdk.backups.exportWorkspace(appId!, {
+      excludeRows: true,
+      tar: true,
+    })
+
+    await config.api.workspace.update(appId!, {
+      snippets: [{ name: snippetName, code: existingSnippetCode }],
+    })
+
+    const beforeImportWorkspace = await config.api.workspace.get(appId!)
+    expect(beforeImportWorkspace.snippets).toContainEqual({
+      name: snippetName,
+      code: existingSnippetCode,
+    })
+
+    await request
+      .post(`/api/applications/${appId}/import`)
+      .attach("appExport", exportPath)
+      .set(config.defaultHeaders())
+      .expect("Content-Type", /json/)
+      .expect(200)
+
+    const workspace = await config.api.workspace.get(appId!)
+    expect(workspace.snippets).toContainEqual({
+      name: snippetName,
+      code: importedSnippetCode,
+    })
+    expect(workspace.snippets).not.toContainEqual({
+      name: snippetName,
+      code: existingSnippetCode,
+    })
   })
 })
