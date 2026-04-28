@@ -184,7 +184,7 @@ export async function buildPromptAndTools(
   })
 
   const resolvedSystemPrompt = hasKnowledgeBases
-    ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, processing errors, or file counts), call list_knowledge_files with a filename when possible. Do not guess file metadata. If list_knowledge_files returns ambiguous results, ask a clarification question before answering. If it returns no matches, say that you couldn't find a matching file.\n\nFor factual questions that may depend on uploaded documentation, call search_knowledge before answering. If search_knowledge returns no relevant context, say that you couldn't find supporting knowledge.`
+    ? `${systemPrompt}\n\nWhen users ask about attached files (for example size, type, upload status, processing errors, or file counts), call list_knowledge_files with a filename when possible. Do not guess file metadata. If list_knowledge_files returns ambiguous results, ask a clarification question before answering. If it returns no matches, say that you couldn't find a matching file.\n\nFor factual questions that may depend on uploaded documentation, call search_knowledge before answering. If search_knowledge returns no relevant context, say that you couldn't find supporting knowledge.\n\nIf you used search_knowledge context in your final answer, call report_used_sources immediately before your final response and pass only the sourceIds you actually used.`
     : systemPrompt
 
   return {

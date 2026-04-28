@@ -1,13 +1,20 @@
 import { ai, quotas } from "@budibase/pro"
-import { Agent, ChatConversationRequest, ContextUser } from "@budibase/types"
+import {
+  Agent,
+  AgentMessageMetadata,
+  ChatConversationRequest,
+  ContextUser,
+} from "@budibase/types"
 import {
   extractReasoningMiddleware,
   stepCountIs,
+  tool,
   ToolLoopAgent,
   type StreamTextResult,
   type ToolSet,
   wrapLanguageModel,
 } from "ai"
+import { z } from "zod"
 import sdk from "../../.."
 import { createSessionLogIndexer } from "../agentLogs"
 import {
@@ -27,6 +34,7 @@ interface PrepareAgentChatRunParams {
 
 export interface AgentChatRun {
   latestQuestion: string
+  getUsedKnowledgeSourcesMetadata: () => AgentMessageMetadata["ragSources"]
   sessionLogIndexer: ReturnType<typeof createSessionLogIndexer>
   stream: (
     options?: AgentChatStreamOptions
@@ -65,7 +73,48 @@ export const prepareAgentChatRun = async ({
   ])
 
   const tools = promptAndTools.tools
-  const hasTools = Object.keys(tools).length > 0
+  const retrievedKnowledgeSourceById = new Map<
+    string,
+    NonNullable<AgentMessageMetadata["ragSources"]>[number]
+  >()
+  const usedKnowledgeSourceById = new Map<
+    string,
+    NonNullable<AgentMessageMetadata["ragSources"]>[number]
+  >()
+  const reportUsedSourcesTool = tool({
+    description:
+      "Report the specific knowledge sources that were actually used in the final answer. Only sourceIds returned by search_knowledge in this run are valid.",
+    inputSchema: z.object({
+      sourceIds: z.array(z.string().trim().min(1)).default([]),
+    }),
+    execute: async ({ sourceIds }) => {
+      const accepted: NonNullable<AgentMessageMetadata["ragSources"]> = []
+      const ignored: string[] = []
+
+      usedKnowledgeSourceById.clear()
+      for (const sourceId of sourceIds || []) {
+        const source = retrievedKnowledgeSourceById.get(sourceId)
+        if (!source) {
+          ignored.push(sourceId)
+          continue
+        }
+        usedKnowledgeSourceById.set(sourceId, source)
+        accepted.push(source)
+      }
+
+      return {
+        accepted,
+        acceptedCount: accepted.length,
+        ignored,
+        ignoredCount: ignored.length,
+      }
+    },
+  })
+  const runtimeTools = {
+    ...tools,
+    report_used_sources: reportUsedSourcesTool,
+  } satisfies ToolSet
+  const hasTools = Object.keys(runtimeTools).length > 0
   const agentRunner = new ToolLoopAgent({
     model: wrapLanguageModel({
       model: llm.chat,
@@ -74,7 +123,7 @@ export const prepareAgentChatRun = async ({
       }),
     }),
     instructions: promptAndTools.systemPrompt || undefined,
-    tools: hasTools ? tools : undefined,
+    tools: hasTools ? runtimeTools : undefined,
     toolChoice: hasTools ? "auto" : "none",
     stopWhen: stepCountIs(30),
     providerOptions: llm.providerOptions?.(hasTools),
@@ -83,6 +132,8 @@ export const prepareAgentChatRun = async ({
   return {
     latestQuestion,
     sessionLogIndexer,
+    getUsedKnowledgeSourcesMetadata: () =>
+      Array.from(usedKnowledgeSourceById.values()),
     toolDisplayNames: promptAndTools.toolDisplayNames,
     stream: async ({ onFinish, pendingToolCalls } = {}) =>
       await agentRunner.stream({
@@ -93,7 +144,21 @@ export const prepareAgentChatRun = async ({
             updatePendingToolCalls(pendingToolCalls, toolCalls, toolResults)
           }
 
-          for (const _ of toolResults) {
+          for (const toolResult of toolResults) {
+            if (
+              toolResult.toolName === "search_knowledge" &&
+              !toolResult.preliminary
+            ) {
+              const output = toolResult.output as
+                | { sources?: AgentMessageMetadata["ragSources"] }
+                | undefined
+              for (const source of output?.sources || []) {
+                if (!source?.sourceId) {
+                  continue
+                }
+                retrievedKnowledgeSourceById.set(source.sourceId, source)
+              }
+            }
             await quotas.addAction(async () => {})
           }
 

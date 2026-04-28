@@ -400,6 +400,7 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
           }
         }
         if (part.type === "finish") {
+          const usedKnowledgeSources = run.getUsedKnowledgeSourcesMetadata()
           // Check if model ended in a tool-call state or steps were incomplete
           const finishReason = (part as { finishReason?: string }).finishReason
           const toolCallsIncomplete =
@@ -407,6 +408,9 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
 
           return {
             ...sharedMetadata,
+            ...(usedKnowledgeSources?.length
+              ? { ragSources: usedKnowledgeSources }
+              : {}),
             createdAt: streamStartTime,
             completedAt: Date.now(),
             ...(toolCallsIncomplete && {
