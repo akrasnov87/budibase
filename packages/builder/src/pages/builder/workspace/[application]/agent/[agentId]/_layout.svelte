@@ -106,6 +106,18 @@
     ]}
     icon="Effect"
   ></TopBar>
+  {#if hasLiveUnpublishedChanges}
+    <div class="publish-banner">
+      <Banner type="warning" showCloseButton={false}>
+        <div class="publish-banner-content">
+          <span
+            >This live agent has unpublished changes. Publish to apply updates
+            to live environments.</span
+          >
+        </div>
+      </Banner>
+    </div>
+  {/if}
   <div class="secondary-bar">
     <div class="filter">
       <ActionButton
@@ -172,18 +184,6 @@
       class:logs-tab={activeTab === "Logs"}
     >
       <div class="config-form">
-        {#if hasLiveUnpublishedChanges}
-          <div class="publish-banner">
-            <Banner type="warning" showCloseButton={false}>
-              <div class="publish-banner-content">
-                <span
-                  >This live agent has unpublished changes. Publish to apply
-                  updates to live environments.</span
-                >
-              </div>
-            </Banner>
-          </div>
-        {/if}
         {#if activeTab === "Logs"}
           <!-- svelte-ignore slot_element_deprecated -->
           <slot />
