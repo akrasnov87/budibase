@@ -8,7 +8,6 @@
 <script lang="ts">
   import "@spectrum-css/popover/dist/index-vars.css"
   import { createEventDispatcher, getContext, onDestroy } from "svelte"
-  import { readable, type Readable } from "svelte/store"
   import Portal from "svelte-portal"
   import type { KeyboardEventHandler } from "svelte/elements"
   import { fly } from "svelte/transition"
@@ -18,6 +17,7 @@
   } from "../Actions/positionDropdown"
   import { PopoverAlignment, type PopoverWidthMode } from "../constants"
   import Context from "../context"
+  import { type Readable } from "svelte/store"
 
   export let anchor: HTMLElement | undefined
   export let align: PopoverAlignment | `${PopoverAlignment}` =
@@ -48,20 +48,14 @@
   let blockPointerEvents = false
 
   // Portal library lacks types, so we have to type this as any even though it's
-  // actually a string
-  const popoverRootCtx = getContext(Context.PopoverRoot)
-  const popoverRootStore: Readable<string> =
-    popoverRootCtx &&
-    typeof popoverRootCtx === "object" &&
-    "subscribe" in popoverRootCtx
-      ? (popoverRootCtx as Readable<string>)
-      : readable<string>((popoverRootCtx as string) || ".spectrum")
+  const popoverRoot = getContext<string>(Context.PopoverRoot)
   const popoverPortalOverride = getContext(Context.PopoverPortalOverride) as
     | Readable<HTMLElement | undefined>
     | undefined
+
   $: target = (portalTarget ||
     $popoverPortalOverride ||
-    $popoverRootStore ||
+    popoverRoot ||
     ".spectrum") as any
   $: {
     // Disable pointer events for the initial part of the animation, because we

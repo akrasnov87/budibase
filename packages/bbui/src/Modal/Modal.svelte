@@ -47,8 +47,7 @@
   // Unique ids are required to ensure nested modals are parented correctly
   const uniqueId = generate()
   const modalId = uniqueId
-  const popoverRoot = writable(`.spectrum-Modal-${uniqueId}`)
-  setContext(Context.PopoverRoot, popoverRoot)
+  setContext(Context.PopoverRoot, `.spectrum-Modal-${uniqueId}`)
 
   const dispatch = createEventDispatcher<{
     show: void

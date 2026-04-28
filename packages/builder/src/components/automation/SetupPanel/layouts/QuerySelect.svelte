@@ -46,7 +46,9 @@
 
   const allQueries = $derived($queries.list || [])
 
-  const selectedQuery = $derived(($queries.list || []).find((q: Query) => q._id === value))
+  const selectedQuery = $derived(
+    ($queries.list || []).find((q: Query) => q._id === value)
+  )
   const selectedDatasource = $derived(
     selectedQuery
       ? restDatasources.find(
