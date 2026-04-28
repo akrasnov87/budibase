@@ -8,13 +8,11 @@ import {
 import {
   extractReasoningMiddleware,
   stepCountIs,
-  tool,
   ToolLoopAgent,
   type StreamTextResult,
   type ToolSet,
   wrapLanguageModel,
 } from "ai"
-import { z } from "zod"
 import sdk from "../../.."
 import { createSessionLogIndexer } from "../agentLogs"
 import {
@@ -22,6 +20,7 @@ import {
   prepareModelMessages,
 } from "../chatConversations"
 import { updatePendingToolCalls } from "./utils"
+import { createReportUsedSourcesTool } from "../../../../ai/tools/budibase/knowledge/reportUsedSources"
 
 interface PrepareAgentChatRunParams {
   agent: Agent
@@ -92,33 +91,9 @@ export const prepareAgentChatRun = async ({
       usedKnowledgeSourceById.set(source.sourceId, source)
     }
   }
-  const reportUsedSourcesTool = tool({
-    description:
-      "Report the specific knowledge sources that were actually used in the final answer. Only sourceIds returned by search_knowledge in this run are valid.",
-    inputSchema: z.object({
-      sourceIds: z.array(z.string().trim().min(1)).default([]),
-    }),
-    execute: async ({ sourceIds }) => {
-      const accepted: NonNullable<AgentMessageMetadata["ragSources"]> = []
-      const ignored: string[] = []
-
-      for (const sourceId of sourceIds || []) {
-        const source = retrievedKnowledgeSourceById.get(sourceId)
-        if (!source) {
-          ignored.push(sourceId)
-          continue
-        }
-        accepted.push(source)
-      }
-      setUsedKnowledgeSources(accepted)
-
-      return {
-        accepted,
-        acceptedCount: accepted.length,
-        ignored,
-        ignoredCount: ignored.length,
-      }
-    },
+  const reportUsedSourcesTool = createReportUsedSourcesTool({
+    getSourceById: sourceId => retrievedKnowledgeSourceById.get(sourceId),
+    onAcceptedSources: accepted => setUsedKnowledgeSources(accepted),
   })
   if (tools.search_knowledge) {
     tools.report_used_sources = reportUsedSourcesTool
