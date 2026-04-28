@@ -9,12 +9,20 @@
     ScreenUsage,
   } from "@budibase/types"
 
-  export let sourceId: string
-  export let buttonText = "Usage"
-  export let icon = "link-simple-horizontal-break"
+  interface Props {
+    sourceId: string
+    buttonText?: string
+    icon?: string
+  }
 
-  let screens: ScreenUsage[] = []
-  let popover: UsagePopover
+  let {
+    sourceId,
+    buttonText = "Usage",
+    icon = "link-simple-horizontal-break",
+  }: Props = $props()
+
+  let screens = $state<ScreenUsage[]>([])
+  let popover = $state<UsagePopover>()
 
   export function show() {
     popover?.show()
@@ -43,9 +51,8 @@
       }))
   }
 
-  $: connectedAutomations = findConnectedAutomations(
-    $automationStore.automations,
-    sourceId
+  let connectedAutomations = $derived(
+    findConnectedAutomations($automationStore.automations, sourceId)
   )
 
   onMount(async () => {

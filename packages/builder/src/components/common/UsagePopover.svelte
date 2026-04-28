@@ -9,28 +9,41 @@
   import { appStore, workspaceAppStore } from "@/stores/builder"
   import type { ScreenUsage, AutomationUsage } from "@budibase/types"
 
-  export let screens: ScreenUsage[] = []
-  export let automations: AutomationUsage[] = []
-  export let icon = "link-simple-horizontal-break"
-  export let accentColor: string | null | undefined = null
-  export let showCount = false
-  export let align = PopoverAlignment.Left
-  export let buttonText = "Usage"
+  interface Props {
+    screens?: ScreenUsage[]
+    automations?: AutomationUsage[]
+    icon?: string
+    accentColor?: string | null
+    showCount?: boolean
+    align?: PopoverAlignment
+    buttonText?: string
+  }
 
-  let popover: DetailPopover
+  let {
+    screens = [],
+    automations = [],
+    icon = "link-simple-horizontal-break",
+    accentColor = null,
+    showCount = false,
+    align = PopoverAlignment.Left,
+    buttonText = "Usage",
+  }: Props = $props()
 
-  $: total = screens.length + automations.length
+  let popover = $state<DetailPopover>()
 
-  $: screensByApp = screens.reduce<Record<string, ScreenUsage[]>>(
-    (acc, screen) => {
+  let total = $derived(screens.length + automations.length)
+
+  let screensByApp = $derived(
+    screens.reduce<Record<string, ScreenUsage[]>>((acc, screen) => {
       acc[screen.workspaceAppId] ??= []
       acc[screen.workspaceAppId].push(screen)
       return acc
-    },
-    {}
+    }, {})
   )
 
-  $: hasManyWorkspaceApps = $workspaceAppStore.workspaceApps.length > 1
+  let hasManyWorkspaceApps = $derived(
+    $workspaceAppStore.workspaceApps.length > 1
+  )
 
   export function show() {
     popover?.show()
@@ -92,8 +105,6 @@
       </List>
     {/if}
   {/if}
-
-  <slot name="footer" />
 </DetailPopover>
 
 <style>
