@@ -210,17 +210,16 @@
     isSearchingUsers = true
     try {
       const response = await API.searchUsers({
-        query: { string: { email: trimmedSearch } },
+        query: { fuzzy: { email: trimmedSearch } },
         limit: 8,
       })
       if (nextSearchId !== userSearchId) {
         return
       }
-      const selectedEmails = new Set(emailsInput.map(email => email.trim()))
-      suggestedUsers = (response.data || []).filter(
-        user => user.email && !selectedEmails.has(user.email)
+      suggestedUsers = (response.data || []).filter(user => user.email)
+      highlightedUserIndex = suggestedUsers.findIndex(
+        user => !isSuggestedUserSelected(user)
       )
-      highlightedUserIndex = suggestedUsers.length ? 0 : -1
     } catch (error) {
       if (nextSearchId === userSearchId) {
         suggestedUsers = []
@@ -254,7 +253,7 @@
   }
 
   const selectSuggestedUser = user => {
-    if (!user?.email || emailsInput.includes(user.email)) {
+    if (!user?.email || isSuggestedUserSelected(user)) {
       return
     }
     const nextEmails = [...emailsInput, user.email]
@@ -269,12 +268,22 @@
     if (!suggestedUsers.length) {
       return
     }
-    const nextIndex =
-      highlightedUserIndex === -1
-        ? 0
-        : (highlightedUserIndex + direction + suggestedUsers.length) %
-          suggestedUsers.length
-    highlightedUserIndex = nextIndex
+    const startIndex = highlightedUserIndex === -1 ? 0 : highlightedUserIndex
+    for (let offset = 1; offset <= suggestedUsers.length; offset++) {
+      const nextIndex =
+        (startIndex + direction * offset + suggestedUsers.length) %
+        suggestedUsers.length
+      if (!isSuggestedUserSelected(suggestedUsers[nextIndex])) {
+        highlightedUserIndex = nextIndex
+        return
+      }
+    }
+    highlightedUserIndex = -1
+  }
+
+  const isSuggestedUserSelected = user => {
+    const userEmail = user?.email?.trim().toLowerCase()
+    return emailsInput.some(email => email.trim().toLowerCase() === userEmail)
   }
 
   const handleEmailPickerKeydown = event => {
@@ -398,11 +407,15 @@
           {#if suggestedUsers.length}
             <div class="user-suggestions" role="listbox">
               {#each suggestedUsers as user, index (user._id || user.email)}
+                {@const userSelected = isSuggestedUserSelected(user)}
                 <button
                   class="user-suggestion"
                   class:is-highlighted={highlightedUserIndex === index}
+                  class:is-selected={userSelected}
                   type="button"
                   role="option"
+                  disabled={userSelected}
+                  aria-disabled={userSelected}
                   aria-selected={highlightedUserIndex === index}
                   on:mouseenter={() => (highlightedUserIndex = index)}
                   on:mousedown|preventDefault={() => selectSuggestedUser(user)}
@@ -418,6 +431,11 @@
                     </span>
                     <span class="user-suggestion-email">{user.email}</span>
                   </span>
+                  {#if userSelected}
+                    <span class="user-suggestion-check">
+                      <Icon name="check" size="S" />
+                    </span>
+                  {/if}
                 </button>
               {/each}
             </div>
@@ -626,10 +644,19 @@
   .user-suggestion.is-highlighted {
     background: var(--spectrum-global-color-gray-100);
   }
+  .user-suggestion.is-selected {
+    color: var(--spectrum-global-color-gray-600);
+    cursor: default;
+  }
+  .user-suggestion.is-selected:hover,
+  .user-suggestion.is-selected.is-highlighted {
+    background: transparent;
+  }
   .user-suggestion-details {
     min-width: 0;
     display: flex;
     flex-direction: column;
+    flex: 1;
   }
   .user-suggestion-name,
   .user-suggestion-email {
@@ -644,5 +671,10 @@
   .user-suggestion-email {
     color: var(--spectrum-global-color-gray-600);
     font-size: 12px;
+  }
+  .user-suggestion-check {
+    display: inline-flex;
+    align-items: center;
+    color: var(--spectrum-global-color-gray-600);
   }
 </style>

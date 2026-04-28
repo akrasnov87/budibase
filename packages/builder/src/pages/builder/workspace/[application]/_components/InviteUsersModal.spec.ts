@@ -308,11 +308,46 @@ describe("InviteUsersModal", () => {
 
     await waitFor(() => {
       expect(searchUsersMock).toHaveBeenCalledWith({
-        query: { string: { email: "existing" } },
+        query: { fuzzy: { email: "existing" } },
         limit: 8,
       })
       expect(screen.getByText("existing@example.com")).toBeInTheDocument()
       expect(screen.getByRole("button", { name: "Invite users" })).toBeEnabled()
+    })
+  })
+
+  it("shows an already selected suggested user as disabled", async () => {
+    searchUsersMock.mockResolvedValue({
+      data: [
+        {
+          _id: "user_1",
+          email: "existing@example.com",
+          firstName: "Existing",
+          lastName: "User",
+        },
+      ],
+    })
+    render(InviteUsersModal, { props: { onHide: vi.fn() } })
+
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "existing" },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("existing@example.com")).toBeInTheDocument()
+    })
+
+    await fireEvent.mouseDown(screen.getByText("existing@example.com"))
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "existing" },
+    })
+
+    await waitFor(() => {
+      expect(
+        screen.getByRole("option", {
+          name: /Existing User existing@example.com/,
+        })
+      ).toBeDisabled()
     })
   })
 
