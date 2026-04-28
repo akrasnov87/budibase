@@ -11,7 +11,9 @@
     PillInput,
     Layout,
     Icon,
+    Avatar,
   } from "@budibase/bbui"
+  import { API } from "@/api"
   import { groups } from "@/stores/portal/groups"
   import GlobalRoleSelect from "@/components/common/GlobalRoleSelect.svelte"
   import { licensing } from "@/stores/portal/licensing"
@@ -21,6 +23,8 @@
   import { Constants, emailValidator } from "@budibase/frontend-core"
   import { capitalise } from "@/helpers"
   import { OnboardingType } from "@/constants"
+  import { helpers } from "@budibase/shared-core"
+  import { onDestroy } from "svelte"
 
   export let showOnboardingTypeModal
   export let workspaceOnly = false
@@ -34,6 +38,11 @@
   let parsedEmails = []
   let pendingEmailInput = ""
   let emailError = null
+  let suggestedUsers = []
+  let isSearchingUsers = false
+  let userSearchTimeout
+  let userSearchId = 0
+  let highlightedUserIndex = -1
   const maxItems = 15
   let selectedRole = Constants.BudibaseRoles.Creator
   const builtInEndUserRoles = [Constants.Roles.BASIC, Constants.Roles.ADMIN]
@@ -161,8 +170,7 @@
     return userData[index].error == null
   }
 
-  function validateWorkspaceEmails() {
-    const emails = emailsInput
+  function validateWorkspaceEmails(emails = emailsInput) {
     if (!emails.length) {
       emailError = null
       return false
@@ -190,6 +198,105 @@
   const handleEmailsChange = () => {
     validateWorkspaceEmails()
   }
+
+  const searchExistingUsers = async search => {
+    const nextSearchId = ++userSearchId
+    const trimmedSearch = search.trim()
+    if (!trimmedSearch) {
+      suggestedUsers = []
+      return
+    }
+
+    isSearchingUsers = true
+    try {
+      const response = await API.searchUsers({
+        query: { string: { email: trimmedSearch } },
+        limit: 8,
+      })
+      if (nextSearchId !== userSearchId) {
+        return
+      }
+      const selectedEmails = new Set(emailsInput.map(email => email.trim()))
+      suggestedUsers = (response.data || []).filter(
+        user => user.email && !selectedEmails.has(user.email)
+      )
+      highlightedUserIndex = suggestedUsers.length ? 0 : -1
+    } catch (error) {
+      if (nextSearchId === userSearchId) {
+        suggestedUsers = []
+        highlightedUserIndex = -1
+      }
+    } finally {
+      if (nextSearchId === userSearchId) {
+        isSearchingUsers = false
+      }
+    }
+  }
+
+  const clearUserSearch = () => {
+    clearTimeout(userSearchTimeout)
+    userSearchId += 1
+    suggestedUsers = []
+    highlightedUserIndex = -1
+    isSearchingUsers = false
+  }
+
+  const handlePendingEmailInput = () => {
+    clearTimeout(userSearchTimeout)
+    if (!useWorkspaceInviteModal || !pendingEmailInput.trim()) {
+      clearUserSearch()
+      return
+    }
+    userSearchTimeout = setTimeout(
+      () => searchExistingUsers(pendingEmailInput),
+      500
+    )
+  }
+
+  const selectSuggestedUser = user => {
+    if (!user?.email || emailsInput.includes(user.email)) {
+      return
+    }
+    const nextEmails = [...emailsInput, user.email]
+    emailsInput = nextEmails
+    pendingEmailInput = ""
+    suggestedUsers = []
+    highlightedUserIndex = -1
+    validateWorkspaceEmails(nextEmails)
+  }
+
+  const updateHighlightedUser = direction => {
+    if (!suggestedUsers.length) {
+      return
+    }
+    const nextIndex =
+      highlightedUserIndex === -1
+        ? 0
+        : (highlightedUserIndex + direction + suggestedUsers.length) %
+          suggestedUsers.length
+    highlightedUserIndex = nextIndex
+  }
+
+  const handleEmailPickerKeydown = event => {
+    if (!suggestedUsers.length) {
+      return
+    }
+
+    if (event.detail?.key === "ArrowDown") {
+      event.detail.preventDefault()
+      updateHighlightedUser(1)
+    } else if (event.detail?.key === "ArrowUp") {
+      event.detail.preventDefault()
+      updateHighlightedUser(-1)
+    } else if (event.detail?.key === "Tab" && highlightedUserIndex >= 0) {
+      event.detail.preventDefault()
+      selectSuggestedUser(suggestedUsers[highlightedUserIndex])
+    }
+  }
+
+  onDestroy(() => {
+    clearTimeout(userSearchTimeout)
+  })
 
   function buildWorkspaceUsers() {
     return emailsInput.map(email => ({
@@ -271,15 +378,49 @@
   {#if useWorkspaceInviteModal}
     <div class="workspace-invite-modal">
       <Layout noPadding gap="S">
-        <PillInput
-          label="Type or paste emails below, separated by commas"
-          bind:value={emailsInput}
-          bind:inputValue={pendingEmailInput}
-          error={emailError}
-          splitOnSpace={true}
-          maxItems={maxItems + 1}
-          on:change={handleEmailsChange}
-        />
+        <div class="user-email-picker">
+          <PillInput
+            label="Type or paste emails below, separated by commas"
+            bind:value={emailsInput}
+            bind:inputValue={pendingEmailInput}
+            error={emailError}
+            splitOnSpace={true}
+            maxItems={maxItems + 1}
+            on:change={handleEmailsChange}
+            on:input={handlePendingEmailInput}
+            on:keydown={handleEmailPickerKeydown}
+          />
+
+          {#if suggestedUsers.length}
+            <div class="user-suggestions" role="listbox">
+              {#each suggestedUsers as user, index (user._id || user.email)}
+                <button
+                  class="user-suggestion"
+                  class:is-highlighted={highlightedUserIndex === index}
+                  type="button"
+                  role="option"
+                  aria-selected={highlightedUserIndex === index}
+                  on:mouseenter={() => (highlightedUserIndex = index)}
+                  on:mousedown|preventDefault={() => selectSuggestedUser(user)}
+                >
+                  <Avatar
+                    size="S"
+                    initials={helpers.getUserInitials(user)}
+                    color={helpers.getUserColor(user)}
+                  />
+                  <span class="user-suggestion-details">
+                    <span class="user-suggestion-name">
+                      {helpers.getUserLabel(user)}
+                    </span>
+                    <span class="user-suggestion-email">{user.email}</span>
+                  </span>
+                </button>
+              {/each}
+            </div>
+          {:else if isSearchingUsers}
+            <div class="user-suggestions loading">Searching...</div>
+          {/if}
+        </div>
 
         <GlobalRoleSelect
           bind:value={selectedRole}
@@ -443,5 +584,61 @@
   .workspace-invite-modal :global(.pill-input) {
     gap: 6px;
     padding: 8px;
+  }
+  .user-email-picker {
+    position: relative;
+  }
+  .user-suggestions {
+    position: absolute;
+    z-index: 2;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    padding: 4px;
+    border: 1px solid var(--spectrum-global-color-gray-200);
+    border-radius: var(--spectrum-global-dimension-size-50);
+    background: var(--spectrum-global-color-gray-50);
+    box-shadow: 0 1px 4px var(--drop-shadow);
+  }
+  .user-suggestions.loading {
+    color: var(--spectrum-global-color-gray-600);
+    font-size: 14px;
+    padding: 8px;
+  }
+  .user-suggestion {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-s);
+    padding: 6px 8px;
+    border: 0;
+    border-radius: var(--spectrum-global-dimension-size-50);
+    background: transparent;
+    color: var(--spectrum-global-color-gray-800);
+    text-align: left;
+    cursor: pointer;
+  }
+  .user-suggestion:hover,
+  .user-suggestion.is-highlighted {
+    background: var(--spectrum-global-color-gray-100);
+  }
+  .user-suggestion-details {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+  .user-suggestion-name,
+  .user-suggestion-email {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-suggestion-name {
+    font-size: 14px;
+    font-weight: 600;
+  }
+  .user-suggestion-email {
+    color: var(--spectrum-global-color-gray-600);
+    font-size: 12px;
   }
 </style>
