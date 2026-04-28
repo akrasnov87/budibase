@@ -374,13 +374,9 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
     })
 
     const pendingToolCalls = new Set<string>()
-    let listedKnowledgeFiles = false
 
     const result = await run.stream({
       pendingToolCalls,
-      onKnowledgeFilesListed() {
-        listedKnowledgeFiles = true
-      },
     })
 
     const title = run.latestQuestion
@@ -411,9 +407,6 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
 
           return {
             ...sharedMetadata,
-            ...(run.ragSourcesMetadata?.length && !listedKnowledgeFiles
-              ? { ragSources: run.ragSourcesMetadata }
-              : {}),
             createdAt: streamStartTime,
             completedAt: Date.now(),
             ...(toolCallsIncomplete && {
