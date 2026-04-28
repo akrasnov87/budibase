@@ -81,6 +81,17 @@ export const prepareAgentChatRun = async ({
     string,
     NonNullable<AgentMessageMetadata["ragSources"]>[number]
   >()
+  const setUsedKnowledgeSources = (
+    accepted?: AgentMessageMetadata["ragSources"]
+  ) => {
+    usedKnowledgeSourceById.clear()
+    for (const source of accepted || []) {
+      if (!source?.sourceId) {
+        continue
+      }
+      usedKnowledgeSourceById.set(source.sourceId, source)
+    }
+  }
   const reportUsedSourcesTool = tool({
     description:
       "Report the specific knowledge sources that were actually used in the final answer. Only sourceIds returned by search_knowledge in this run are valid.",
@@ -91,16 +102,15 @@ export const prepareAgentChatRun = async ({
       const accepted: NonNullable<AgentMessageMetadata["ragSources"]> = []
       const ignored: string[] = []
 
-      usedKnowledgeSourceById.clear()
       for (const sourceId of sourceIds || []) {
         const source = retrievedKnowledgeSourceById.get(sourceId)
         if (!source) {
           ignored.push(sourceId)
           continue
         }
-        usedKnowledgeSourceById.set(sourceId, source)
         accepted.push(source)
       }
+      setUsedKnowledgeSources(accepted)
 
       return {
         accepted,
@@ -110,11 +120,11 @@ export const prepareAgentChatRun = async ({
       }
     },
   })
-  const runtimeTools = {
-    ...tools,
-    report_used_sources: reportUsedSourcesTool,
-  } satisfies ToolSet
-  const hasTools = Object.keys(runtimeTools).length > 0
+  if (tools.search_knowledge) {
+    tools.report_used_sources = reportUsedSourcesTool
+  }
+
+  const hasTools = Object.keys(tools).length > 0
   const agentRunner = new ToolLoopAgent({
     model: wrapLanguageModel({
       model: llm.chat,
@@ -123,7 +133,7 @@ export const prepareAgentChatRun = async ({
       }),
     }),
     instructions: promptAndTools.systemPrompt || undefined,
-    tools: hasTools ? runtimeTools : undefined,
+    tools: hasTools ? tools : undefined,
     toolChoice: hasTools ? "auto" : "none",
     stopWhen: stepCountIs(30),
     providerOptions: llm.providerOptions?.(hasTools),
@@ -158,6 +168,15 @@ export const prepareAgentChatRun = async ({
                 }
                 retrievedKnowledgeSourceById.set(source.sourceId, source)
               }
+            }
+            if (
+              toolResult.toolName === "report_used_sources" &&
+              !toolResult.preliminary
+            ) {
+              const output = toolResult.output as
+                | { accepted?: AgentMessageMetadata["ragSources"] }
+                | undefined
+              setUsedKnowledgeSources(output?.accepted)
             }
             await quotas.addAction(async () => {})
           }

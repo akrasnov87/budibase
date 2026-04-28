@@ -1310,22 +1310,47 @@ describe("Agent chat tool call tracking", () => {
         })
 
       expect(res.status).toBe(200)
-      expect(finishMetadata?.ragSources).toEqual([
-        {
-          sourceId: "pricing-source",
-          filename: "Budibase Enterprise Pricing V8.pdf",
-        },
-      ])
+      expect(finishMetadata?.ragSources).toBeUndefined()
     })
 
-    it("does not include ragSources when search_knowledge is not called", async () => {
+    it("includes ragSources only when report_used_sources is called with known ids", async () => {
       let finishMetadata: Record<string, any> | undefined
       jest.mocked(streamText).mockImplementation(
         makeStreamTextMockWithMetadata({
           toolCalls: [
-            { toolCallId: "call-1", toolName: "list_knowledge_files" },
+            { toolCallId: "call-1", toolName: "search_knowledge" },
+            { toolCallId: "call-2", toolName: "report_used_sources" },
           ],
-          toolResults: [],
+          toolResults: [
+            {
+              toolCallId: "call-1",
+              toolName: "search_knowledge",
+              output: {
+                sources: [
+                  {
+                    sourceId: "pricing-source",
+                    filename: "Budibase Enterprise Pricing V8.pdf",
+                  },
+                  {
+                    sourceId: "faq-source",
+                    filename: "FAQ.md",
+                  },
+                ],
+              },
+            } as any,
+            {
+              toolCallId: "call-2",
+              toolName: "report_used_sources",
+              output: {
+                accepted: [
+                  {
+                    sourceId: "pricing-source",
+                    filename: "Budibase Enterprise Pricing V8.pdf",
+                  },
+                ],
+              },
+            } as any,
+          ],
           onMetadata: metadata => {
             finishMetadata = metadata.finishMetadata
           },
@@ -1343,7 +1368,69 @@ describe("Agent chat tool call tracking", () => {
             {
               id: "msg-1",
               role: "user",
-              parts: [{ type: "text", text: "how many files do I have" }],
+              parts: [{ type: "text", text: "summarize the pricing file" }],
+            },
+          ],
+          transient: true,
+        })
+
+      expect(res.status).toBe(200)
+      expect(finishMetadata?.ragSources).toEqual([
+        {
+          sourceId: "pricing-source",
+          filename: "Budibase Enterprise Pricing V8.pdf",
+        },
+      ])
+    })
+
+    it("ignores report_used_sources ids that were not returned by search_knowledge", async () => {
+      let finishMetadata: Record<string, any> | undefined
+      jest.mocked(streamText).mockImplementation(
+        makeStreamTextMockWithMetadata({
+          toolCalls: [
+            { toolCallId: "call-1", toolName: "search_knowledge" },
+            { toolCallId: "call-2", toolName: "report_used_sources" },
+          ],
+          toolResults: [
+            {
+              toolCallId: "call-1",
+              toolName: "search_knowledge",
+              output: {
+                sources: [
+                  {
+                    sourceId: "pricing-source",
+                    filename: "Budibase Enterprise Pricing V8.pdf",
+                  },
+                ],
+              },
+            } as any,
+            {
+              toolCallId: "call-2",
+              toolName: "report_used_sources",
+              output: {
+                accepted: [],
+                ignored: ["unknown-source"],
+              },
+            } as any,
+          ],
+          onMetadata: metadata => {
+            finishMetadata = metadata.finishMetadata
+          },
+        }) as any
+      )
+
+      const headers = await config.defaultHeaders({}, true)
+      const res = await config
+        .getRequest()!
+        .post(`/api/chatapps/${chatApp._id}/conversations/new/stream`)
+        .set(headers)
+        .send({
+          agentId: "agent-1",
+          messages: [
+            {
+              id: "msg-1",
+              role: "user",
+              parts: [{ type: "text", text: "summarize the pricing file" }],
             },
           ],
           transient: true,
