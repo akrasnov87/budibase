@@ -187,6 +187,7 @@
     endpointLoadError = undefined
     queryParams = undefined
     originalBuiltQuery = undefined
+    defaultSpecServerUrl = undefined
   }
 
   // ── CUSTOM MODE URL ───────────────────────────────────────────────────────
@@ -616,8 +617,8 @@
       }
 
       if (isNew && saveAndClose && _id) {
-        workspaceConnections.discardDraft()
         dispatch("savedQuery", { queryId: _id })
+        workspaceConnections.discardDraft()
         return { ok: true }
       }
 

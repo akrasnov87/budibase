@@ -46,7 +46,7 @@
 
   const allQueries = $derived($queries.list || [])
 
-  const selectedQuery = $derived(allQueries.find((q: Query) => q._id === value))
+  const selectedQuery = $derived(($queries.list || []).find((q: Query) => q._id === value))
   const selectedDatasource = $derived(
     selectedQuery
       ? restDatasources.find(
@@ -127,7 +127,7 @@
   on:open={focusSearch}
   align="right"
   roundedPopover
-  useAnchorWidth={fullWidthDropdown}
+  widthMode={fullWidthDropdown ? "fixed-to-anchor" : "no-anchor"}
   {disabled}
 >
   <svelte:fragment slot="control" let:open>

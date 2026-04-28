@@ -316,7 +316,9 @@
             </MenuItem>
           {/if}
         </div>
-        <Divider noMargin />
+        {#if hasSavedConnections || hasSuggestions}
+          <Divider noMargin />
+        {/if}
         {#if !searchQuery}
           {#if sortedAuthOptions.length > 0}
             <div class="auth-section-header">Saved API connections</div>
