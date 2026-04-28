@@ -221,13 +221,19 @@ describe("/applications/:appId/import", () => {
     expect(screens[1].routing.route).toBe("/blank")
   })
 
-  it("should override existing snippet code when importing over an existing workspace", async () => {
+  it("should import selected metadata while preserving workspace identity metadata", async () => {
     const appId = config.getDevWorkspaceId()
     const snippetName = `importSnippet_${Date.now()}`
     const importedSnippetCode = "return 'imported-version'"
     const existingSnippetCode = "return 'existing-version'"
+    const importedTheme = { primaryColor: "#00A86B" }
+    const existingTheme = { primaryColor: "#B22222" }
+    const importedFeatures = { componentValidation: true }
+    const existingFeatures = { componentValidation: false }
 
     await config.api.workspace.update(appId!, {
+      theme: importedTheme,
+      features: importedFeatures,
       snippets: [{ name: snippetName, code: importedSnippetCode }],
     })
 
@@ -237,6 +243,8 @@ describe("/applications/:appId/import", () => {
     })
 
     await config.api.workspace.update(appId!, {
+      theme: existingTheme,
+      features: existingFeatures,
       snippets: [{ name: snippetName, code: existingSnippetCode }],
     })
 
@@ -254,6 +262,26 @@ describe("/applications/:appId/import", () => {
       .expect(200)
 
     const workspace = await config.api.workspace.get(appId!)
+    expect({
+      theme: workspace.theme,
+      features: workspace.features,
+      snippet: workspace.snippets?.find(
+        snippet => snippet.name === snippetName
+      ),
+    }).toEqual({
+      theme: importedTheme,
+      features: expect.objectContaining(importedFeatures),
+      snippet: { name: snippetName, code: importedSnippetCode },
+    })
+
+    expect({
+      appId: workspace.appId,
+      tenantId: workspace.tenantId,
+    }).toEqual({
+      appId,
+      tenantId: beforeImportWorkspace.tenantId,
+    })
+
     expect(workspace.snippets).toContainEqual({
       name: snippetName,
       code: importedSnippetCode,
