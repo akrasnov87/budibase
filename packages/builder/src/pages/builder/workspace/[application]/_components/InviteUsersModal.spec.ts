@@ -1,6 +1,13 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/svelte"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+interface SearchUser {
+  _id: string
+  email: string
+  firstName: string
+  lastName: string
+}
+
 vi.mock("svelte", async importOriginal => {
   const actual = await importOriginal<typeof import("svelte")>()
   return {
@@ -71,7 +78,7 @@ const {
       create: vi.fn(async () => ({ successful: [], unsuccessful: [] })),
       fetch: vi.fn(async () => []),
     },
-    searchUsersMock: vi.fn(async () => ({ data: [] })),
+    searchUsersMock: vi.fn(async () => ({ data: [] as SearchUser[] })),
     assignExistingUsersToWorkspaceMock: vi.fn(async (userData: any) => ({
       usersToInvite: userData.users,
       addedToWorkspaceEmails: [],
