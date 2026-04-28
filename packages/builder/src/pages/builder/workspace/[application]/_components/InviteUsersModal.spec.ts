@@ -352,4 +352,32 @@ describe("InviteUsersModal", () => {
       expect(screen.getByRole("button", { name: "Invite users" })).toBeEnabled()
     })
   })
+
+  it("closes the user suggestions when the email input blurs", async () => {
+    searchUsersMock.mockResolvedValue({
+      data: [
+        {
+          _id: "user_1",
+          email: "existing@example.com",
+          firstName: "Existing",
+          lastName: "User",
+        },
+      ],
+    })
+    render(InviteUsersModal, { props: { onHide: vi.fn() } })
+
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "existing" },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("existing@example.com")).toBeInTheDocument()
+    })
+
+    await fireEvent.blur(getEmailInput())
+
+    await waitFor(() => {
+      expect(screen.queryByText("existing@example.com")).not.toBeInTheDocument()
+    })
+  })
 })

@@ -389,6 +389,7 @@
             on:change={handleEmailsChange}
             on:input={handlePendingEmailInput}
             on:keydown={handleEmailPickerKeydown}
+            on:blur={clearUserSearch}
           />
 
           {#if suggestedUsers.length}
