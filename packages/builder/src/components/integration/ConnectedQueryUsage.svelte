@@ -1,13 +1,20 @@
 <script lang="ts">
-  import AutomationsPopover from "@/components/common/AutomationsPopover.svelte"
-  import { automationStore } from "@/stores/builder"
-  import type { Automation, AutomationUsage } from "@budibase/types"
+  import { onMount } from "svelte"
+
+  import { screenStore, automationStore } from "@/stores/builder"
+  import UsagePopover from "@/components/common/UsagePopover.svelte"
+  import type {
+    Automation,
+    AutomationUsage,
+    ScreenUsage,
+  } from "@budibase/types"
 
   export let sourceId: string
-  export let buttonText = "Automations"
-  export let icon = "path"
+  export let buttonText = "Usage"
+  export let icon = "link-simple-horizontal-break"
 
-  let popover: AutomationsPopover
+  let screens: ScreenUsage[] = []
+  let popover: UsagePopover
 
   export function show() {
     popover?.show()
@@ -40,10 +47,16 @@
     $automationStore.automations,
     sourceId
   )
+
+  onMount(async () => {
+    const response = await screenStore.usageInScreens(sourceId)
+    screens = response?.screens ?? []
+  })
 </script>
 
-<AutomationsPopover
+<UsagePopover
   bind:this={popover}
+  {screens}
   automations={connectedAutomations}
   {icon}
   {buttonText}
