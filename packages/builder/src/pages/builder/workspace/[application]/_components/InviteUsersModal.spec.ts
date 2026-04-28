@@ -353,6 +353,35 @@ describe("InviteUsersModal", () => {
     })
   })
 
+  it("adds the highlighted suggested user when enter is pressed", async () => {
+    searchUsersMock.mockResolvedValue({
+      data: [
+        {
+          _id: "user_1",
+          email: "enter@example.com",
+          firstName: "Enter",
+          lastName: "User",
+        },
+      ],
+    })
+    render(InviteUsersModal, { props: { onHide: vi.fn() } })
+
+    await fireEvent.input(getEmailInput(), {
+      target: { value: "enter" },
+    })
+
+    await waitFor(() => {
+      expect(screen.getByText("enter@example.com")).toBeInTheDocument()
+    })
+
+    await fireEvent.keyDown(getEmailInput(), { key: "Enter" })
+
+    await waitFor(() => {
+      expect(screen.getByText("enter@example.com")).toBeInTheDocument()
+      expect(screen.getByRole("button", { name: "Invite users" })).toBeEnabled()
+    })
+  })
+
   it("closes the user suggestions when the email input blurs", async () => {
     searchUsersMock.mockResolvedValue({
       data: [

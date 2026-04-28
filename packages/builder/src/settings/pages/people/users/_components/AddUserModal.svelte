@@ -288,7 +288,10 @@
     } else if (event.detail?.key === "ArrowUp") {
       event.detail.preventDefault()
       updateHighlightedUser(-1)
-    } else if (event.detail?.key === "Tab" && highlightedUserIndex >= 0) {
+    } else if (
+      ["Enter", "Tab"].includes(event.detail?.key) &&
+      highlightedUserIndex >= 0
+    ) {
       event.detail.preventDefault()
       selectSuggestedUser(suggestedUsers[highlightedUserIndex])
     }
