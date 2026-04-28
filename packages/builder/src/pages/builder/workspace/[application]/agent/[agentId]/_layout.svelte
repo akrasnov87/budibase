@@ -1,10 +1,10 @@
 <script lang="ts">
   import {
     ActionButton,
-    Banner,
     Button,
     Icon,
     Layout,
+    StatusLight,
     notifications,
   } from "@budibase/bbui"
   import TopBar from "@/components/common/TopBar.svelte"
@@ -106,18 +106,6 @@
     ]}
     icon="Effect"
   ></TopBar>
-  {#if hasLiveUnpublishedChanges}
-    <div class="publish-banner">
-      <Banner type="warning" showCloseButton={false}>
-        <div class="publish-banner-content">
-          <span
-            >This live agent has unpublished changes. Publish to apply updates
-            to live environments.</span
-          >
-        </div>
-      </Banner>
-    </div>
-  {/if}
   <div class="secondary-bar">
     <div class="filter">
       <ActionButton
@@ -150,6 +138,12 @@
       >
         Logs
       </ActionButton>
+      {#if hasLiveUnpublishedChanges}
+        <div class="unpublished-changes-indicator">
+          <StatusLight color="var(--spectrum-global-color-blue-600)" size="L" />
+          <span>Unpublished changes</span>
+        </div>
+      {/if}
     </div>
     <div class="start-pause-row">
       <div class="status-icons">
@@ -225,18 +219,6 @@
     gap: var(--spacing-l);
   }
 
-  .publish-banner {
-    margin: 0;
-  }
-
-  .publish-banner-content {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--spacing-m);
-  }
-
   .config-content {
     grid-column: span 13;
     padding: var(--spacing-xl) var(--spacing-l) 20px;
@@ -309,6 +291,20 @@
   .filter {
     display: flex;
     gap: 10px;
+    align-items: center;
+    flex: 1 1 auto;
+  }
+
+  .unpublished-changes-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    color: var(--spectrum-global-color-gray-700);
+    font-size: var(--font-size-s);
+    font-weight: 500;
+    margin-left: auto;
+    margin-right: var(--spacing-s);
+    white-space: nowrap;
   }
 
   .filter :global(.spectrum-ActionButton) {
