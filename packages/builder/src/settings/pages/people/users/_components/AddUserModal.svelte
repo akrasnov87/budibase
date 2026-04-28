@@ -248,7 +248,7 @@
     }
     userSearchTimeout = setTimeout(
       () => searchExistingUsers(pendingEmailInput),
-      500
+      350
     )
   }
 
