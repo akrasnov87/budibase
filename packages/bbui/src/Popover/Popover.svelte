@@ -16,7 +16,7 @@
   import positionDropdown, {
     type UpdateHandler,
   } from "../Actions/positionDropdown"
-  import { PopoverAlignment } from "../constants"
+  import { PopoverAlignment, type PopoverWidthMode } from "../constants"
   import Context from "../context"
 
   export let anchor: HTMLElement | undefined
@@ -28,7 +28,7 @@
   export let maxHeight: number | undefined = undefined
   export let borderRadius: string | undefined = undefined
   export let open = false
-  export let useAnchorWidth = false
+  export let widthMode: PopoverWidthMode = "no-anchor"
   export let dismissible = true
   export let offset = 4
   export let customHeight: string | undefined = undefined
@@ -39,6 +39,7 @@
   export let clickOutsideOverride = false
   export let resizable = true
   export let wrap = false
+  export let closeOnScroll = false
 
   const dispatch = createEventDispatcher<{ open: void; close: void }>()
   const animationDuration = 260
@@ -139,11 +140,12 @@
         maxHeight,
         maxWidth,
         minWidth,
-        useAnchorWidth,
+        widthMode,
         offset,
         customUpdate: handlePositionUpdate,
         resizable,
         wrap,
+        onScroll: closeOnScroll ? hide : undefined,
       }}
       use:clickOutside={{
         callback: dismissible ? handleOutsideClick : () => {},
