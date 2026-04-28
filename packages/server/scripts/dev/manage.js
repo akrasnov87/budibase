@@ -27,7 +27,7 @@ async function up() {
   console.log("Spinning up your budibase dev environment... 🔧✨")
 
   if (process.env.BUDIBASE_DEV_STACK === "core") {
-    await compose.stopMany(NON_CORE_SERVICES, CONFIG)
+    await compose.stopMany(CONFIG, ...NON_CORE_SERVICES)
     await compose.upMany(CORE_SERVICES, CONFIG)
   } else {
     await compose.upAll(CONFIG)
