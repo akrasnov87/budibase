@@ -1,11 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import { Layout, Table, Body } from "@budibase/bbui"
-  import { agentsStore } from "@/stores/portal"
-  import {
-    AgentKnowledgeSourceType,
-    type AgentKnowledgeSource,
-  } from "@budibase/types"
+  import { API } from "@/api"
+  import type { AgentKnowledgeSourceConnection } from "@budibase/types"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
 
   interface KnowledgeConnectionRow {
@@ -29,62 +26,26 @@
     usedBy: { width: "260px", displayName: "Used by" },
   }
 
-  const compactList = (values: string[], max = 2) => {
-    if (values.length <= max) {
-      return values.join(", ")
-    }
-    return `${values.slice(0, max).join(", ")} +${values.length - max} more`
-  }
-
-  const toConnectionRows = (): KnowledgeConnectionRow[] => {
-    const siteNames = new Set<string>()
-    const agentNames = new Set<string>()
-
-    for (const agent of $agentsStore.agents) {
-      for (const source of (agent.knowledgeSources ||
-        []) as AgentKnowledgeSource[]) {
-        if (source.type !== AgentKnowledgeSourceType.SHAREPOINT) {
-          continue
-        }
-        const site = source.config.site
-        const siteId = site?.id?.trim()
-        if (!siteId) {
-          continue
-        }
-        siteNames.add(site?.name || site?.webUrl || siteId)
-        agentNames.add(agent.name || agent._id || "Agent")
-      }
-    }
-
-    if (siteNames.size === 0) {
-      return []
-    }
-
-    const orderedSites = Array.from(siteNames).sort((a, b) =>
-      a.localeCompare(b)
-    )
-    const orderedAgents = Array.from(agentNames).sort((a, b) =>
-      a.localeCompare(b)
-    )
-
-    return [
-      {
-        icon: "sharepoint",
-        connectionName: "SharePoint",
-        sites: compactList(orderedSites),
-        usedBy: compactList(orderedAgents),
-      } satisfies KnowledgeConnectionRow,
-    ]
+  const toConnectionRows = (
+    connections: AgentKnowledgeSourceConnection[]
+  ): KnowledgeConnectionRow[] => {
+    return connections
+      .map(connection => ({
+        icon: connection.sourceType,
+        connectionName: connection.connectionKey,
+        sites: connection.connectionKey,
+        usedBy: "-",
+      }))
+      .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   }
 
   let loading = $state(true)
-  let rows = $derived(toConnectionRows())
+  let rows = $state<KnowledgeConnectionRow[]>([])
 
   onMount(async () => {
     try {
-      if (!$agentsStore.agentsLoaded) {
-        await agentsStore.init()
-      }
+      const response = await API.fetchAgentKnowledgeSourceConnections()
+      rows = toConnectionRows(response.connections || [])
     } finally {
       loading = false
     }
