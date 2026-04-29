@@ -26,7 +26,6 @@ import {
 import {
   fetchSharePointSitesByConnection,
   getSharePointBearerToken,
-  hasSharePointConnection,
   isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
 } from "../sharepoint"
@@ -90,10 +89,7 @@ const getSharePointCurrentWorkspaceConnectionId = async () => {
 
 export const hasSharePointWorkspaceConnection = async (): Promise<boolean> => {
   const connectionId = await getSharePointCurrentWorkspaceConnectionId()
-  if (!connectionId) {
-    return false
-  }
-  return hasSharePointConnection(connectionId)
+  return !!connectionId
 }
 
 const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {

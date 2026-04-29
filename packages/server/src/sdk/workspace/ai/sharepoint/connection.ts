@@ -163,15 +163,6 @@ export const clearSharePointConnection = async (connectionId: string) => {
   await deleteKnowledgeSourceConnection(connectionId)
 }
 
-export const hasSharePointConnection = async (connectionId: string) => {
-  const connection =
-    await getKnowledgeSourceConnection<SharePointConnectionDoc>(connectionId)
-  return (
-    connection?.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
-    !!connection.refreshToken
-  )
-}
-
 export const fetchSharePointSitesByBearerToken = async (
   bearerToken: string
 ): Promise<KnowledgeSourceOption[]> => {
