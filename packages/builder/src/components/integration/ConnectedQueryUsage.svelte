@@ -56,6 +56,9 @@
   )
 
   onMount(async () => {
+    if (!sourceId) {
+      return
+    }
     const response = await screenStore.usageInScreens(sourceId)
     screens = response?.screens ?? []
   })
