@@ -1,14 +1,14 @@
 import { HTTPError } from "@budibase/backend-core"
-import type {
+import {
   AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
   KnowledgeSourceOption,
 } from "@budibase/types"
 import {
+  createKnowledgeSourceConnection,
   deleteKnowledgeSourceConnection,
-  getKnowledgeSourceConnection,
-  hasKnowledgeSourceConnection,
-  upsertKnowledgeSourceConnection,
+  findKnowledgeSourceConnection,
+  updateKnowledgeSourceConnection,
 } from "../knowledgeSources"
 
 interface SharePointConnectionCacheRecord {
@@ -43,8 +43,6 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
 export const sharePointConnectionCacheKey = (scope: string, scopeId: string) =>
   `sharepoint:${scope}:${scopeId}:connection`
 
-const SHAREPOINT_SOURCE_TYPE = "sharepoint"
-
 interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
   sourceType: AgentKnowledgeSourceType.SHAREPOINT
 }
@@ -53,20 +51,32 @@ const persistConnection = async (
   connectionKey: string,
   connection: SharePointConnectionCacheRecord
 ) => {
-  await upsertKnowledgeSourceConnection<SharePointConnectionDoc>(
-    SHAREPOINT_SOURCE_TYPE,
-    connectionKey,
-    {
-      tenantId: connection.tenantId,
-      tokenEndpoint: connection.tokenEndpoint,
-      accessToken: connection.accessToken,
-      refreshToken: connection.refreshToken,
-      tokenType: connection.tokenType,
-      expiresAt: connection.expiresAt,
-      clientId: connection.clientId,
-      clientSecret: connection.clientSecret,
-    }
+  const existing = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
+    AgentKnowledgeSourceType.SHAREPOINT,
+    connectionKey
   )
+  const patch = {
+    sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+    connectionKey,
+    tenantId: connection.tenantId,
+    tokenEndpoint: connection.tokenEndpoint,
+    accessToken: connection.accessToken,
+    refreshToken: connection.refreshToken,
+    tokenType: connection.tokenType,
+    expiresAt: connection.expiresAt,
+    clientId: connection.clientId,
+    clientSecret: connection.clientSecret,
+  }
+
+  if (existing?._id) {
+    await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
+      existing._id,
+      patch
+    )
+    return
+  }
+
+  await createKnowledgeSourceConnection<SharePointConnectionDoc>(patch)
 }
 
 const mapPersistedToCacheRecord = (
@@ -87,8 +97,8 @@ const mapPersistedToCacheRecord = (
 const readPersistedConnection = async (
   connectionKey: string
 ): Promise<SharePointConnectionCacheRecord | undefined> => {
-  const doc = await getKnowledgeSourceConnection<SharePointConnectionDoc>(
-    SHAREPOINT_SOURCE_TYPE,
+  const doc = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
+    AgentKnowledgeSourceType.SHAREPOINT,
     connectionKey
   )
   if (!doc?.refreshToken) {
@@ -161,11 +171,21 @@ export const getSharePointBearerToken = async (
 }
 
 export const clearSharePointConnection = async (connectionKey: string) => {
-  await deleteKnowledgeSourceConnection(SHAREPOINT_SOURCE_TYPE, connectionKey)
+  const existing = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
+    AgentKnowledgeSourceType.SHAREPOINT,
+    connectionKey
+  )
+  if (existing?._id) {
+    await deleteKnowledgeSourceConnection(existing._id)
+  }
 }
 
 export const hasSharePointConnection = async (connectionKey: string) => {
-  return hasKnowledgeSourceConnection(SHAREPOINT_SOURCE_TYPE, connectionKey)
+  const existing = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
+    AgentKnowledgeSourceType.SHAREPOINT,
+    connectionKey
+  )
+  return !!existing?.refreshToken
 }
 
 export const fetchSharePointSitesByBearerToken = async (

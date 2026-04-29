@@ -6,14 +6,17 @@ import {
   env,
   utils,
 } from "@budibase/backend-core"
-import { DatasourceAuthCookie, UserCtx } from "@budibase/types"
+import {
+  AgentKnowledgeSourceType,
+  DatasourceAuthCookie,
+  UserCtx,
+} from "@budibase/types"
 import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/sharepoint"
 import sdk from "../../../sdk"
 
 const DEFAULT_SCOPE = env.RAG_SHAREPOINT_DEFAULT_SCOPE
 const STATE_CACHE_TTL_SECONDS = 600
 const MICROSOFT_PROVIDER = "microsoft"
-const SHAREPOINT_SOURCE_TYPE = "sharepoint"
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -180,10 +183,11 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   const expiresIn = Number(tokenPayload?.expires_in || 0)
 
   await context.doInContext(appId, () =>
-    sdk.ai.knowledgeSources.upsertKnowledgeSourceConnection(
-      SHAREPOINT_SOURCE_TYPE,
-      getSharePointWorkspaceConnectionKey(appId),
-      {
+    (async () => {
+      const connectionKey = getSharePointWorkspaceConnectionKey(appId)
+      const patch = {
+        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        connectionKey,
         tenantId,
         tokenEndpoint,
         accessToken,
@@ -193,7 +197,8 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         clientId,
         clientSecret,
       }
-    )
+      await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(patch)
+    })()
   )
   console.log("Completed SharePoint OAuth flow", {
     appId,
