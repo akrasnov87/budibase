@@ -8,7 +8,6 @@
   interface KnowledgeConnectionRow {
     icon: string
     connectionName: string
-    sites: string
     usedBy: string
   }
 
@@ -21,8 +20,7 @@
 
   const schema = {
     icon: { width: "40px", displayName: "" },
-    connectionName: { width: "220px", displayName: "Connection" },
-    sites: { width: "1fr", displayName: "Sites" },
+    connectionName: { width: "1fr", displayName: "Connection" },
     usedBy: { width: "260px", displayName: "Used by" },
   }
 
@@ -33,7 +31,6 @@
       .map(connection => ({
         icon: connection.sourceType,
         connectionName: connection.connectionKey,
-        sites: connection.connectionKey,
         usedBy: "-",
       }))
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
