@@ -22,7 +22,7 @@
 
   const schema = {
     icon: { width: "40px", displayName: "" },
-    connectionName: { width: "1fr", displayName: "Connection" },
+    connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
     useCount: { width: "60px", displayName: "#" },
   }
