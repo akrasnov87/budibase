@@ -132,7 +132,6 @@ describe("agent files", () => {
         "sharepoint",
         sharePointConnectionCacheKey("connection", workspaceConnectionId),
         {
-          tenant: "microsoft-account",
           account: "connected-sharepoint@budibase.com",
           tenantId: config.getTenantId(),
           tokenEndpoint:

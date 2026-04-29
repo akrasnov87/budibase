@@ -213,8 +213,6 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
       error,
     })
   }
-  const tenant = tenantId || "unknown"
-
   await context.doInContext(appId, () =>
     sdk.ai.knowledgeSources.upsertKnowledgeSourceConnection(
       SHAREPOINT_SOURCE_TYPE,
@@ -228,7 +226,6 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
         clientId,
         clientSecret,
-        tenant,
         account,
       }
     )

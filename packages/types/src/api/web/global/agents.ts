@@ -68,7 +68,6 @@ export type AgentKnowledgeSourceConnectionSummary = Pick<
   | "updatedAt"
   | "sourceType"
   | "connectionKey"
-  | "tenant"
   | "account"
 >
 

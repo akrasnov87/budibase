@@ -2,10 +2,7 @@
   import { onMount } from "svelte"
   import { Layout, Table, Body } from "@budibase/bbui"
   import { API } from "@/api"
-  import {
-    AgentKnowledgeSourceType,
-    type AgentKnowledgeSourceConnection,
-  } from "@budibase/types"
+  import { AgentKnowledgeSourceType } from "@budibase/types"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
   import { agentsStore } from "@/stores/portal"
 
@@ -13,7 +10,6 @@
     id: string
     icon: string
     connectionName: string
-    tenant: string
     account: string
   }
 
@@ -26,24 +22,9 @@
 
   const schema = {
     icon: { width: "40px", displayName: "" },
-    connectionName: { width: "200px", displayName: "Connection" },
-    tenant: { width: "1fr", displayName: "Tenant" },
+    connectionName: { width: "1fr", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
     useCount: { width: "60px", displayName: "#" },
-  }
-
-  const toConnectionRows = (
-    connections: AgentKnowledgeSourceConnection[]
-  ): KnowledgeConnectionRow[] => {
-    return connections
-      .map(connection => ({
-        id: connection._id!,
-        icon: connection.sourceType,
-        connectionName: "Microsoft",
-        tenant: connection.tenant || connection.tenantId || "-",
-        account: connection.account || "-",
-      }))
-      .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   }
 
   let loading = $state(true)
@@ -70,7 +51,14 @@
           }
         },
       ])
-      rows = toConnectionRows(response.connections || [])
+      rows = (response.connections || [])
+        .map(connection => ({
+          id: connection._id!,
+          icon: connection.sourceType,
+          connectionName: "Microsoft",
+          account: connection.account || "-",
+        }))
+        .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
     } finally {
       loading = false
     }
