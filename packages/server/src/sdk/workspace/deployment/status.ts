@@ -57,25 +57,24 @@ export async function status() {
 
   const toComparableKnowledgeSource = (
     source: NonNullable<Agent["knowledgeSources"]>[number]
-  ) =>
-    ({
-      id: source.id,
-      type: source.type,
-      config: {
-        site: source.config.site
-          ? {
-              id: source.config.site.id,
-              name: source.config.site.name,
-              webUrl: source.config.site.webUrl,
-            }
-          : undefined,
-        filters: source.config.filters
-          ? {
-              patterns: normalizeArray(source.config.filters.patterns || []),
-            }
-          : undefined,
-      },
-    })
+  ) => ({
+    id: source.id,
+    type: source.type,
+    config: {
+      site: source.config.site
+        ? {
+            id: source.config.site.id,
+            name: source.config.site.name,
+            webUrl: source.config.site.webUrl,
+          }
+        : undefined,
+      filters: source.config.filters
+        ? {
+            patterns: normalizeArray(source.config.filters.patterns || []),
+          }
+        : undefined,
+    },
+  })
 
   const toComparableKnowledgeBaseFile = (file: KnowledgeBaseFile) => ({
     ...pick(file, ["_id", "filename", "status", "errorMessage", "processedAt"]),
