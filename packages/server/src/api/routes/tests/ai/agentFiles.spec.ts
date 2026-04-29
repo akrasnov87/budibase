@@ -11,7 +11,7 @@ import {
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
 import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/knowledgeSourceSyncQueue"
-import { upsertKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
+import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
 import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/sharepoint"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
@@ -128,21 +128,22 @@ describe("agent files", () => {
     await config.doInContext(config.getDevWorkspaceId(), async () => {
       const workspaceId = context.getOrThrowWorkspaceId()
       const workspaceConnectionId = db.getProdWorkspaceID(workspaceId)
-      await upsertKnowledgeSourceConnection(
-        "sharepoint",
-        sharePointConnectionCacheKey("connection", workspaceConnectionId),
-        {
-          tenantId: config.getTenantId(),
-          tokenEndpoint:
-            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-          accessToken: "header.payload.signature",
-          refreshToken: "refresh-token",
-          tokenType: "Bearer",
-          expiresAt: Date.now() + 60_000,
-          clientId: "client-id",
-          clientSecret: "client-secret",
-        }
-      )
+      await createKnowledgeSourceConnection({
+        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        connectionKey: sharePointConnectionCacheKey(
+          "connection",
+          workspaceConnectionId
+        ),
+        tenantId: config.getTenantId(),
+        tokenEndpoint:
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        accessToken: "header.payload.signature",
+        refreshToken: "refresh-token",
+        tokenType: "Bearer",
+        expiresAt: Date.now() + 60_000,
+        clientId: "client-id",
+        clientSecret: "client-secret",
+      })
     })
   }
 
