@@ -5,9 +5,8 @@ import {
   KnowledgeSourceOption,
 } from "@budibase/types"
 import {
-  createKnowledgeSourceConnection,
   deleteKnowledgeSourceConnection,
-  findKnowledgeSourceConnection,
+  getKnowledgeSourceConnection,
   updateKnowledgeSourceConnection,
 } from "../knowledgeSources"
 
@@ -47,38 +46,6 @@ interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
   sourceType: AgentKnowledgeSourceType.SHAREPOINT
 }
 
-const persistConnection = async (
-  connectionKey: string,
-  connection: SharePointConnectionCacheRecord
-) => {
-  const existing = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
-    AgentKnowledgeSourceType.SHAREPOINT,
-    connectionKey
-  )
-  const patch = {
-    sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-    connectionKey,
-    tenantId: connection.tenantId,
-    tokenEndpoint: connection.tokenEndpoint,
-    accessToken: connection.accessToken,
-    refreshToken: connection.refreshToken,
-    tokenType: connection.tokenType,
-    expiresAt: connection.expiresAt,
-    clientId: connection.clientId,
-    clientSecret: connection.clientSecret,
-  }
-
-  if (existing?._id) {
-    await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
-      existing._id,
-      patch
-    )
-    return
-  }
-
-  await createKnowledgeSourceConnection<SharePointConnectionDoc>(patch)
-}
-
 const mapPersistedToCacheRecord = (
   doc: SharePointConnectionDoc
 ): SharePointConnectionCacheRecord => {
@@ -95,24 +62,26 @@ const mapPersistedToCacheRecord = (
 }
 
 const readPersistedConnection = async (
-  connectionKey: string
-): Promise<SharePointConnectionCacheRecord | undefined> => {
-  const doc = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
-    AgentKnowledgeSourceType.SHAREPOINT,
-    connectionKey
+  connectionId: string
+): Promise<SharePointConnectionDoc | undefined> => {
+  const doc = await getKnowledgeSourceConnection<SharePointConnectionDoc>(
+    connectionId
   )
+  if (doc?.sourceType !== AgentKnowledgeSourceType.SHAREPOINT) {
+    return
+  }
   if (!doc?.refreshToken) {
     return
   }
-  return mapPersistedToCacheRecord(doc)
+  return doc
 }
 
 const readConnection = async (
-  connectionKey: string
+  connectionId: string
 ): Promise<SharePointConnectionCacheRecord> => {
-  const persistedConnection = await readPersistedConnection(connectionKey)
+  const persistedConnection = await readPersistedConnection(connectionId)
   if (persistedConnection?.refreshToken) {
-    return persistedConnection
+    return mapPersistedToCacheRecord(persistedConnection)
   }
   throw new HTTPError(
     "SharePoint is not connected. Connect SharePoint and try again.",
@@ -121,7 +90,7 @@ const readConnection = async (
 }
 
 const refreshConnection = async (
-  connectionKey: string,
+  connectionId: string,
   connection: SharePointConnectionCacheRecord
 ): Promise<SharePointConnectionCacheRecord> => {
   const response = await fetch(connection.tokenEndpoint, {
@@ -154,38 +123,52 @@ const refreshConnection = async (
     tokenType: payload?.token_type || connection.tokenType || "Bearer",
     expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
   }
-  await persistConnection(connectionKey, updated)
+
+  const saved = await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
+    connectionId,
+    {
+      tenantId: updated.tenantId,
+      tokenEndpoint: updated.tokenEndpoint,
+      accessToken: updated.accessToken,
+      refreshToken: updated.refreshToken,
+      tokenType: updated.tokenType,
+      expiresAt: updated.expiresAt,
+      clientId: updated.clientId,
+      clientSecret: updated.clientSecret,
+    }
+  )
+
+  if (!saved?._id) {
+    throw new HTTPError("SharePoint connection is missing", 400)
+  }
+
   return updated
 }
 
 export const getSharePointBearerToken = async (
-  connectionKey: string
+  connectionId: string
 ): Promise<string> => {
-  let connection = await readConnection(connectionKey)
+  let connection = await readConnection(connectionId)
   const expiresAt = Number(connection.expiresAt || 0)
   if (!connection.accessToken || expiresAt <= Date.now()) {
-    connection = await refreshConnection(connectionKey, connection)
+    connection = await refreshConnection(connectionId, connection)
   }
   const tokenType = connection.tokenType?.trim() || "Bearer"
   return `${tokenType} ${connection.accessToken}`
 }
 
-export const clearSharePointConnection = async (connectionKey: string) => {
-  const existing = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
-    AgentKnowledgeSourceType.SHAREPOINT,
-    connectionKey
-  )
-  if (existing?._id) {
-    await deleteKnowledgeSourceConnection(existing._id)
-  }
+export const clearSharePointConnection = async (connectionId: string) => {
+  await deleteKnowledgeSourceConnection(connectionId)
 }
 
-export const hasSharePointConnection = async (connectionKey: string) => {
-  const existing = await findKnowledgeSourceConnection<SharePointConnectionDoc>(
-    AgentKnowledgeSourceType.SHAREPOINT,
-    connectionKey
+export const hasSharePointConnection = async (connectionId: string) => {
+  const connection = await getKnowledgeSourceConnection<SharePointConnectionDoc>(
+    connectionId
   )
-  return !!existing?.refreshToken
+  return (
+    connection?.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
+    !!connection.refreshToken
+  )
 }
 
 export const fetchSharePointSitesByBearerToken = async (
@@ -287,15 +270,44 @@ export const fetchSharePointSitesByBearerToken = async (
     if (!hasMoreResults || hitsCount === 0) {
       break
     }
-    from += SEARCH_PAGE_SIZE
+
+    from += hitsCount
   }
 
-  return Array.from(sitesById.values())
+  return Array.from(sitesById.values()).sort((a, b) =>
+    (a.name || a.id).localeCompare(b.name || b.id)
+  )
 }
 
 export const fetchSharePointSitesByConnection = async (
-  connectionKey: string
+  connectionId: string
 ): Promise<KnowledgeSourceOption[]> => {
-  const bearerToken = await getSharePointBearerToken(connectionKey)
+  const bearerToken = await getSharePointBearerToken(connectionId)
   return fetchSharePointSitesByBearerToken(bearerToken)
+}
+
+export const fetchSharePointConnectionIdentity = async (connectionId: string) => {
+  const bearerToken = await getSharePointBearerToken(connectionId)
+
+  const [orgResponse, meResponse] = await Promise.all([
+    fetch(`${SHAREPOINT_API_BASE}/organization?$select=displayName`, {
+      headers: { Authorization: bearerToken },
+    }),
+    fetch(`${SHAREPOINT_API_BASE}/me?$select=displayName,userPrincipalName,mail`, {
+      headers: { Authorization: bearerToken },
+    }),
+  ])
+
+  const orgPayload = orgResponse.ok ? await orgResponse.json() : undefined
+  const mePayload = meResponse.ok ? await meResponse.json() : undefined
+
+  const accountName = orgPayload?.value?.[0]?.displayName
+  const userDisplayName = mePayload?.displayName
+  const userPrincipalName = mePayload?.mail || mePayload?.userPrincipalName
+
+  return {
+    accountName,
+    userDisplayName,
+    userPrincipalName,
+  }
 }

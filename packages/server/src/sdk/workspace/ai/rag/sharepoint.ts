@@ -18,7 +18,11 @@ import {
   KnowledgeBaseFileSourceType,
   KnowledgeBaseFileStatus,
 } from "@budibase/types"
-import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
+import {
+  agents as agentsSdk,
+  knowledgeBase as knowledgeBaseSdk,
+  knowledgeSources as knowledgeSourcesSdk,
+} from ".."
 import {
   fetchSharePointSitesByConnection,
   getSharePointBearerToken,
@@ -73,8 +77,23 @@ export const getSharePointWorkspaceConnectionKey = (workspaceId: string) =>
 const getSharePointCurrentWorkspaceConnectionKey = () =>
   getSharePointWorkspaceConnectionKey(context.getOrThrowWorkspaceId())
 
+const getSharePointCurrentWorkspaceConnectionId = async () => {
+  const workspaceConnectionKey = getSharePointCurrentWorkspaceConnectionKey()
+  const connections = await knowledgeSourcesSdk.listKnowledgeSourceConnections()
+  const connection = connections.find(
+    item =>
+      item.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
+      item.connectionKey === workspaceConnectionKey
+  )
+  return connection?._id
+}
+
 export const hasSharePointWorkspaceConnection = async (): Promise<boolean> => {
-  return hasSharePointConnection(getSharePointCurrentWorkspaceConnectionKey())
+  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
+  if (!connectionId) {
+    return false
+  }
+  return hasSharePointConnection(connectionId)
 }
 
 const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
@@ -340,7 +359,7 @@ export const fetchSharePointSitesForAgent = async (
 
   return {
     options: await fetchSharePointSitesByConnection(
-      getSharePointCurrentWorkspaceConnectionKey()
+      (await getSharePointCurrentWorkspaceConnectionId())!
     ),
     runs,
   }
@@ -358,9 +377,11 @@ export const fetchAllSharePointEntriesForAgent = async (
     throw new HTTPError("SharePoint site is not connected for this agent", 404)
   }
 
-  const bearerToken = await getSharePointBearerToken(
-    getSharePointCurrentWorkspaceConnectionKey()
-  )
+  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
+  if (!connectionId) {
+    throw new HTTPError("SharePoint is not connected for this workspace", 400)
+  }
+  const bearerToken = await getSharePointBearerToken(connectionId)
   const driveIds = await listDrives(bearerToken, siteId)
   const entries: KnowledgeSourceEntry[] = []
 
@@ -472,9 +493,11 @@ const runSharePointSourcesForAgent = async (
     sourceFilters,
   })
 
-  const bearerToken = await getSharePointBearerToken(
-    getSharePointCurrentWorkspaceConnectionKey()
-  )
+  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
+  if (!connectionId) {
+    throw new HTTPError("SharePoint is not connected for this workspace", 400)
+  }
+  const bearerToken = await getSharePointBearerToken(connectionId)
   const knowledgeBase = await ensureKnowledgeBaseForAgent(agentId)
   const knowledgeBaseId = knowledgeBase._id
   if (!knowledgeBaseId) {

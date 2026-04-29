@@ -185,7 +185,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   await context.doInContext(appId, () =>
     (async () => {
       const connectionKey = getSharePointWorkspaceConnectionKey(appId)
-      const patch = {
+      await sdk.ai.knowledgeSources.createKnowledgeSourceConnection({
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
         connectionKey,
         tenantId,
@@ -196,9 +196,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
         clientId,
         clientSecret,
-      }
-
-      await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(patch)
+      })
     })()
   )
   console.log("Completed SharePoint OAuth flow", {

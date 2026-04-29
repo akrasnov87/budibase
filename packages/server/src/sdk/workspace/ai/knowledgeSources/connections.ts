@@ -93,17 +93,3 @@ export const listKnowledgeSourceConnections = async () => {
       (doc): doc is AgentKnowledgeSourceConnection => !!doc && !doc._deleted
     )
 }
-
-export const findKnowledgeSourceConnection = async <
-  T extends AgentKnowledgeSourceConnection = AgentKnowledgeSourceConnection,
->(
-  sourceType: string,
-  connectionKey: string
-): Promise<T | undefined> => {
-  const connections = await listKnowledgeSourceConnections()
-  return connections.find(
-    connection =>
-      connection.sourceType === sourceType &&
-      connection.connectionKey === connectionKey
-  ) as T | undefined
-}
