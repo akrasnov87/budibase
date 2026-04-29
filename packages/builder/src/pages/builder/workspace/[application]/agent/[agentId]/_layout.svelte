@@ -48,8 +48,8 @@
     return "Configuration"
   })
   let currentAgent = $derived($selectedAgent)
-  let hasLiveUnpublishedChanges = $derived.by(() => {
-    if (!currentAgent?._id || !currentAgent.live) {
+  let hasPublishedUnpublishedChanges = $derived.by(() => {
+    if (!currentAgent?._id) {
       return false
     }
     const publishStatus = $workspaceDeploymentStore.agents[currentAgent._id]
@@ -138,7 +138,7 @@
       >
         Logs
       </ActionButton>
-      {#if hasLiveUnpublishedChanges}
+      {#if hasPublishedUnpublishedChanges}
         <div class="unpublished-changes-indicator">
           <StatusLight color="var(--spectrum-global-color-blue-600)" size="L" />
           <span>Unpublished changes</span>
