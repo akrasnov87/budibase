@@ -62,7 +62,14 @@
 
   onMount(async () => {
     try {
-      const response = await API.fetchAgentKnowledgeSourceConnections()
+      const [response] = await Promise.all([
+        API.fetchAgentKnowledgeSourceConnections(),
+        async () => {
+          if (!$agentsStore.agentsLoaded) {
+            await agentsStore.init()
+          }
+        },
+      ])
       rows = toConnectionRows(response.connections || [])
     } finally {
       loading = false
