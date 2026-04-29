@@ -18,6 +18,8 @@ import {
   SyncAgentKnowledgeSourcesResponse,
   UserCtx,
   KnowledgeBaseFileStatus,
+  AgentKnowledgeSourceConnectionSummary,
+  RequiredKeys,
 } from "@budibase/types"
 import sdk from "../../../sdk"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
@@ -119,7 +121,21 @@ export async function fetchAgentKnowledgeSourceConnections(
 ) {
   const connections =
     await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
-  ctx.body = { connections }
+  ctx.body = {
+    connections: connections.map(
+      connection =>
+        ({
+          _id: connection._id,
+          _rev: connection._rev,
+          createdAt: connection.createdAt,
+          updatedAt: connection.updatedAt,
+          sourceType: connection.sourceType,
+          connectionKey: connection.connectionKey,
+          tenant: connection.tenant,
+          account: connection.account,
+        }) satisfies RequiredKeys<AgentKnowledgeSourceConnectionSummary>
+    ),
+  }
   ctx.status = 200
 }
 
