@@ -10,16 +10,18 @@ import {
   updateKnowledgeSourceConnection,
 } from "../knowledgeSources"
 
-interface SharePointConnectionCacheRecord {
-  tenantId: string
-  tokenEndpoint: string
-  accessToken: string
-  refreshToken: string
-  tokenType?: string
-  expiresAt?: number
-  clientId: string
-  clientSecret: string
-}
+type SharePointConnectionRecord = Pick<
+  AgentKnowledgeSourceConnection,
+  | "account"
+  | "tenantId"
+  | "tokenEndpoint"
+  | "accessToken"
+  | "refreshToken"
+  | "tokenType"
+  | "expiresAt"
+  | "clientId"
+  | "clientSecret"
+>
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
@@ -48,8 +50,9 @@ interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
 
 const mapPersistedToCacheRecord = (
   doc: SharePointConnectionDoc
-): SharePointConnectionCacheRecord => {
+): SharePointConnectionRecord => {
   return {
+    account: doc.account || "unknown",
     tenantId: doc.tenantId,
     tokenEndpoint: doc.tokenEndpoint,
     accessToken: doc.accessToken,
@@ -64,9 +67,8 @@ const mapPersistedToCacheRecord = (
 const readPersistedConnection = async (
   connectionId: string
 ): Promise<SharePointConnectionDoc | undefined> => {
-  const doc = await getKnowledgeSourceConnection<SharePointConnectionDoc>(
-    connectionId
-  )
+  const doc =
+    await getKnowledgeSourceConnection<SharePointConnectionDoc>(connectionId)
   if (doc?.sourceType !== AgentKnowledgeSourceType.SHAREPOINT) {
     return
   }
@@ -78,7 +80,7 @@ const readPersistedConnection = async (
 
 const readConnection = async (
   connectionId: string
-): Promise<SharePointConnectionCacheRecord> => {
+): Promise<SharePointConnectionRecord> => {
   const persistedConnection = await readPersistedConnection(connectionId)
   if (persistedConnection?.refreshToken) {
     return mapPersistedToCacheRecord(persistedConnection)
@@ -91,8 +93,8 @@ const readConnection = async (
 
 const refreshConnection = async (
   connectionId: string,
-  connection: SharePointConnectionCacheRecord
-): Promise<SharePointConnectionCacheRecord> => {
+  connection: SharePointConnectionRecord
+): Promise<SharePointConnectionRecord> => {
   const response = await fetch(connection.tokenEndpoint, {
     method: "POST",
     headers: {
@@ -116,7 +118,7 @@ const refreshConnection = async (
   }
 
   const expiresIn = Number(payload?.expires_in || 0)
-  const updated: SharePointConnectionCacheRecord = {
+  const updated: SharePointConnectionRecord = {
     ...connection,
     accessToken: payload?.access_token || connection.accessToken,
     refreshToken: payload?.refresh_token || connection.refreshToken,
@@ -162,9 +164,8 @@ export const clearSharePointConnection = async (connectionId: string) => {
 }
 
 export const hasSharePointConnection = async (connectionId: string) => {
-  const connection = await getKnowledgeSourceConnection<SharePointConnectionDoc>(
-    connectionId
-  )
+  const connection =
+    await getKnowledgeSourceConnection<SharePointConnectionDoc>(connectionId)
   return (
     connection?.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
     !!connection.refreshToken
@@ -286,16 +287,21 @@ export const fetchSharePointSitesByConnection = async (
   return fetchSharePointSitesByBearerToken(bearerToken)
 }
 
-export const fetchSharePointConnectionIdentity = async (connectionId: string) => {
+export const fetchSharePointConnectionIdentity = async (
+  connectionId: string
+) => {
   const bearerToken = await getSharePointBearerToken(connectionId)
 
   const [orgResponse, meResponse] = await Promise.all([
     fetch(`${SHAREPOINT_API_BASE}/organization?$select=displayName`, {
       headers: { Authorization: bearerToken },
     }),
-    fetch(`${SHAREPOINT_API_BASE}/me?$select=displayName,userPrincipalName,mail`, {
-      headers: { Authorization: bearerToken },
-    }),
+    fetch(
+      `${SHAREPOINT_API_BASE}/me?$select=displayName,userPrincipalName,mail`,
+      {
+        headers: { Authorization: bearerToken },
+      }
+    ),
   ])
 
   const orgPayload = orgResponse.ok ? await orgResponse.json() : undefined
