@@ -8,6 +8,8 @@
   interface KnowledgeConnectionRow {
     icon: string
     connectionName: string
+    tenant: string
+    account: string
     usedBy: string
   }
 
@@ -20,7 +22,9 @@
 
   const schema = {
     icon: { width: "40px", displayName: "" },
-    connectionName: { width: "1fr", displayName: "Connection" },
+    connectionName: { width: "200px", displayName: "Connection" },
+    tenant: { width: "1fr", displayName: "Tenant" },
+    account: { width: "1fr", displayName: "Account" },
     usedBy: { width: "260px", displayName: "Used by" },
   }
 
@@ -30,7 +34,9 @@
     return connections
       .map(connection => ({
         icon: connection.sourceType,
-        connectionName: connection.connectionKey,
+        connectionName: "Microsoft",
+        tenant: connection.tenant || connection.tenantId || "-",
+        account: connection.account || "-",
         usedBy: "-",
       }))
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))

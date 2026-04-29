@@ -3,6 +3,8 @@ import { AgentKnowledgeSourceType, Document } from "../../"
 export interface AgentKnowledgeSourceConnection extends Document {
   sourceType: AgentKnowledgeSourceType
   connectionKey: string
+  tenant: string
+  account: string
   tenantId: string
   tokenEndpoint: string
   accessToken: string
