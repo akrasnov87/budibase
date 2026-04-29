@@ -10,6 +10,7 @@ import {
   Workspace,
   WorkspaceApp,
 } from "@budibase/types"
+import pick from "lodash/pick"
 import sdk from "../.."
 
 function getPublishedState(
@@ -54,46 +55,49 @@ export async function status() {
 
   const normalizeArray = <T>(items: T[]) => [...items].sort()
 
+  const toComparableKnowledgeSource = (
+    source: NonNullable<Agent["knowledgeSources"]>[number]
+  ) =>
+    ({
+      id: source.id,
+      type: source.type,
+      config: {
+        site: source.config.site
+          ? {
+              id: source.config.site.id,
+              name: source.config.site.name,
+              webUrl: source.config.site.webUrl,
+            }
+          : undefined,
+        filters: source.config.filters
+          ? {
+              patterns: normalizeArray(source.config.filters.patterns || []),
+            }
+          : undefined,
+      },
+    })
+
+  const toComparableKnowledgeBaseFile = (file: KnowledgeBaseFile) => ({
+    ...pick(file, ["_id", "filename", "status", "errorMessage", "processedAt"]),
+    source: file.source
+      ? pick(file.source, [
+          "type",
+          "knowledgeSourceId",
+          "siteId",
+          "driveId",
+          "itemId",
+          "path",
+        ])
+      : undefined,
+  })
+
   const normalizeAgentPayload = (agent: Agent, files: KnowledgeBaseFile[]) => {
     const normalizedKnowledgeSources = (agent.knowledgeSources || [])
-      .map(source => ({
-        id: source.id,
-        type: source.type,
-        config: {
-          site: source.config.site
-            ? {
-                id: source.config.site.id,
-                name: source.config.site.name,
-                webUrl: source.config.site.webUrl,
-              }
-            : undefined,
-          filters: source.config.filters
-            ? {
-                patterns: normalizeArray(source.config.filters.patterns || []),
-              }
-            : undefined,
-        },
-      }))
+      .map(source => toComparableKnowledgeSource(source))
       .sort((a, b) => a.id.localeCompare(b.id))
 
     const normalizedFiles = files
-      .map(file => ({
-        _id: file._id,
-        filename: file.filename,
-        status: file.status,
-        errorMessage: file.errorMessage,
-        processedAt: file.processedAt,
-        source: file.source
-          ? {
-              type: file.source.type,
-              knowledgeSourceId: file.source.knowledgeSourceId,
-              siteId: file.source.siteId,
-              driveId: file.source.driveId,
-              itemId: file.source.itemId,
-              path: file.source.path,
-            }
-          : undefined,
-      }))
+      .map(file => toComparableKnowledgeBaseFile(file))
       .sort((a, b) => {
         const aKey = `${a._id || ""}:${a.filename || ""}`
         const bKey = `${b._id || ""}:${b.filename || ""}`
