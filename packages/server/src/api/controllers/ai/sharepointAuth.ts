@@ -184,17 +184,18 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   let account = "unknown"
 
   try {
-    const meResponse = await fetch(`${MICROSOFT_GRAPH_BASE}/me?$select=displayName,mail,userPrincipalName`, {
-      headers: {
-        Authorization: bearerToken,
-      },
-    })
+    const meResponse = await fetch(
+      `${MICROSOFT_GRAPH_BASE}/me?$select=displayName,mail,userPrincipalName`,
+      {
+        headers: {
+          Authorization: bearerToken,
+        },
+      }
+    )
     if (meResponse.ok) {
       const mePayload = await meResponse.json()
       const mail =
-        typeof mePayload?.mail === "string"
-          ? mePayload.mail.trim()
-          : ""
+        typeof mePayload?.mail === "string" ? mePayload.mail.trim() : ""
       const upn =
         typeof mePayload?.userPrincipalName === "string"
           ? mePayload.userPrincipalName.trim()
