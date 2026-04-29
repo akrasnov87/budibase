@@ -77,7 +77,7 @@ export async function status() {
   })
 
   const toComparableKnowledgeBaseFile = (file: KnowledgeBaseFile) => ({
-    ...pick(file, ["_id", "filename", "status", "errorMessage", "processedAt"]),
+    ...pick(file, ["_id", "filename"]),
     source: file.source
       ? pick(file.source, [
           "type",
