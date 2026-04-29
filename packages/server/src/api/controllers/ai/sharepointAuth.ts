@@ -197,6 +197,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         clientId,
         clientSecret,
       }
+
       await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(patch)
     })()
   )
