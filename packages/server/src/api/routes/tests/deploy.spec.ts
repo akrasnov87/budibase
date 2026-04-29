@@ -306,6 +306,47 @@ describe("/api/deploy", () => {
       })
       expect(res.agents[agent._id!].publishedAt).toBeUndefined()
     })
+
+    it("marks published agents as having unpublished changes when public metadata changes", async () => {
+      const created = await config.api.agent.create({
+        name: "Metadata Agent",
+        aiconfig: "default",
+        live: true,
+        icon: "Robot",
+        iconColor: "#0B8A6A",
+      })
+
+      await config.api.workspace.publish(config.devWorkspace!.appId)
+
+      await config.api.agent.update({
+        ...created,
+        name: "Metadata Agent Renamed",
+        icon: "Sparkles",
+        iconColor: "#B45309",
+      })
+
+      const status = await config.api.deploy.publishStatus()
+      expect(status.agents[created._id!]).toEqual(
+        expect.objectContaining({
+          published: true,
+          name: "Metadata Agent Renamed",
+          unpublishedChanges: true,
+          state: "published",
+        })
+      )
+
+      await config.api.workspace.publish(config.devWorkspace!.appId)
+
+      const republishedStatus = await config.api.deploy.publishStatus()
+      expect(republishedStatus.agents[created._id!]).toEqual(
+        expect.objectContaining({
+          published: true,
+          name: "Metadata Agent Renamed",
+          unpublishedChanges: false,
+          state: "published",
+        })
+      )
+    })
   })
 
   describe("POST /api/deploy", () => {

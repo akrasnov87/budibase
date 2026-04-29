@@ -101,6 +101,9 @@ export async function status() {
       })
 
     return {
+      name: agent.name,
+      icon: agent.icon,
+      iconColor: agent.iconColor,
       aiconfig: agent.aiconfig,
       promptInstructions: agent.promptInstructions,
       goal: agent.goal,
