@@ -142,8 +142,10 @@
       if (sourceId) {
         await agentsStore.syncAgentKnowledgeSources(agentId, sourceId)
       }
-      await agentsStore.fetchAgentKnowledge(agentId)
-      await workspaceDeploymentStore.fetch()
+      await Promise.all([
+        agentsStore.fetchAgentKnowledge(agentId),
+        workspaceDeploymentStore.fetch(),
+      ])
 
       notifications.success("SharePoint folders/files updated")
       hide()
