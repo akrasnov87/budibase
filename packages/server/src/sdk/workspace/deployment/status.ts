@@ -274,8 +274,7 @@ export async function status() {
     if (!agentId) {
       continue
     }
-    const resourcePublishedAt =
-      metadata?.resourcesPublishedAt?.[agentId] || agent.publishedAt
+    const resourcePublishedAt = metadata?.resourcesPublishedAt?.[agentId]
     const resourceDeployedAt = metadata?.resourcesDeployedAt?.[agentId]
     const devComparable = toComparableAgentPayload(
       agent,

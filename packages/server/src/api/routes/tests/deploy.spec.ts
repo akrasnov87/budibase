@@ -266,6 +266,46 @@ describe("/api/deploy", () => {
       expect(res.automations[automation._id!]).toBeUndefined()
       expect(Object.keys(res.automations)).toHaveLength(0)
     })
+
+    it("does not treat live agents as published before workspace publish", async () => {
+      await config.api.workspace.unpublish(config.devWorkspaceId!)
+
+      const agent = await config.api.agent.create({
+        name: "Unpublished Live Agent",
+        aiconfig: "default",
+        live: true,
+      })
+
+      const res = await config.api.deploy.publishStatus()
+
+      expect(res.agents[agent._id!]).toEqual({
+        published: false,
+        name: agent.name,
+        unpublishedChanges: true,
+        state: "disabled",
+      })
+      expect(res.agents[agent._id!].publishedAt).toBeUndefined()
+    })
+
+    it("does not treat newly created live agents as published until next publish", async () => {
+      await config.api.workspace.publish(config.devWorkspace!.appId)
+
+      const agent = await config.api.agent.create({
+        name: "Post Publish Live Agent",
+        aiconfig: "default",
+        live: true,
+      })
+
+      const res = await config.api.deploy.publishStatus()
+
+      expect(res.agents[agent._id!]).toEqual({
+        published: false,
+        name: agent.name,
+        unpublishedChanges: true,
+        state: "disabled",
+      })
+      expect(res.agents[agent._id!].publishedAt).toBeUndefined()
+    })
   })
 
   describe("POST /api/deploy", () => {
