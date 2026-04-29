@@ -2,6 +2,7 @@ import { Optional } from "../../../shared"
 import {
   Agent,
   AgentKnowledgeSourceFilterConfig,
+  AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceSyncRunStatus,
   ChatApp,
   ChatConversation,
@@ -57,6 +58,10 @@ export interface FetchAgentKnowledgeResponse {
   files: KnowledgeBaseFile[]
   hasSharePointConnection: boolean
   sharePointSources: SharePointKnowledgeSourceSnapshot[]
+}
+
+export interface FetchAgentKnowledgeSourceConnectionsResponse {
+  connections: AgentKnowledgeSourceConnection[]
 }
 
 export interface KnowledgeSourceEntry {

@@ -12,6 +12,7 @@ import {
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
+  FetchAgentKnowledgeSourceConnectionsResponse,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
@@ -110,6 +111,15 @@ export async function fetchAgentKnowledge(
     hasSharePointConnection,
     sharePointSources,
   }
+  ctx.status = 200
+}
+
+export async function fetchAgentKnowledgeSourceConnections(
+  ctx: UserCtx<void, FetchAgentKnowledgeSourceConnectionsResponse>
+) {
+  const connections =
+    await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
+  ctx.body = { connections }
   ctx.status = 200
 }
 
