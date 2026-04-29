@@ -358,8 +358,7 @@
         agentId,
         sourceId
       )
-      await fetchFiles(agentId)
-      await refreshDeploymentStatus()
+      await Promise.all([fetchFiles(agentId), refreshDeploymentStatus()])
       showSharePointSyncResult(result)
     } catch (error) {
       console.error(error)
