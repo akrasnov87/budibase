@@ -59,13 +59,7 @@ export interface FetchAgentKnowledgeResponse {
 
 export type AgentKnowledgeSourceConnectionSummary = Pick<
   AgentKnowledgeSourceConnection,
-  | "_id"
-  | "_rev"
-  | "createdAt"
-  | "updatedAt"
-  | "sourceType"
-  | "connectionKey"
-  | "account"
+  "_id" | "_rev" | "createdAt" | "updatedAt" | "sourceType" | "account"
 >
 
 export interface FetchAgentKnowledgeSourceConnectionsResponse {

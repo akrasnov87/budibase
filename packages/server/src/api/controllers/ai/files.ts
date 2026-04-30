@@ -126,7 +126,6 @@ export async function fetchAgentKnowledgeSourceConnections(
           createdAt: connection.createdAt,
           updatedAt: connection.updatedAt,
           sourceType: connection.sourceType,
-          connectionKey: connection.connectionKey,
           account: connection.account,
         }) satisfies RequiredKeys<AgentKnowledgeSourceConnectionSummary>
     ),

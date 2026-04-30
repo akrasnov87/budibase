@@ -1,4 +1,4 @@
-import { context, db, docIds, HTTPError, locks } from "@budibase/backend-core"
+import { context, docIds, HTTPError, locks } from "@budibase/backend-core"
 import { matchesConfiguredPatterns } from "@budibase/shared-core"
 import {
   type Agent,
@@ -22,11 +22,9 @@ import {
   agents as agentsSdk,
   knowledgeBase as knowledgeBaseSdk,
 } from "../../.."
-import * as knowledgeSourcesSdk from "../../../knowledgeSources"
 import {
   getSharePointBearerToken,
   isAllowedSharePointNextLink,
-  sharePointConnectionCacheKey,
 } from "../../../knowledgeSources/sharepointConnection"
 import {
   deleteFileForAgent,
@@ -68,23 +66,6 @@ export const getSharePointFileDedupKey = ({
   driveId: string
   itemId: string
 }) => `${siteId}:${driveId}:${itemId}`
-
-export const getSharePointWorkspaceConnectionKey = (workspaceId: string) =>
-  sharePointConnectionCacheKey("connection", db.getProdWorkspaceID(workspaceId))
-
-const getSharePointCurrentWorkspaceConnectionKey = () =>
-  getSharePointWorkspaceConnectionKey(context.getOrThrowWorkspaceId())
-
-const getSharePointCurrentWorkspaceConnectionId = async () => {
-  const workspaceConnectionKey = getSharePointCurrentWorkspaceConnectionKey()
-  const connections = await knowledgeSourcesSdk.listKnowledgeSourceConnections()
-  const connection = connections.find(
-    item =>
-      item.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
-      item.connectionKey === workspaceConnectionKey
-  )
-  return connection?._id
-}
 
 const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
   return (agent.knowledgeSources || []).filter(
@@ -350,9 +331,7 @@ export const fetchAllSharePointEntriesForAgent = async (
     throw new HTTPError("SharePoint site is not connected for this agent", 404)
   }
 
-  const connectionId =
-    source.config.connectionId ||
-    (await getSharePointCurrentWorkspaceConnectionId())
+  const connectionId = source.config.connectionId
   if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this workspace", 400)
   }
@@ -471,8 +450,7 @@ const runSharePointSourcesForAgent = async (
     sourceFilters,
   })
 
-  const connectionId =
-    sourceConnectionId || (await getSharePointCurrentWorkspaceConnectionId())
+  const connectionId = sourceConnectionId
   if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this workspace", 400)
   }

@@ -41,9 +41,6 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
   }
 }
 
-export const sharePointConnectionCacheKey = (scope: string, scopeId: string) =>
-  `sharepoint:${scope}:${scopeId}:connection`
-
 interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
   sourceType: AgentKnowledgeSourceType.SHAREPOINT
 }

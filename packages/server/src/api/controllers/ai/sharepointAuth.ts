@@ -11,7 +11,6 @@ import {
   DatasourceAuthCookie,
   UserCtx,
 } from "@budibase/types"
-import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/externalSources/sharepoint/sharepoint"
 import sdk from "../../../sdk"
 
 const DEFAULT_SCOPE = env.RAG_SHAREPOINT_DEFAULT_SCOPE
@@ -218,10 +217,8 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   }
   await context.doInContext(appId, () =>
     (async () => {
-      const connectionKey = getSharePointWorkspaceConnectionKey(appId)
       await sdk.ai.knowledgeSources.createKnowledgeSourceConnection({
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        connectionKey,
         tenantId,
         tokenEndpoint,
         accessToken,

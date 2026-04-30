@@ -1,5 +1,5 @@
 import nock from "nock"
-import { context, db, features } from "@budibase/backend-core"
+import { context, features } from "@budibase/backend-core"
 import { utils } from "@budibase/backend-core/tests"
 import type { MockAgent } from "undici"
 import {
@@ -12,7 +12,6 @@ import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
 import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/externalSources/knowledgeSourceSyncQueue"
 import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
-import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
@@ -128,14 +127,8 @@ describe("agent files", () => {
 
   const setSharePointConnection = async (_agentId: string) => {
     return await config.doInContext(config.getDevWorkspaceId(), async () => {
-      const workspaceId = context.getOrThrowWorkspaceId()
-      const workspaceConnectionId = db.getProdWorkspaceID(workspaceId)
       const connection = await createKnowledgeSourceConnection({
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        connectionKey: sharePointConnectionCacheKey(
-          "connection",
-          workspaceConnectionId
-        ),
         account: "connected-sharepoint@budibase.com",
         tenantId: config.getTenantId(),
         tokenEndpoint:
