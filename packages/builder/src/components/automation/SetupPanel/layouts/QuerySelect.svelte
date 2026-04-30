@@ -15,7 +15,10 @@
     featuredTemplates,
   } from "@/stores/builder/restTemplates"
   import QueryVerbBadge from "@/components/common/QueryVerbBadge.svelte"
-  import { customQueryIconColor } from "@/helpers/data/utils"
+  import {
+    customQueryIconColor,
+    customQueryIconText,
+  } from "@/helpers/data/utils"
   import type { Query, Datasource } from "@budibase/types"
 
   interface Props {
@@ -144,7 +147,7 @@
           <span class="selected-option-left">
             {#if selectedQuery}
               <QueryVerbBadge
-                verb={selectedQuery.queryVerb}
+                verb={customQueryIconText(selectedQuery.queryVerb)}
                 color={customQueryIconColor(selectedQuery.queryVerb)}
               />
               {#if selectedIcon?.type === "asset"}
@@ -239,7 +242,7 @@
                 <MenuItem on:click={() => selectQuery(query)}>
                   <div class="query-item">
                     <QueryVerbBadge
-                      verb={query.queryVerb}
+                      verb={customQueryIconText(query.queryVerb)}
                       color={customQueryIconColor(query.queryVerb)}
                     />
                     <span class="query-item-label">{query.name}</span>
