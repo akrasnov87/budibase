@@ -107,6 +107,16 @@
 
   export async function show() {
     await loadSharePointConnections()
+    if (sharePointConnectionOptions.length === 1 && selectedConnectionId) {
+      loadingNextStep = true
+      try {
+        await loadSharePointSites()
+        siteModal?.show()
+      } finally {
+        loadingNextStep = false
+      }
+      return
+    }
     connectionModal?.show()
   }
 
