@@ -130,15 +130,15 @@
     color: var(--spectrum-global-color-gray-500);
   }
 
-  :global(.spectrum--light) .spectrum-Button--overBackground.new-styles,
-  :global(.spectrum--lightest) .spectrum-Button--overBackground.new-styles {
+  :global(.spectrum--light) .spectrum-Button--overBackground,
+  :global(.spectrum--lightest) .spectrum-Button--overBackground {
     color: var(--spectrum-global-color-gray-800);
   }
 
   :global(.spectrum--light)
-    .spectrum-Button--overBackground.new-styles:not(.is-disabled):hover,
+    .spectrum-Button--overBackground:not(.is-disabled):hover,
   :global(.spectrum--lightest)
-    .spectrum-Button--overBackground.new-styles:not(.is-disabled):hover {
+    .spectrum-Button--overBackground:not(.is-disabled):hover {
     color: var(--spectrum-global-color-gray-900);
   }
 </style>
