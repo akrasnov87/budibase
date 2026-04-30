@@ -70,6 +70,9 @@ export const updateKnowledgeSourceConnection = async <
 
 export const deleteKnowledgeSourceConnection = async (id: string) => {
   const db = context.getWorkspaceDB()
+  if (!docIds.isType(id, DocumentType.AGENT_KNOWLEDGE_SOURCE_CONNECTION)) {
+    throw new Error("Invalid knowledge source connection ID")
+  }
   const existing = await db.tryGet<AgentKnowledgeSourceConnection>(id)
   if (existing?._id && existing._rev) {
     await db.put({
