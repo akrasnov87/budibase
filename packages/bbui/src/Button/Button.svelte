@@ -140,5 +140,6 @@
   :global(.spectrum--lightest)
     .spectrum-Button--overBackground:not(.is-disabled):hover {
     color: var(--spectrum-global-color-gray-900);
+    background: rgba(0, 0, 0, 0.05);
   }
 </style>
