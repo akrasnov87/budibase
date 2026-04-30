@@ -29,7 +29,9 @@
         account: connection.account || "-",
         useCount: $agentsStore.agents.filter(a =>
           a.knowledgeSources?.some(
-            s => s.type === AgentKnowledgeSourceType.SHAREPOINT
+            s =>
+              s.type === AgentKnowledgeSourceType.SHAREPOINT &&
+              s.config.connectionId === connection._id
           )
         ).length,
       }))
