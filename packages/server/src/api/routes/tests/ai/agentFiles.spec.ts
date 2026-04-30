@@ -297,6 +297,7 @@ describe("agent files", () => {
         aiconfig: "default",
       })
       const connectionId = await setSharePointConnection(created._id!)
+      mockSharePointSitesFetch([], 1)
 
       const response =
         await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
@@ -312,6 +313,7 @@ describe("agent files", () => {
         aiconfig: "default",
       })
       const connectionId = await setSharePointConnection(created._id!)
+      mockSharePointSitesFetch([], 1)
 
       const response =
         await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
@@ -432,7 +434,7 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      await setSharePointConnection(created._id!)
+      const connectionId = await setSharePointConnection(created._id!)
       mockSharePointSitesFetch(
         [
           {
@@ -445,9 +447,8 @@ describe("agent files", () => {
         1
       )
 
-      const response = await config.api.agent.fetchKnowledgeSourceOptions(
-        created._id!
-      )
+      const response =
+        await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
 
       expect(response.options).toEqual([
         {
