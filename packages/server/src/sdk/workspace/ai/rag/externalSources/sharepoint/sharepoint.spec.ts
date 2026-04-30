@@ -81,10 +81,7 @@ import {
   type Agent,
   type KnowledgeBaseFile,
 } from "@budibase/types"
-import {
-  getSharePointWorkspaceConnectionKey,
-  syncSharePointSourcesForAgent,
-} from "./sharepoint"
+import { syncSharePointSourcesForAgent } from "./sharepoint"
 
 const toArrayBuffer = (value: string) => {
   const buffer = Buffer.from(value)
@@ -97,7 +94,8 @@ const toArrayBuffer = (value: string) => {
 const makeSharePointAgent = (
   sourceId: string,
   siteId: string,
-  patterns?: string[]
+  patterns?: string[],
+  connectionId = "connection_1"
 ): Agent =>
   ({
     _id: "agent_1",
@@ -106,6 +104,7 @@ const makeSharePointAgent = (
         id: sourceId,
         type: AgentKnowledgeSourceType.SHAREPOINT,
         config: {
+          connectionId,
           site: { id: siteId },
           ...(patterns ? { filters: { patterns } } : {}),
         },
@@ -178,7 +177,6 @@ describe("rag/sharepoint sync deduplication", () => {
       {
         _id: "connection_1",
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        connectionKey: getSharePointWorkspaceConnectionKey("workspace_1"),
       },
     ])
     mockDoWithLock.mockImplementation(
