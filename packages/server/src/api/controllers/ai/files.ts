@@ -71,8 +71,6 @@ export async function fetchAgentKnowledge(
     sdk.ai.agents.getOrThrow(agentId),
     sdk.ai.rag.fetchKnowledgeSourceSyncStateForAgent(agentId),
   ])
-  const hasSharePointConnection =
-    await sdk.ai.rag.hasSharePointWorkspaceConnection()
   const runsBySiteId = new Map(syncState.runs.map(run => [run.sourceId, run]))
   const sharePointSources = getSharePointSources(agent)
     .filter(source => source.config.site?.id)
@@ -110,7 +108,6 @@ export async function fetchAgentKnowledge(
 
   ctx.body = {
     files,
-    hasSharePointConnection,
     sharePointSources,
   }
   ctx.status = 200
@@ -263,8 +260,7 @@ export async function connectAgentSharePointSite(
   const filters = normalizeSourcePatterns(ctx.request.body?.filters?.patterns)
 
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
-  const hasWorkspaceConnection =
-    await sdk.ai.rag.hasSharePointWorkspaceConnection()
+  const hasWorkspaceConnection = await hasSharePointWorkspaceConnection()
   if (!hasWorkspaceConnection) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }

@@ -35,7 +35,6 @@ interface AgentStoreState {
     string,
     {
       files: KnowledgeBaseFile[]
-      hasSharePointConnection: boolean
       sharePointSources: SharePointKnowledgeSourceSnapshot[]
     }
   >

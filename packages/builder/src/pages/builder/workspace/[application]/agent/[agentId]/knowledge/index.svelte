@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Body, Layout, notifications } from "@budibase/bbui"
+  import { API } from "@/api"
   import { confirm } from "@/helpers"
   import type { SyncAgentKnowledgeSourcesResponse } from "@budibase/types"
   import {
@@ -62,15 +63,7 @@
     }
     return $agentsStore.knowledgeByAgent[agentId]?.sharePointSources || []
   })
-  let hasSharePointConnection = $derived.by(() => {
-    const agentId = currentAgent?._id
-    if (!agentId) {
-      return false
-    }
-    return (
-      $agentsStore.knowledgeByAgent[agentId]?.hasSharePointConnection || false
-    )
-  })
+  let hasSharePointConnection = $state(false)
   let selectedSiteIds = $derived.by(() =>
     sharePointSources
       .map(source => source.config.site?.id)
@@ -212,7 +205,13 @@
   const loadInitialKnowledge = async (agentId: string) => {
     loading = true
     try {
-      await agentsStore.fetchAgentKnowledge(agentId)
+      const [, connectionState] = await Promise.all([
+        agentsStore.fetchAgentKnowledge(agentId),
+        API.fetchAgentKnowledgeSourceConnections(),
+      ])
+      hasSharePointConnection = (connectionState.connections || []).some(
+        connection => connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT
+      )
       initialKnowledgeLoadedForAgent = agentId
     } finally {
       loading = false

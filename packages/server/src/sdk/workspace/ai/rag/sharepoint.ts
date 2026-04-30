@@ -18,11 +18,8 @@ import {
   KnowledgeBaseFileSourceType,
   KnowledgeBaseFileStatus,
 } from "@budibase/types"
-import {
-  agents as agentsSdk,
-  knowledgeBase as knowledgeBaseSdk,
-  knowledgeSources as knowledgeSourcesSdk,
-} from ".."
+import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
+import * as knowledgeSourcesSdk from "../knowledgeSources"
 import {
   fetchSharePointSitesByConnection,
   getSharePointBearerToken,
@@ -85,11 +82,6 @@ const getSharePointCurrentWorkspaceConnectionId = async () => {
       item.connectionKey === workspaceConnectionKey
   )
   return connection?._id
-}
-
-export const hasSharePointWorkspaceConnection = async (): Promise<boolean> => {
-  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
-  return !!connectionId
 }
 
 const getSharePointSources = (agent: Agent): AgentKnowledgeSource[] => {
@@ -349,14 +341,13 @@ export const fetchSharePointSitesForAgent = async (
 ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
   const agent = await agentsSdk.getOrThrow(agentId)
   const { runs } = await fetchKnowledgeSourceSyncStateForAgent(agent._id!)
-  if (!(await hasSharePointWorkspaceConnection())) {
+  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
+  if (!connectionId) {
     return { options: [], runs }
   }
 
   return {
-    options: await fetchSharePointSitesByConnection(
-      (await getSharePointCurrentWorkspaceConnectionId())!
-    ),
+    options: await fetchSharePointSitesByConnection(connectionId),
     runs,
   }
 }

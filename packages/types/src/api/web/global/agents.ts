@@ -56,7 +56,6 @@ export interface SharePointKnowledgeSourceSnapshot {
 
 export interface FetchAgentKnowledgeResponse {
   files: KnowledgeBaseFile[]
-  hasSharePointConnection: boolean
   sharePointSources: SharePointKnowledgeSourceSnapshot[]
 }
 
