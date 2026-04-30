@@ -571,6 +571,7 @@ class Orchestrator {
           [
             AutomationActionStepId.API_REQUEST,
             AutomationActionStepId.EXECUTE_QUERY,
+            AutomationActionStepId.TRIGGER_AUTOMATION_RUN,
           ].includes(result.stepId)
         )
       }

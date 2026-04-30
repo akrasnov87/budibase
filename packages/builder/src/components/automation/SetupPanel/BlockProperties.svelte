@@ -68,6 +68,7 @@
     [
       AutomationActionStepId.EXECUTE_QUERY,
       AutomationActionStepId.API_REQUEST,
+      AutomationActionStepId.TRIGGER_AUTOMATION_RUN,
     ].includes(block.stepId)
   $: continueOnError = Boolean(
     inputData && "continueOnError" in inputData && inputData.continueOnError
