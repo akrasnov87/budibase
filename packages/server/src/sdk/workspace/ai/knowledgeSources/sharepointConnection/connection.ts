@@ -8,7 +8,7 @@ import {
   deleteKnowledgeSourceConnection,
   getKnowledgeSourceConnection,
   updateKnowledgeSourceConnection,
-} from "../knowledgeSources"
+} from ".."
 
 type SharePointConnectionRecord = Pick<
   AgentKnowledgeSourceConnection,

@@ -69,7 +69,7 @@ const getAgentSharePointSources = (agent: Agent) =>
 
 const hasSchedulableSharePointSource = (agent: Agent) => {
   return getAgentSharePointSources(agent).some(
-    source => !!source.id?.trim() && !!source.config.site?.id?.trim()
+    source => !!source.id?.trim() && !!source.config.site.id.trim()
   )
 }
 

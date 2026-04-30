@@ -12,7 +12,7 @@ import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
 import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/externalSources/knowledgeSourceSyncQueue"
 import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
-import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/sharepoint"
+import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
@@ -418,7 +418,7 @@ describe("agent files", () => {
         const updated = await db.tryGet<Agent>(created._id!)
         const siteIds = (updated?.knowledgeSources || [])
           .filter(source => source.type === AgentKnowledgeSourceType.SHAREPOINT)
-          .map(source => source.config.site?.id)
+          .map(source => source.config.site.id)
           .filter((id): id is string => !!id)
         expect(siteIds).toEqual(["site-2"])
       })

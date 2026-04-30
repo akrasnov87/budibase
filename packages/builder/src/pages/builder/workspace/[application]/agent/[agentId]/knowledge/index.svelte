@@ -74,7 +74,7 @@
   )
   let selectedSiteIds = $derived.by(() =>
     sharePointSources
-      .map(source => source.config.site?.id)
+      .map(source => source.config.site.id)
       .filter((siteId): siteId is string => !!siteId)
   )
   let selectSharePointSiteModal = $state<SelectSharePointSiteModal>()

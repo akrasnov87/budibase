@@ -27,7 +27,7 @@ import {
   getSharePointBearerToken,
   isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
-} from "../../../sharepoint"
+} from "../../../knowledgeSources/sharepointConnection"
 import {
   deleteFileForAgent,
   ensureKnowledgeBaseForAgent,
@@ -344,7 +344,7 @@ export const fetchAllSharePointEntriesForAgent = async (
 ): Promise<FetchAgentKnowledgeSourceEntriesResponse> => {
   const agent = await agentsSdk.getOrThrow(agentId)
   const source = getSharePointSources(agent).find(
-    source => source.config.site?.id === siteId
+    source => source.config.site.id === siteId
   )
   if (!source) {
     throw new HTTPError("SharePoint site is not connected for this agent", 404)

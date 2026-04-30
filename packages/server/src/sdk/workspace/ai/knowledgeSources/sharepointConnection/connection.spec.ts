@@ -195,7 +195,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
               entityTypes: ["site"],
               query: { queryString: "*" },
               fields: ["id", "displayName", "name", "webUrl"],
-              from: 25,
+              from: 2,
               size: 25,
             },
           ],
