@@ -54,7 +54,7 @@ jest.mock("@budibase/backend-core", () => {
   }
 })
 
-jest.mock("./sharepoint", () => ({
+jest.mock("./sharepoint/sharepoint", () => ({
   syncSharePointSourcesForAgent: (...args: any[]) =>
     mockSyncSharePointSourcesForAgent(...args),
   deleteSharePointFilesForAgentSite: (...args: any[]) =>
@@ -63,7 +63,7 @@ jest.mock("./sharepoint", () => ({
     mockDeleteKnowledgeSourceSyncStateForAgent(...args),
 }))
 
-jest.mock("./files", () => ({
+jest.mock("../files", () => ({
   deleteFileForAgent: (...args: any[]) => mockDeleteFileForAgent(...args),
 }))
 
