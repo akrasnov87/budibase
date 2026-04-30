@@ -27,6 +27,7 @@
   let selectedConnectionId = $state("")
   let loadingNextStep = $state(false)
   let saving = $state(false)
+  let skippedConnectionStep = $state(false)
 
   let connectionStepModal = $state<SharePointConnectionStepModal>()
   let siteStepModal = $state<SharePointSiteStepModal>()
@@ -126,6 +127,7 @@
   export async function show() {
     await loadSharePointConnections()
     if (sharePointConnectionOptions.length === 1 && selectedConnectionId) {
+      skippedConnectionStep = true
       loadingNextStep = true
       try {
         await loadSharePointSites()
@@ -135,6 +137,7 @@
       }
       return
     }
+    skippedConnectionStep = false
     connectionStepModal?.show()
   }
 
@@ -160,6 +163,7 @@
   options={availableSites}
   {selectedSiteId}
   {saving}
+  showBack={!skippedConnectionStep}
   onSiteChange={siteId => {
     selectedSiteId = siteId
   }}

@@ -14,6 +14,7 @@
     options: KnowledgeSourceOption[]
     selectedSiteId: string
     saving?: boolean
+    showBack?: boolean
     onBack: () => Promise<void> | void
     onSelect: (_mode: SharePointSelectionMode) => Promise<void> | void
     onSiteChange: (_siteId: string) => void
@@ -23,6 +24,7 @@
     options,
     selectedSiteId,
     saving = false,
+    showBack = true,
     onBack,
     onSelect,
     onSiteChange,
@@ -81,7 +83,9 @@
     </div>
 
     <ButtonGroup slot="footer">
-      <Button cta secondary on:click={onBack} disabled={saving}>Back</Button>
+      {#if showBack}
+        <Button cta secondary on:click={onBack} disabled={saving}>Back</Button>
+      {/if}
       <Button
         cta
         primary
