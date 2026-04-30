@@ -4,5 +4,9 @@ export * from "./ids"
 export * from "./params"
 
 export function isType(id: string, type: DocumentType) {
-  return id.startsWith(prefixed(type))
+  return (
+    Object.values(DocumentType)
+      .sort((a, b) => b.length - a.length)
+      .find(docType => id.startsWith(prefixed(docType))) === type
+  )
 }
