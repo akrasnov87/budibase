@@ -45,20 +45,6 @@ const unlinkSafe = async (path?: string) => {
   }
 }
 
-const normalizeSourcePatterns = (value: unknown): string[] | undefined => {
-  if (!Array.isArray(value)) {
-    return undefined
-  }
-  const normalized = Array.from(
-    new Set(
-      value
-        .map(entry => (typeof entry === "string" ? entry.trim() : ""))
-        .filter(Boolean)
-    )
-  )
-  return normalized.length > 0 ? normalized : undefined
-}
-
 const sanitizeSharePointSourceId = (siteId: string) =>
   `sharepoint_site_${siteId.replace(/[^a-zA-Z0-9_-]/g, "_")}`
 
@@ -253,15 +239,15 @@ export async function connectAgentSharePointSite(
   >
 ) {
   const { agentId } = ctx.params
-  const siteId = String(ctx.request.body?.siteId || "").trim()
+  const { connectionId, siteId, filters } = ctx.request.body
   if (!siteId) {
     throw new HTTPError("siteId is required", 400)
   }
-  const filters = normalizeSourcePatterns(ctx.request.body?.filters?.patterns)
 
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
-  const hasWorkspaceConnection = await hasSharePointWorkspaceConnection()
-  if (!hasWorkspaceConnection) {
+  const connection =
+    await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(connectionId)
+  if (!connection) {
     throw new HTTPError("SharePoint is not connected for this agent", 400)
   }
   const existingSites = getSharePointSiteIds(existingAgent)
@@ -279,6 +265,7 @@ export async function connectAgentSharePointSite(
     id: sanitizeSharePointSourceId(siteId),
     type: AgentKnowledgeSourceType.SHAREPOINT,
     config: {
+      connectionId,
       site: {
         id: siteId,
         name: selectedOption?.name,
@@ -329,7 +316,7 @@ export async function updateAgentSharePointSite(
     throw new HTTPError("SharePoint site is not connected for this agent", 404)
   }
 
-  const patterns = normalizeSourcePatterns(ctx.request.body?.filters?.patterns)
+  const { filters } = ctx.request.body
   const nextSharePointSources = getSharePointSources(existingAgent).map(
     existingSource =>
       existingSource.id === source.id
@@ -337,7 +324,7 @@ export async function updateAgentSharePointSite(
             ...existingSource,
             config: {
               ...existingSource.config,
-              filters: patterns ? { patterns } : undefined,
+              filters: filters ? { patterns: filters } : undefined,
             },
           }
         : existingSource

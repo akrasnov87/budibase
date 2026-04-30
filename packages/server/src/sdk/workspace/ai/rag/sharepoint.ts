@@ -364,7 +364,9 @@ export const fetchAllSharePointEntriesForAgent = async (
     throw new HTTPError("SharePoint site is not connected for this agent", 404)
   }
 
-  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
+  const connectionId =
+    source.config.connectionId ||
+    (await getSharePointCurrentWorkspaceConnectionId())
   if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this workspace", 400)
   }
@@ -461,6 +463,8 @@ const runSharePointSourcesForAgent = async (
   }
 
   const site = agent.knowledgeSources?.find(s => s.id === sourceId)?.config.site
+  const sourceConnectionId = agent.knowledgeSources?.find(s => s.id === sourceId)
+    ?.config.connectionId
   if (!site) {
     throw new HTTPError(
       "Specified SharePoint site is not connected for this agent",
@@ -480,7 +484,8 @@ const runSharePointSourcesForAgent = async (
     sourceFilters,
   })
 
-  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
+  const connectionId =
+    sourceConnectionId || (await getSharePointCurrentWorkspaceConnectionId())
   if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this workspace", 400)
   }

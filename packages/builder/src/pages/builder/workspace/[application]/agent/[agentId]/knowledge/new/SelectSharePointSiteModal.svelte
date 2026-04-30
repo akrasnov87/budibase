@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { agentsStore } from "@/stores/portal"
+  import { agentsStore, knowledgeConnectionsStore } from "@/stores/portal"
   import { workspaceDeploymentStore } from "@/stores/builder"
   import { notifications } from "@budibase/bbui"
   import {
@@ -91,14 +91,18 @@
 
     saving = true
     try {
+      const connections = await knowledgeConnectionsStore.fetch()
+      const connectionId = connections.find(
+        connection => connection.sourceType === "sharepoint"
+      )?._id
+      if (!connectionId) {
+        notifications.error("No SharePoint connection found")
+        return
+      }
       await agentsStore.connectAgentSharePointSite(agentId, {
+        connectionId,
         siteId: selectedSiteId,
-        filters:
-          mode === "selective"
-            ? {
-                patterns: [EXCLUDE_ALL_PATTERN],
-              }
-            : undefined,
+        filters: mode === "selective" ? [EXCLUDE_ALL_PATTERN] : undefined,
       })
       await workspaceDeploymentStore.fetch()
       notifications.success("SharePoint site added")
