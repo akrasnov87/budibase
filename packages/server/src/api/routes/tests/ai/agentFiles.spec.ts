@@ -9,7 +9,7 @@ import {
   KnowledgeBaseFileStatus,
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
-import { getQueue } from "../../../../sdk/workspace/ai/rag/queue"
+import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
 import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/knowledgeSourceSyncQueue"
 import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
 import { sharePointConnectionCacheKey } from "../../../../sdk/workspace/ai/sharepoint"
