@@ -92,17 +92,6 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
     ctx,
     constants.Cookie.DatasourceAuth
   )
-  if (!authStateCookie) {
-    throw new Error("Unable to fetch datasource auth cookie")
-  }
-
-  const appId = String(authStateCookie.appId || "").trim()
-  if (!appId) {
-    throw new Error("Missing app id from datasource auth cookie")
-  }
-  if (authStateCookie.provider !== MICROSOFT_PROVIDER) {
-    throw new Error("Invalid datasource provider for Microsoft OAuth callback")
-  }
 
   const state = String(ctx.query.state || "").trim()
   if (!state) {
@@ -117,11 +106,11 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   if (
     !statePayload ||
     !stateAppId ||
-    stateAppId !== appId ||
     statePayload.provider !== MICROSOFT_PROVIDER
   ) {
     throw new Error("Microsoft OAuth state is invalid or expired")
   }
+  const appId = stateAppId
 
   const oauthError = String(ctx.query.error || "").trim()
   if (oauthError) {
@@ -238,6 +227,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
 
   utils.clearCookie(ctx, constants.Cookie.DatasourceAuth)
 
-  const returnPath = authStateCookie.returnPath || `/builder/workspace/${appId}`
+  const returnPath =
+    authStateCookie?.returnPath || `/builder/workspace/${appId}`
   ctx.redirect(appendQueryParam(returnPath, "microsoft_connected", "1"))
 }
