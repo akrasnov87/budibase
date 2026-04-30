@@ -8,6 +8,7 @@ const mockKnowledgeBaseListFiles = jest.fn()
 const mockKnowledgeBaseUploadFile = jest.fn()
 const mockRetryKnowledgeBaseFileIngestion = jest.fn()
 const mockGetSharePointBearerToken = jest.fn()
+const mockListKnowledgeSourceConnections = jest.fn()
 const mockEnsureKnowledgeBaseForAgent = jest.fn()
 const mockDeleteFileForAgent = jest.fn()
 
@@ -55,6 +56,13 @@ jest.mock("../sharepoint", () => {
   }
 })
 
+jest.mock("../knowledgeSources", () => {
+  return {
+    listKnowledgeSourceConnections: (...args: any[]) =>
+      mockListKnowledgeSourceConnections(...args),
+  }
+})
+
 jest.mock("./files", () => {
   return {
     ensureKnowledgeBaseForAgent: (...args: any[]) =>
@@ -71,7 +79,10 @@ import {
   type Agent,
   type KnowledgeBaseFile,
 } from "@budibase/types"
-import { syncSharePointSourcesForAgent } from "./sharepoint"
+import {
+  getSharePointWorkspaceConnectionKey,
+  syncSharePointSourcesForAgent,
+} from "./sharepoint"
 
 const toArrayBuffer = (value: string) => {
   const buffer = Buffer.from(value)
@@ -161,6 +172,13 @@ describe("rag/sharepoint sync deduplication", () => {
     })
     mockGenerateSyncStateId.mockReturnValue("sync_state_1")
     mockGetSharePointBearerToken.mockResolvedValue("Bearer token")
+    mockListKnowledgeSourceConnections.mockResolvedValue([
+      {
+        _id: "connection_1",
+        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        connectionKey: getSharePointWorkspaceConnectionKey("workspace_1"),
+      },
+    ])
     mockDoWithLock.mockImplementation(
       async (_options: any, handler: () => Promise<any>) => ({
         result: await handler(),
