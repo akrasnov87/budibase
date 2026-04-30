@@ -298,15 +298,24 @@
     const currentUrl = new URL(window.location.href)
     const microsoftConnected =
       currentUrl.searchParams.get("microsoft_connected") === "1"
+    const microsoftConnectionReused =
+      currentUrl.searchParams.get("microsoft_connection_reused") === "1"
     if (!microsoftConnected) {
       return
     }
 
     currentUrl.searchParams.delete("microsoft_connected")
+    currentUrl.searchParams.delete("microsoft_connection_reused")
     const query = currentUrl.searchParams.toString()
     const path = query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname
     window.history.replaceState({}, "", path)
-    notifications.success("SharePoint connected")
+    if (microsoftConnectionReused) {
+      notifications.warning(
+        "SharePoint connection already existed. Reused existing connection."
+      )
+    } else {
+      notifications.success("SharePoint connected")
+    }
     bb.settings("/connections/knowledge")
   }
 

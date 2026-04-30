@@ -204,9 +204,18 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
       error,
     })
   }
-  await context.doInContext(appId, () =>
+  const reusedExistingConnection = await context.doInContext(appId, () =>
     (async () => {
-      await sdk.ai.knowledgeSources.createKnowledgeSourceConnection({
+      const existingConnections =
+        await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
+      const matchedConnection = existingConnections.find(
+        connection =>
+          connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
+          connection.account?.trim().toLowerCase() ===
+            account.trim().toLowerCase()
+      )
+
+      const nextConnection = {
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
         tenantId,
         tokenEndpoint,
@@ -217,7 +226,20 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         clientId,
         clientSecret,
         account,
-      })
+      }
+
+      if (matchedConnection?._id) {
+        await sdk.ai.knowledgeSources.updateKnowledgeSourceConnection(
+          matchedConnection._id,
+          nextConnection
+        )
+        return true
+      } else {
+        await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(
+          nextConnection
+        )
+        return false
+      }
     })()
   )
   console.log("Completed SharePoint OAuth flow", {
@@ -229,5 +251,9 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
 
   const returnPath =
     authStateCookie?.returnPath || `/builder/workspace/${appId}`
-  ctx.redirect(appendQueryParam(returnPath, "microsoft_connected", "1"))
+  const withConnected = appendQueryParam(returnPath, "microsoft_connected", "1")
+  const finalPath = reusedExistingConnection
+    ? appendQueryParam(withConnected, "microsoft_connection_reused", "1")
+    : withConnected
+  ctx.redirect(finalPath)
 }
