@@ -23,6 +23,8 @@ const resolvePathParams = (
 export interface Settings {
   open: boolean
   route?: MatchedRoute
+  pendingPath?: string
+  pendingParams?: Record<string, any>
 }
 
 export interface BBState {
@@ -41,6 +43,7 @@ export class BBStore extends BudiStore<BBState> {
     this.clearSettings = this.clearSettings.bind(this)
     this.hideSettings = this.hideSettings.bind(this)
     this.goToParent = this.goToParent.bind(this)
+    this.tryResolvePendingSettings = this.tryResolvePendingSettings.bind(this)
   }
 
   reset() {
@@ -75,6 +78,15 @@ export class BBStore extends BudiStore<BBState> {
           open: true,
         },
       }))
+    } else {
+      this.update(state => ({
+        ...state,
+        settings: {
+          ...state.settings,
+          pendingPath: path,
+          pendingParams: params,
+        },
+      }))
     }
   }
 
@@ -95,6 +107,8 @@ export class BBStore extends BudiStore<BBState> {
         ...state.settings,
         ...(matchedRoute ? { route: matchedRoute } : {}),
         open: false,
+        pendingPath: undefined,
+        pendingParams: undefined,
       },
     }))
   }
@@ -109,6 +123,34 @@ export class BBStore extends BudiStore<BBState> {
       return
     }
     this.settings(parentPath)
+  }
+
+  tryResolvePendingSettings() {
+    const pendingPath = get(this.store).settings.pendingPath
+    const pendingParams = get(this.store).settings.pendingParams
+    if (!pendingPath) {
+      return
+    }
+    const matchedRoute = settingsRouteResolver?.(pendingPath)
+    if (!matchedRoute) {
+      return
+    }
+    this.update(state => ({
+      ...state,
+      settings: {
+        ...state.settings,
+        route: {
+          ...matchedRoute,
+          params: {
+            ...matchedRoute.params,
+            ...(pendingParams || {}),
+          },
+        },
+        open: true,
+        pendingPath: undefined,
+        pendingParams: undefined,
+      },
+    }))
   }
 }
 

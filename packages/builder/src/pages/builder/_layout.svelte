@@ -294,7 +294,24 @@
     }
   }
 
+  const handleSharePointConnectionRedirect = () => {
+    const currentUrl = new URL(window.location.href)
+    const microsoftConnected =
+      currentUrl.searchParams.get("microsoft_connected") === "1"
+    if (!microsoftConnected) {
+      return
+    }
+
+    currentUrl.searchParams.delete("microsoft_connected")
+    const query = currentUrl.searchParams.toString()
+    const path = query ? `${currentUrl.pathname}?${query}` : currentUrl.pathname
+    window.history.replaceState({}, "", path)
+    notifications.success("SharePoint connected")
+    bb.settings("/connections/knowledge")
+  }
+
   onMount(() => {
+    handleSharePointConnectionRedirect()
     initPromise = initBuilder()
     hasAuthenticated = !!$auth.user
   })
