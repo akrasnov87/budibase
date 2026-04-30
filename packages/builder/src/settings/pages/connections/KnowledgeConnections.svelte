@@ -1,7 +1,9 @@
 <script lang="ts">
   import { onMount } from "svelte"
-  import { Layout, Table, Body, notifications } from "@budibase/bbui"
+  import { Layout, Table, Button, notifications } from "@budibase/bbui"
   import { AgentKnowledgeSourceType } from "@budibase/types"
+  import { appStore } from "@/stores/builder/app"
+  import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
   import { agentsStore, knowledgeConnectionsStore } from "@/stores/portal"
 
@@ -38,15 +40,22 @@
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   )
 
+  const connectSharePoint = () => {
+    const appId = $appStore.appId
+    if (!appId) {
+      notifications.error("Missing app context to connect SharePoint")
+      return
+    }
+    const returnPath = window.location.pathname
+    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
+    window.location.href = oauthUrl
+  }
+
   onMount(async () => {
     try {
       await Promise.all([
         knowledgeConnectionsStore.fetch(),
-        async () => {
-          if (!$agentsStore.agentsLoaded) {
-            await agentsStore.init()
-          }
-        },
+        !$agentsStore.agentsLoaded ? agentsStore.init() : Promise.resolve(),
       ])
     } catch (e) {
       console.error("Failed to load knowledge connections", e)
@@ -58,27 +67,23 @@
 </script>
 
 <Layout noPadding gap="XS">
-  <div class="section-header">
-    <div class="section-title">Connected knowledge sources</div>
-  </div>
-
-  {#if !loading && rows.length === 0}
-    <div class="empty-state">
-      <Body size="S">No knowledge sources are currently connected.</Body>
+  <RouteActions>
+    <div class="section-header">
+      <Button cta size="M" on:click={connectSharePoint}>Add connection</Button>
     </div>
-  {:else}
-    <Table
-      compact
-      rounded
-      data={rows}
-      {loading}
-      {schema}
-      {customRenderers}
-      allowEditRows={false}
-      allowClickRows={false}
-      allowEditColumns={false}
-    />
-  {/if}
+  </RouteActions>
+
+  <Table
+    compact
+    rounded
+    data={rows}
+    {loading}
+    {schema}
+    {customRenderers}
+    allowEditRows={false}
+    allowClickRows={false}
+    allowEditColumns={false}
+  />
 </Layout>
 
 <style>
@@ -88,16 +93,5 @@
     align-items: center;
     gap: var(--spacing-l);
     height: 24px;
-  }
-
-  .section-title {
-    font-size: 13px;
-    color: var(--grey-7, #a2a2a2);
-  }
-
-  .empty-state {
-    padding: var(--spacing-m);
-    border: 1px solid var(--spectrum-global-color-gray-300);
-    border-radius: var(--radius-m);
   }
 </style>
