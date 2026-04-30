@@ -5,7 +5,6 @@ import {
   KnowledgeSourceOption,
 } from "@budibase/types"
 import {
-  deleteKnowledgeSourceConnection,
   getKnowledgeSourceConnection,
   updateKnowledgeSourceConnection,
 } from ".."
@@ -156,10 +155,6 @@ export const getSharePointBearerToken = async (
   return `${tokenType} ${connection.accessToken}`
 }
 
-export const clearSharePointConnection = async (connectionId: string) => {
-  await deleteKnowledgeSourceConnection(connectionId)
-}
-
 export const fetchSharePointSitesByBearerToken = async (
   bearerToken: string
 ): Promise<KnowledgeSourceOption[]> => {
@@ -273,37 +268,6 @@ export const fetchSharePointSitesByConnection = async (
 ): Promise<KnowledgeSourceOption[]> => {
   const bearerToken = await getSharePointBearerToken(connectionId)
   return fetchSharePointSitesByBearerToken(bearerToken)
-}
-
-export const fetchSharePointConnectionIdentity = async (
-  connectionId: string
-) => {
-  const bearerToken = await getSharePointBearerToken(connectionId)
-
-  const [orgResponse, meResponse] = await Promise.all([
-    fetch(`${SHAREPOINT_API_BASE}/organization?$select=displayName`, {
-      headers: { Authorization: bearerToken },
-    }),
-    fetch(
-      `${SHAREPOINT_API_BASE}/me?$select=displayName,userPrincipalName,mail`,
-      {
-        headers: { Authorization: bearerToken },
-      }
-    ),
-  ])
-
-  const orgPayload = orgResponse.ok ? await orgResponse.json() : undefined
-  const mePayload = meResponse.ok ? await meResponse.json() : undefined
-
-  const accountName = orgPayload?.value?.[0]?.displayName
-  const userDisplayName = mePayload?.displayName
-  const userPrincipalName = mePayload?.mail || mePayload?.userPrincipalName
-
-  return {
-    accountName,
-    userDisplayName,
-    userPrincipalName,
-  }
 }
 
 interface SharePointDrive {

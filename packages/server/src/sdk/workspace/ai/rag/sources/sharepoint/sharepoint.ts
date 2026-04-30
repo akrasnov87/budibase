@@ -34,9 +34,6 @@ import {
   listFilesForAgent,
 } from "../../files"
 
-const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
-const SHAREPOINT_SOURCE_TYPE = "sharepoint"
-
 export const getSharePointFileDedupKey = ({
   siteId,
   driveId,
@@ -68,7 +65,7 @@ const getSharePointSyncRunStatus = (
 
 const saveSharePointSyncRunState = async ({
   agentId,
-  siteId,
+  sourceId,
   lastRunAt,
   synced,
   failed,
@@ -76,7 +73,7 @@ const saveSharePointSyncRunState = async ({
   totalDiscovered,
 }: {
   agentId: string
-  siteId: string
+  sourceId: string
   lastRunAt: string
   synced: number
   failed: number
@@ -86,8 +83,7 @@ const saveSharePointSyncRunState = async ({
   const db = context.getWorkspaceDB()
   const stateId = docIds.generateAgentKnowledgeSourceSyncStateID(
     agentId,
-    SHAREPOINT_SOURCE_TYPE,
-    siteId
+    sourceId
   )
   const existing = await db.tryGet<AgentKnowledgeSourceSyncState>(stateId)
   const now = new Date().toISOString()
@@ -95,8 +91,7 @@ const saveSharePointSyncRunState = async ({
     ...existing,
     _id: stateId,
     agentId,
-    sourceType: SHAREPOINT_SOURCE_TYPE,
-    sourceId: siteId,
+    sourceId: sourceId,
     lastRunAt,
     synced,
     failed,
@@ -193,7 +188,7 @@ export const fetchKnowledgeSourceSyncStateForAgent = async (
   const result = await db.allDocs<AgentKnowledgeSourceSyncState>(
     docIds.getDocParams(
       DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
-      `${agentId}_${SHAREPOINT_SOURCE_TYPE}_`,
+      `${agentId}_`,
       { include_docs: true }
     )
   )
@@ -223,7 +218,7 @@ export const deleteKnowledgeSourceSyncStateForAgent = async (
   const result = await db.allDocs<AgentKnowledgeSourceSyncState>(
     docIds.getDocParams(
       DocumentType.AGENT_KNOWLEDGE_SOURCE_SYNC_STATE,
-      `${agentId}_${SHAREPOINT_SOURCE_TYPE}_`,
+      `${agentId}_`,
       { include_docs: true }
     )
   )
@@ -475,7 +470,7 @@ const runSharePointSourcesForAgent = async (
   } finally {
     await saveSharePointSyncRunState({
       agentId,
-      siteId,
+      sourceId,
       lastRunAt,
       synced,
       failed,

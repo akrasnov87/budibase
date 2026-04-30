@@ -13,7 +13,6 @@ import {
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
   FetchAgentKnowledgeSourceConnectionsResponse,
-  KnowledgeSourceSyncRun,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
@@ -61,11 +60,7 @@ export async function fetchAgentKnowledge(
   ctx: UserCtx<void, FetchAgentKnowledgeResponse, { agentId: string }>
 ) {
   const { agentId } = ctx.params
-  const [files, agent, syncState]: [
-    Awaited<ReturnType<typeof sdk.ai.rag.listFilesForAgent>>,
-    Awaited<ReturnType<typeof sdk.ai.agents.getOrThrow>>,
-    { runs: KnowledgeSourceSyncRun[] },
-  ] = await Promise.all([
+  const [files, agent, syncState] = await Promise.all([
     sdk.ai.rag.listFilesForAgent(agentId),
     sdk.ai.agents.getOrThrow(agentId),
     sdk.ai.rag.fetchKnowledgeSourceSyncStateForAgent(agentId),
@@ -75,8 +70,7 @@ export async function fetchAgentKnowledge(
     .filter(source => source.config.site.id)
     .map<SharePointKnowledgeSourceSnapshot>(source => {
       const site = source.config.site
-      const siteId = site.id
-      const run = runsBySiteId.get(siteId)
+      const run = runsBySiteId.get(source.id)
       const filesForSource = files.filter(
         file => file.source?.knowledgeSourceId === source.id
       )
