@@ -260,7 +260,7 @@ export const fetchSharePointSitesByBearerToken = async (
       break
     }
 
-    from += hitsCount
+    from += SEARCH_PAGE_SIZE
   }
 
   return Array.from(sitesById.values()).sort((a, b) =>
