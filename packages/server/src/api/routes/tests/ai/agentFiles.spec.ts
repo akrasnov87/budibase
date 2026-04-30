@@ -106,7 +106,8 @@ describe("agent files", () => {
 
   const setSharePointSourceInAgent = async (
     agentId: string,
-    siteIds: string[]
+    siteIds: string[],
+    connectionId = "connection_1"
   ) => {
     await config.doInContext(config.getDevWorkspaceId(), async () => {
       const db = context.getWorkspaceDB()
@@ -117,6 +118,7 @@ describe("agent files", () => {
           id: `sharepoint_site_${siteId}`,
           type: AgentKnowledgeSourceType.SHAREPOINT,
           config: {
+            connectionId,
             site: { id: siteId },
           },
         })),
@@ -125,10 +127,10 @@ describe("agent files", () => {
   }
 
   const setSharePointConnection = async (_agentId: string) => {
-    await config.doInContext(config.getDevWorkspaceId(), async () => {
+    return await config.doInContext(config.getDevWorkspaceId(), async () => {
       const workspaceId = context.getOrThrowWorkspaceId()
       const workspaceConnectionId = db.getProdWorkspaceID(workspaceId)
-      await createKnowledgeSourceConnection({
+      const connection = await createKnowledgeSourceConnection({
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
         connectionKey: sharePointConnectionCacheKey(
           "connection",
@@ -145,6 +147,7 @@ describe("agent files", () => {
         clientId: "client-id",
         clientSecret: "client-secret",
       })
+      return connection._id!
     })
   }
 
@@ -287,33 +290,33 @@ describe("agent files", () => {
     })
   })
 
-  it("returns empty SharePoint sites for an agent without a connection", async () => {
+  it("returns empty SharePoint sites for a connection without sites", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
         name: "SharePoint Sites Agent",
         aiconfig: "default",
       })
+      const connectionId = await setSharePointConnection(created._id!)
 
-      const response = await config.api.agent.fetchKnowledgeSourceOptions(
-        created._id!
-      )
+      const response =
+        await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
 
       expect(response.options).toEqual([])
     })
   })
 
-  it("returns empty SharePoint sync state for an agent without sync runs", async () => {
+  it("returns only options for connection-scoped knowledge source options", async () => {
     await withRagEnabled(async () => {
       const created = await config.api.agent.create({
-        name: "SharePoint Sync State Agent",
+        name: "SharePoint Options Shape Agent",
         aiconfig: "default",
       })
+      const connectionId = await setSharePointConnection(created._id!)
 
-      const response = await config.api.agent.fetchKnowledgeSourceOptions(
-        created._id!
-      )
+      const response =
+        await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
 
-      expect(response.runs).toEqual([])
+      expect(response).not.toHaveProperty("runs")
     })
   })
 

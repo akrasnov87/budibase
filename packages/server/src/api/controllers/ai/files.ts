@@ -13,6 +13,7 @@ import {
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
   FetchAgentKnowledgeSourceConnectionsResponse,
+  KnowledgeSourceSyncRun,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
@@ -48,11 +49,23 @@ const unlinkSafe = async (path?: string) => {
 const sanitizeSharePointSourceId = (siteId: string) =>
   `sharepoint_site_${siteId.replace(/[^a-zA-Z0-9_-]/g, "_")}`
 
+const fetchSharePointOptionsForConnection = async (
+  connectionId: string
+): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
+  const options =
+    await sdk.ai.sharepoint.fetchSharePointSitesByConnection(connectionId)
+  return { options }
+}
+
 export async function fetchAgentKnowledge(
   ctx: UserCtx<void, FetchAgentKnowledgeResponse, { agentId: string }>
 ) {
   const { agentId } = ctx.params
-  const [files, agent, syncState] = await Promise.all([
+  const [files, agent, syncState]: [
+    Awaited<ReturnType<typeof sdk.ai.rag.listFilesForAgent>>,
+    Awaited<ReturnType<typeof sdk.ai.agents.getOrThrow>>,
+    { runs: KnowledgeSourceSyncRun[] },
+  ] = await Promise.all([
     sdk.ai.rag.listFilesForAgent(agentId),
     sdk.ai.agents.getOrThrow(agentId),
     sdk.ai.rag.fetchKnowledgeSourceSyncStateForAgent(agentId),
@@ -196,7 +209,6 @@ export async function fetchAgentKnowledgeSourceOptions(
   ctx.body = {
     options:
       await sdk.ai.sharepoint.fetchSharePointSitesByConnection(connectionId),
-    runs: [],
   }
   ctx.status = 200
 }
@@ -259,12 +271,12 @@ export async function connectAgentSharePointSite(
   }
   const existingSites = getSharePointSiteIds(existingAgent)
   if (existingSites.has(siteId)) {
-    ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+    ctx.body = await fetchSharePointOptionsForConnection(connectionId)
     ctx.status = 200
     return
   }
   const availableOptions =
-    await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+    await fetchSharePointOptionsForConnection(connectionId)
   const selectedOption = availableOptions.options.find(
     option => option.id === siteId
   )
@@ -303,7 +315,7 @@ export async function connectAgentSharePointSite(
     AgentKnowledgeSourceType.SHAREPOINT,
     [nextSource.id]
   )
-  ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+  ctx.body = await fetchSharePointOptionsForConnection(connectionId)
   ctx.status = 200
 }
 
@@ -349,7 +361,9 @@ export async function updateAgentSharePointSite(
     AgentKnowledgeSourceType.SHAREPOINT,
     [source.id]
   )
-  ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+  ctx.body = await fetchSharePointOptionsForConnection(
+    source.config.connectionId
+  )
   ctx.status = 200
 }
 

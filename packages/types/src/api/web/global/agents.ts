@@ -38,7 +38,6 @@ export interface KnowledgeSourceOption {
 
 export interface FetchAgentKnowledgeSourceOptionsResponse {
   options: KnowledgeSourceOption[]
-  runs: KnowledgeSourceSyncRun[]
 }
 
 export interface SharePointKnowledgeSourceSnapshot {

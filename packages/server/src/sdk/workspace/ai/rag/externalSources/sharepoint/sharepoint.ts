@@ -11,9 +11,9 @@ import {
   type AgentKnowledgeSource,
   DocumentType,
   type FetchAgentKnowledgeSourceEntriesResponse,
-  type FetchAgentKnowledgeSourceOptionsResponse,
   isKnowledgeFileSupported,
   type KnowledgeSourceEntry,
+  type KnowledgeSourceSyncRun,
   type SyncAgentKnowledgeSourcesResponse,
   KnowledgeBaseFileSourceType,
   KnowledgeBaseFileStatus,
@@ -24,7 +24,6 @@ import {
 } from "../../.."
 import * as knowledgeSourcesSdk from "../../../knowledgeSources"
 import {
-  fetchSharePointSitesByConnection,
   getSharePointBearerToken,
   isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
@@ -339,22 +338,6 @@ const downloadFileBuffer = async (
   return Buffer.from(await response.arrayBuffer())
 }
 
-export const fetchSharePointSitesForAgent = async (
-  agentId: string
-): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
-  const agent = await agentsSdk.getOrThrow(agentId)
-  const { runs } = await fetchKnowledgeSourceSyncStateForAgent(agent._id!)
-  const connectionId = await getSharePointCurrentWorkspaceConnectionId()
-  if (!connectionId) {
-    return { options: [], runs }
-  }
-
-  return {
-    options: await fetchSharePointSitesByConnection(connectionId),
-    runs,
-  }
-}
-
 export const fetchAllSharePointEntriesForAgent = async (
   agentId: string,
   siteId: string
@@ -399,7 +382,7 @@ export const fetchAllSharePointEntriesForAgent = async (
 
 export const fetchKnowledgeSourceSyncStateForAgent = async (
   agentId: string
-): Promise<{ runs: FetchAgentKnowledgeSourceOptionsResponse["runs"] }> => {
+): Promise<{ runs: KnowledgeSourceSyncRun[] }> => {
   const db = context.getWorkspaceDB()
   const result = await db.allDocs<AgentKnowledgeSourceSyncState>(
     docIds.getDocParams(
