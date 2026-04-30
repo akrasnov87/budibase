@@ -33,7 +33,7 @@ jest.mock("@budibase/backend-core", () => {
   }
 })
 
-jest.mock("..", () => ({
+jest.mock("../../../index", () => ({
   agents: {
     getOrThrow: (...args: any[]) => mockAgentsGetOrThrow(...args),
   },
@@ -47,8 +47,10 @@ jest.mock("..", () => ({
   },
 }))
 
-jest.mock("../sharepoint", () => {
-  const actual = jest.requireActual("../sharepoint")
+jest.mock("../../../knowledgeSources/sharepointConnection", () => {
+  const actual = jest.requireActual(
+    "../../../knowledgeSources/sharepointConnection"
+  )
   return {
     ...actual,
     getSharePointBearerToken: (...args: any[]) =>
@@ -56,14 +58,14 @@ jest.mock("../sharepoint", () => {
   }
 })
 
-jest.mock("../knowledgeSources", () => {
+jest.mock("../../../knowledgeSources", () => {
   return {
     listKnowledgeSourceConnections: (...args: any[]) =>
       mockListKnowledgeSourceConnections(...args),
   }
 })
 
-jest.mock("./files", () => {
+jest.mock("../../files", () => {
   return {
     ensureKnowledgeBaseForAgent: (...args: any[]) =>
       mockEnsureKnowledgeBaseForAgent(...args),
