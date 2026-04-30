@@ -33,6 +33,7 @@
   })
 
   let selectedSiteId = $state("")
+  let selectedConnectionId = $state("")
   let modal = $state<Modal>()
   let loadingSites = $state(false)
 
@@ -61,8 +62,18 @@
     sharePointSites = []
     selectedSiteId = ""
     try {
+      const connections = await knowledgeConnectionsStore.fetch()
+      const sharePointConnections = connections.filter(
+        connection => connection.sourceType === "sharepoint"
+      )
+      selectedConnectionId = sharePointConnections[0]?._id || ""
+      if (!selectedConnectionId) {
+        sharePointSites = []
+        selectedSiteId = ""
+        return
+      }
       const response =
-        await agentsStore.fetchAgentKnowledgeSourceOptions(agentId)
+        await agentsStore.fetchAgentKnowledgeSourceOptions(selectedConnectionId)
       sharePointSites = response.options
       selectedSiteId = displaySharePointSites[0]?.id || ""
     } catch (error) {
@@ -91,16 +102,12 @@
 
     saving = true
     try {
-      const connections = await knowledgeConnectionsStore.fetch()
-      const connectionId = connections.find(
-        connection => connection.sourceType === "sharepoint"
-      )?._id
-      if (!connectionId) {
+      if (!selectedConnectionId) {
         notifications.error("No SharePoint connection found")
         return
       }
       await agentsStore.connectAgentSharePointSite(agentId, {
-        connectionId,
+        connectionId: selectedConnectionId,
         siteId: selectedSiteId,
         filters: mode === "selective" ? [EXCLUDE_ALL_PATTERN] : undefined,
       })

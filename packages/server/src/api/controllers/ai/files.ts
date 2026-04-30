@@ -186,11 +186,18 @@ export async function fetchAgentKnowledgeSourceOptions(
   ctx: UserCtx<
     void,
     FetchAgentKnowledgeSourceOptionsResponse,
-    { agentId: string }
+    { connectionId: string }
   >
 ) {
-  const { agentId } = ctx.params
-  ctx.body = await sdk.ai.rag.fetchSharePointSitesForAgent(agentId)
+  const { connectionId } = ctx.params
+  if (!connectionId) {
+    throw new HTTPError("connectionId is required", 400)
+  }
+  ctx.body = {
+    options:
+      await sdk.ai.sharepoint.fetchSharePointSitesByConnection(connectionId),
+    runs: [],
+  }
   ctx.status = 200
 }
 

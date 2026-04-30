@@ -463,8 +463,9 @@ const runSharePointSourcesForAgent = async (
   }
 
   const site = agent.knowledgeSources?.find(s => s.id === sourceId)?.config.site
-  const sourceConnectionId = agent.knowledgeSources?.find(s => s.id === sourceId)
-    ?.config.connectionId
+  const sourceConnectionId = agent.knowledgeSources?.find(
+    s => s.id === sourceId
+  )?.config.connectionId
   if (!site) {
     throw new HTTPError(
       "Specified SharePoint site is not connected for this agent",
