@@ -10,7 +10,7 @@ import {
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
-import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/externalSources/knowledgeSourceSyncQueue"
+import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/sources/knowledgeSourceSyncQueue"
 import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"

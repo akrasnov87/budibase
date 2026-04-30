@@ -1,4 +1,4 @@
 export * from "./files"
-export * from "./externalSources/sharepoint/sharepoint"
+export * from "./sources/sharepoint/sharepoint"
 export * as ragQueue from "./ragQueue"
-export * as knowledgeSourceSyncQueue from "./externalSources/knowledgeSourceSyncQueue"
+export * as knowledgeSourceSyncQueue from "./sources/knowledgeSourceSyncQueue"
