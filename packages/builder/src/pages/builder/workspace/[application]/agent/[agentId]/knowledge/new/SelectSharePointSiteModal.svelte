@@ -27,6 +27,9 @@
   let { agentId, existingSiteIds = [], onCreated }: Props = $props()
 
   let sharePointSites = $state<KnowledgeSourceOption[]>([])
+  let sharePointConnectionOptions = $state<
+    { id: string; name: string; account: string }[]
+  >([])
   let availableSites = $derived.by(() => {
     const excluded = new Set(existingSiteIds)
     return sharePointSites.filter(site => !excluded.has(site.id))
@@ -34,8 +37,10 @@
 
   let selectedSiteId = $state("")
   let selectedConnectionId = $state("")
+  let step = $state<"connection" | "site">("connection")
   let modal = $state<Modal>()
   let loadingSites = $state(false)
+  let loadingNextStep = $state(false)
 
   const displaySharePointSites = $derived(
     [...availableSites]
@@ -52,8 +57,35 @@
 
   let saving = $state<boolean>()
 
-  const loadSharePointSites = async () => {
+  const loadSharePointConnections = async () => {
     if (!agentId) {
+      sharePointConnectionOptions = []
+      selectedConnectionId = ""
+      sharePointSites = []
+      selectedSiteId = ""
+      return
+    }
+    try {
+      const connections = await knowledgeConnectionsStore.fetch()
+      const sharePointConnections = connections.filter(
+        connection => connection.sourceType === "sharepoint"
+      )
+      sharePointConnectionOptions = sharePointConnections.map(connection => ({
+        id: connection._id!,
+        name: "Microsoft",
+        account: connection.account || "-",
+      }))
+      selectedConnectionId = sharePointConnections[0]?._id || ""
+    } catch (error) {
+      console.error(error)
+      notifications.error("Failed to fetch SharePoint connections")
+      sharePointConnectionOptions = []
+      selectedConnectionId = ""
+    }
+  }
+
+  const loadSharePointSites = async () => {
+    if (!selectedConnectionId) {
       sharePointSites = []
       selectedSiteId = ""
       return
@@ -62,16 +94,6 @@
     sharePointSites = []
     selectedSiteId = ""
     try {
-      const connections = await knowledgeConnectionsStore.fetch()
-      const sharePointConnections = connections.filter(
-        connection => connection.sourceType === "sharepoint"
-      )
-      selectedConnectionId = sharePointConnections[0]?._id || ""
-      if (!selectedConnectionId) {
-        sharePointSites = []
-        selectedSiteId = ""
-        return
-      }
       const response =
         await agentsStore.fetchAgentKnowledgeSourceOptions(selectedConnectionId)
       sharePointSites = response.options
@@ -87,7 +109,8 @@
   }
 
   export async function show() {
-    await loadSharePointSites()
+    step = "connection"
+    await loadSharePointConnections()
     modal?.show()
   }
 
@@ -123,6 +146,19 @@
       saving = false
     }
   }
+
+  const goToSitesStep = async () => {
+    if (!selectedConnectionId) {
+      return
+    }
+    loadingNextStep = true
+    try {
+      await loadSharePointSites()
+      step = "site"
+    } finally {
+      loadingNextStep = false
+    }
+  }
 </script>
 
 <Modal bind:this={modal}>
@@ -138,38 +174,65 @@
         <Body size="S">Add from SharePoint</Body>
       </div>
 
-      {#if loadingSites}
-        <Body size="S">Loading SharePoint sites...</Body>
-      {:else if availableSites.length === 0}
-        <Body size="S">No SharePoint sites found for this connection.</Body>
+      {#if step === "connection"}
+        {#if sharePointConnectionOptions.length === 0}
+          <Body size="S">No SharePoint connections found.</Body>
+        {:else}
+          <Select
+            bind:value={selectedConnectionId}
+            label="Select connection"
+            options={sharePointConnectionOptions}
+            getOptionLabel={o => `${o.name} - ${o.account}`}
+            getOptionValue={o => o.id}
+          />
+        {/if}
       {:else}
-        <Select
-          bind:value={selectedSiteId}
-          label="Select site"
-          options={displaySharePointSites}
-          getOptionLabel={o => o.name || o.webUrl || o.id}
-          getOptionSubtitle={o => o.webUrl}
-          getOptionValue={o => o.id}
-        />
+        {#if availableSites.length === 0}
+          <Body size="S">No SharePoint sites found for this connection.</Body>
+        {:else}
+          <Select
+            bind:value={selectedSiteId}
+            label="Select site"
+            options={displaySharePointSites}
+            getOptionLabel={o => o.name || o.webUrl || o.id}
+            getOptionSubtitle={o => o.webUrl}
+            getOptionValue={o => o.id}
+          />
+        {/if}
       {/if}
     </div>
 
     <ButtonGroup slot="footer">
-      <Button
-        cta
-        primary
-        on:click={() => handleSelect("selective")}
-        disabled={!selectedSiteId || saving}
-      >
-        Selective sync
-      </Button>
-      <Button
-        cta
-        on:click={() => handleSelect("all")}
-        disabled={!selectedSiteId || saving}
-      >
-        Sync all
-      </Button>
+      {#if step === "connection"}
+        <Button
+          cta
+          primary
+          on:click={goToSitesStep}
+          disabled={!selectedConnectionId || loadingNextStep}
+          loading={loadingNextStep}
+        >
+          Next
+        </Button>
+      {:else}
+        <Button cta secondary on:click={() => (step = "connection")} disabled={saving}>
+          Back
+        </Button>
+        <Button
+          cta
+          primary
+          on:click={() => handleSelect("selective")}
+          disabled={!selectedSiteId || saving}
+        >
+          Selective sync
+        </Button>
+        <Button
+          cta
+          on:click={() => handleSelect("all")}
+          disabled={!selectedSiteId || saving}
+        >
+          Sync all
+        </Button>
+      {/if}
     </ButtonGroup>
   </ModalContent>
 </Modal>
