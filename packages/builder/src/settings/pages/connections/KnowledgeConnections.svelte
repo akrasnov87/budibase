@@ -1,11 +1,10 @@
 <script lang="ts">
   import { onMount } from "svelte"
   import { Layout, Table, Button, notifications } from "@budibase/bbui"
-  import { AgentKnowledgeSourceType } from "@budibase/types"
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
-  import { agentsStore, knowledgeConnectionsStore } from "@/stores/portal"
+  import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [
     {
@@ -18,7 +17,6 @@
     icon: { width: "40px", displayName: "" },
     connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
-    useCount: { width: "60px", displayName: "#" },
   }
 
   let loading = $state(true)
@@ -29,13 +27,6 @@
         icon: connection.sourceType,
         connectionName: "Microsoft",
         account: connection.account || "-",
-        useCount: $agentsStore.agents.filter(a =>
-          a.knowledgeSources?.some(
-            s =>
-              s.type === AgentKnowledgeSourceType.SHAREPOINT &&
-              s.config.connectionId === connection._id
-          )
-        ).length,
       }))
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   )
@@ -53,10 +44,7 @@
 
   onMount(async () => {
     try {
-      await Promise.all([
-        knowledgeConnectionsStore.fetch(),
-        !$agentsStore.agentsLoaded ? agentsStore.init() : Promise.resolve(),
-      ])
+      await knowledgeConnectionsStore.fetch()
     } catch (e) {
       console.error("Failed to load knowledge connections", e)
       notifications.error("Failed to load knowledge connections")
@@ -80,6 +68,7 @@
     {loading}
     {schema}
     {customRenderers}
+    hideHeader
     allowEditRows={false}
     allowClickRows={false}
     allowEditColumns={false}
