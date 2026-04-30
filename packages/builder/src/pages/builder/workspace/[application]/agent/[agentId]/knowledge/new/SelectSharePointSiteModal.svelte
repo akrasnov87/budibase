@@ -37,9 +37,8 @@
 
   let selectedSiteId = $state("")
   let selectedConnectionId = $state("")
-  let step = $state<"connection" | "site">("connection")
-  let modal = $state<Modal>()
-  let loadingSites = $state(false)
+  let connectionModal = $state<Modal>()
+  let siteModal = $state<Modal>()
   let loadingNextStep = $state(false)
 
   const displaySharePointSites = $derived(
@@ -90,7 +89,7 @@
       selectedSiteId = ""
       return
     }
-    loadingSites = true
+
     sharePointSites = []
     selectedSiteId = ""
     try {
@@ -103,19 +102,17 @@
       notifications.error("Failed to fetch SharePoint sites")
       sharePointSites = []
       selectedSiteId = ""
-    } finally {
-      loadingSites = false
     }
   }
 
   export async function show() {
-    step = "connection"
     await loadSharePointConnections()
-    modal?.show()
+    connectionModal?.show()
   }
 
   export function hide() {
-    modal?.hide()
+    connectionModal?.hide()
+    siteModal?.hide()
   }
 
   const handleSelect = async (mode: SharePointSelectionMode) => {
@@ -154,14 +151,53 @@
     loadingNextStep = true
     try {
       await loadSharePointSites()
-      step = "site"
+      connectionModal?.hide()
+      siteModal?.show()
     } finally {
       loadingNextStep = false
     }
   }
 </script>
 
-<Modal bind:this={modal}>
+<Modal bind:this={connectionModal}>
+  <ModalContent
+    custom
+    showDivider={false}
+    showConfirmButton={false}
+    showCancelButton={false}
+  >
+    <div class="content">
+      <div class="title">
+        <Body size="S">Add from SharePoint</Body>
+      </div>
+
+      {#if sharePointConnectionOptions.length === 0}
+        <Body size="S">No SharePoint connections found.</Body>
+      {:else}
+        <Select
+          bind:value={selectedConnectionId}
+          label="Select connection"
+          options={sharePointConnectionOptions}
+          getOptionLabel={o => `${o.name} - ${o.account}`}
+          getOptionValue={o => o.id}
+        />
+      {/if}
+    </div>
+
+    <ButtonGroup slot="footer">
+      <Button
+        cta
+        primary
+        on:click={goToSitesStep}
+        disabled={!selectedConnectionId || loadingNextStep}
+      >
+        {loadingNextStep ? "Loading..." : "Next"}
+      </Button>
+    </ButtonGroup>
+  </ModalContent>
+</Modal>
+
+<Modal bind:this={siteModal}>
   <ModalContent
     custom
     showDivider={false}
@@ -174,65 +210,47 @@
         <Body size="S">Add from SharePoint</Body>
       </div>
 
-      {#if step === "connection"}
-        {#if sharePointConnectionOptions.length === 0}
-          <Body size="S">No SharePoint connections found.</Body>
-        {:else}
-          <Select
-            bind:value={selectedConnectionId}
-            label="Select connection"
-            options={sharePointConnectionOptions}
-            getOptionLabel={o => `${o.name} - ${o.account}`}
-            getOptionValue={o => o.id}
-          />
-        {/if}
+      {#if availableSites.length === 0}
+        <Body size="S">No SharePoint sites found for this connection.</Body>
       {:else}
-        {#if availableSites.length === 0}
-          <Body size="S">No SharePoint sites found for this connection.</Body>
-        {:else}
-          <Select
-            bind:value={selectedSiteId}
-            label="Select site"
-            options={displaySharePointSites}
-            getOptionLabel={o => o.name || o.webUrl || o.id}
-            getOptionSubtitle={o => o.webUrl}
-            getOptionValue={o => o.id}
-          />
-        {/if}
+        <Select
+          bind:value={selectedSiteId}
+          label="Select site"
+          options={displaySharePointSites}
+          getOptionLabel={o => o.name || o.webUrl || o.id}
+          getOptionSubtitle={o => o.webUrl}
+          getOptionValue={o => o.id}
+        />
       {/if}
     </div>
 
     <ButtonGroup slot="footer">
-      {#if step === "connection"}
-        <Button
-          cta
-          primary
-          on:click={goToSitesStep}
-          disabled={!selectedConnectionId || loadingNextStep}
-          loading={loadingNextStep}
-        >
-          Next
-        </Button>
-      {:else}
-        <Button cta secondary on:click={() => (step = "connection")} disabled={saving}>
-          Back
-        </Button>
-        <Button
-          cta
-          primary
-          on:click={() => handleSelect("selective")}
-          disabled={!selectedSiteId || saving}
-        >
-          Selective sync
-        </Button>
-        <Button
-          cta
-          on:click={() => handleSelect("all")}
-          disabled={!selectedSiteId || saving}
-        >
-          Sync all
-        </Button>
-      {/if}
+      <Button
+        cta
+        secondary
+        on:click={() => {
+          siteModal?.hide()
+          connectionModal?.show()
+        }}
+        disabled={saving}
+      >
+        Back
+      </Button>
+      <Button
+        cta
+        primary
+        on:click={() => handleSelect("selective")}
+        disabled={!selectedSiteId || saving}
+      >
+        Selective sync
+      </Button>
+      <Button
+        cta
+        on:click={() => handleSelect("all")}
+        disabled={!selectedSiteId || saving}
+      >
+        Sync all
+      </Button>
     </ButtonGroup>
   </ModalContent>
 </Modal>
