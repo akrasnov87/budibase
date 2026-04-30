@@ -305,3 +305,186 @@ export const fetchSharePointConnectionIdentity = async (
     userPrincipalName,
   }
 }
+
+interface SharePointDrive {
+  id?: string
+}
+
+interface SharePointDriveListResponse {
+  value?: SharePointDrive[]
+}
+
+interface SharePointDriveItem {
+  id?: string
+  name?: string
+  file?: {
+    mimeType?: string
+  }
+  folder?: Record<string, unknown>
+}
+
+interface SharePointDriveItemsResponse {
+  value?: SharePointDriveItem[]
+  "@odata.nextLink"?: string
+}
+
+interface SharePointFileRef {
+  driveId: string
+  itemId: string
+  filename: string
+  path: string
+  mimetype?: string
+}
+
+export const listSharePointDrives = async (
+  bearerToken: string,
+  siteId: string
+): Promise<string[]> => {
+  const response = await fetch(
+    `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
+      siteId
+    )}/drives?$top=200&$select=id`,
+    {
+      headers: {
+        Authorization: bearerToken,
+      },
+    }
+  )
+  if (!response.ok) {
+    console.error("Failed to list SharePoint drives", {
+      status: response.status,
+      siteId,
+    })
+    throw new HTTPError(
+      response.status === 401 || response.status === 403
+        ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+        : `Failed to list SharePoint drives (${response.status})`,
+      400
+    )
+  }
+  const payload = (await response.json()) as SharePointDriveListResponse
+  return (payload.value || []).map(drive => drive.id || "").filter(Boolean)
+}
+
+const listSharePointDriveItems = async (
+  bearerToken: string,
+  driveId: string,
+  itemId?: string
+): Promise<SharePointDriveItem[]> => {
+  const initialPath = itemId
+    ? `${SHAREPOINT_API_BASE}/drives/${driveId}/items/${itemId}/children?$top=200&$select=id,name,file,folder`
+    : `${SHAREPOINT_API_BASE}/drives/${driveId}/root/children?$top=200&$select=id,name,file,folder`
+
+  const items: SharePointDriveItem[] = []
+  let nextLink = initialPath
+
+  while (nextLink) {
+    const response = await fetch(nextLink, {
+      headers: {
+        Authorization: bearerToken,
+      },
+    })
+    if (!response.ok) {
+      console.error("Failed to list SharePoint drive items", {
+        status: response.status,
+        driveId,
+        hasItemId: !!itemId,
+      })
+      throw new HTTPError(
+        response.status === 401 || response.status === 403
+          ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+          : `Failed to list SharePoint drive items (${response.status})`,
+        400
+      )
+    }
+
+    const payload = (await response.json()) as SharePointDriveItemsResponse
+    items.push(...(Array.isArray(payload.value) ? payload.value : []))
+    const nextPageLink = payload?.["@odata.nextLink"]
+    if (!nextPageLink) {
+      nextLink = ""
+      continue
+    }
+
+    if (!isAllowedSharePointNextLink(nextPageLink)) {
+      throw new HTTPError("Invalid SharePoint pagination URL", 400)
+    }
+    nextLink = nextPageLink
+  }
+
+  return items
+}
+
+export const collectSharePointFilesRecursive = async (
+  bearerToken: string,
+  driveId: string,
+  folderId?: string,
+  parentPath = ""
+): Promise<SharePointFileRef[]> => {
+  const items = await listSharePointDriveItems(bearerToken, driveId, folderId)
+  const files: SharePointFileRef[] = []
+
+  for (const item of items) {
+    const itemId = item.id
+    const name = item.name
+    if (!itemId || !name) {
+      continue
+    }
+
+    if (item.folder) {
+      const nextPath = parentPath ? `${parentPath}/${name}` : name
+      files.push(
+        ...(await collectSharePointFilesRecursive(
+          bearerToken,
+          driveId,
+          itemId,
+          nextPath
+        ))
+      )
+      continue
+    }
+
+    if (!item.file) {
+      continue
+    }
+
+    files.push({
+      driveId,
+      itemId,
+      filename: name,
+      path: parentPath ? `${parentPath}/${name}` : name,
+      mimetype: item.file.mimeType || undefined,
+    })
+  }
+
+  return files
+}
+
+export const downloadSharePointFileBuffer = async (
+  bearerToken: string,
+  driveId: string,
+  itemId: string
+) => {
+  const response = await fetch(
+    `${SHAREPOINT_API_BASE}/drives/${driveId}/items/${itemId}/content`,
+    {
+      headers: {
+        Authorization: bearerToken,
+      },
+    }
+  )
+  if (!response.ok) {
+    console.error("Failed to download SharePoint file", {
+      status: response.status,
+      driveId,
+      itemId,
+    })
+    throw new HTTPError(
+      response.status === 401 || response.status === 403
+        ? "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+        : `Failed to download SharePoint file (${response.status})`,
+      400
+    )
+  }
+  return Buffer.from(await response.arrayBuffer())
+}
