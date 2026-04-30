@@ -240,6 +240,7 @@ describe("knowledgeSourceSyncQueue", () => {
         workspaceId: "app_dev_test",
         agentId: "agent_1",
         jobType: "disconnect_sharepoint_site",
+        sourceId: "sharepoint_site_site_1",
         siteId: "site_1",
       },
     })
@@ -254,7 +255,7 @@ describe("knowledgeSourceSyncQueue", () => {
     )
     expect(mockDeleteKnowledgeSourceSyncStateForAgent).toHaveBeenCalledWith(
       "agent_1",
-      "site_1"
+      "sharepoint_site_site_1"
     )
   })
 

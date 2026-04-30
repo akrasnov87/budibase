@@ -387,6 +387,7 @@ export async function disconnectAgentSharePointSite(
   await sdk.ai.rag.knowledgeSourceSyncQueue.reconcileAgentJobs(updated)
   await sdk.ai.rag.knowledgeSourceSyncQueue.enqueueDisconnectSharePointSiteJob(
     agentId,
+    removedSource.id,
     siteId
   )
   console.log("Disconnected SharePoint site from agent", {

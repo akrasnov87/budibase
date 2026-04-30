@@ -38,6 +38,7 @@ interface KnowledgeBaseFileDeleteJob extends BaseKnowledgeSourceJob {
 
 interface SharePointSiteDisconnectJob extends BaseKnowledgeSourceJob {
   jobType: "disconnect_sharepoint_site"
+  sourceId: string
   siteId: string
 }
 
@@ -174,7 +175,7 @@ export function init(concurrency = DEFAULT_CONCURRENCY) {
               await deleteSharePointFilesForAgentSite(agentId, job.data.siteId)
               await deleteKnowledgeSourceSyncStateForAgent(
                 agentId,
-                job.data.siteId
+                job.data.sourceId
               )
               break
             default:
@@ -227,16 +228,18 @@ export async function enqueueDeleteFileJob(agentId: string, fileId: string) {
 
 export async function enqueueDisconnectSharePointSiteJob(
   agentId: string,
+  sourceId: string,
   siteId: string
 ) {
   const workspaceId = context.getWorkspaceId()
-  if (!workspaceId || !agentId || !siteId) {
+  if (!workspaceId || !agentId || !sourceId || !siteId) {
     return
   }
   await enqueueJob({
     workspaceId,
     agentId,
     jobType: "disconnect_sharepoint_site",
+    sourceId,
     siteId,
   })
 }
