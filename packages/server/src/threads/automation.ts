@@ -598,6 +598,7 @@ class Orchestrator {
               )
             }
             if (shouldStopAfterFailure(branchResults)) {
+              ctx._error = true
               return results
             }
             stepIndex++
