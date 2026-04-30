@@ -1,5 +1,6 @@
 <script lang="ts">
   import { Body, Layout, notifications } from "@budibase/bbui"
+  import { bb } from "@/stores/bb"
   import { confirm } from "@/helpers"
   import type { SyncAgentKnowledgeSourcesResponse } from "@budibase/types"
   import {
@@ -9,7 +10,6 @@
     type KnowledgeBaseFile,
     type SharePointKnowledgeSourceSnapshot,
   } from "@budibase/types"
-  import { appStore } from "@/stores/builder/app"
   import { workspaceDeploymentStore } from "@/stores/builder"
   import {
     agentsStore,
@@ -299,20 +299,9 @@
     }
   })
 
-  function connectSharePoint() {
-    const appId = $appStore.appId
-    if (!appId) {
-      notifications.error("Missing context to connect SharePoint")
-      return
-    }
-    const returnPath = window.location.pathname
-    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
-    window.location.href = oauthUrl
-  }
-
   async function openSharePointFlow() {
     if (!hasSharePointConnection) {
-      connectSharePoint()
+      bb.settings("/connections/knowledge")
       return
     }
     await openSharePointSiteModal()
