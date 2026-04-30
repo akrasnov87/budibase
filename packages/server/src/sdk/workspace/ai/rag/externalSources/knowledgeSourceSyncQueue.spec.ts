@@ -75,7 +75,7 @@ import {
   removeAllAgentJobs,
   scheduleJob,
 } from "./knowledgeSourceSyncQueue"
-import { withEnv } from "../../../../environment"
+import { withEnv } from "../../../../../environment"
 
 describe("knowledgeSourceSyncQueue", () => {
   beforeEach(() => {

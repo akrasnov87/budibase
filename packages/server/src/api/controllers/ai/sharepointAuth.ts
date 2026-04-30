@@ -11,7 +11,7 @@ import {
   DatasourceAuthCookie,
   UserCtx,
 } from "@budibase/types"
-import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/sharepoint"
+import { getSharePointWorkspaceConnectionKey } from "../../../sdk/workspace/ai/rag/externalSources/sharepoint/sharepoint"
 import sdk from "../../../sdk"
 
 const DEFAULT_SCOPE = env.RAG_SHAREPOINT_DEFAULT_SCOPE

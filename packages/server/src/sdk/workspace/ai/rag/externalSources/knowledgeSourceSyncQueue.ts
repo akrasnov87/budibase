@@ -5,13 +5,13 @@ import {
   DocumentType,
   type Agent,
 } from "@budibase/types"
-import env from "../../../../environment"
-import { deleteFileForAgent } from "./files"
+import env from "../../../../../environment"
+import { deleteFileForAgent } from "../files"
 import {
   deleteKnowledgeSourceSyncStateForAgent,
   deleteSharePointFilesForAgentSite,
   syncSharePointSourcesForAgent,
-} from "./sharepoint"
+} from "./sharepoint/sharepoint"
 
 const DEFAULT_CONCURRENCY = 2
 const DEFAULT_BACKOFF_MS = utils.Duration.fromSeconds(10).toMs()

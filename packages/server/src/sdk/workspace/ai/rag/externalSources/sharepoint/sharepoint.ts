@@ -18,19 +18,22 @@ import {
   KnowledgeBaseFileSourceType,
   KnowledgeBaseFileStatus,
 } from "@budibase/types"
-import { agents as agentsSdk, knowledgeBase as knowledgeBaseSdk } from ".."
-import * as knowledgeSourcesSdk from "../knowledgeSources"
+import {
+  agents as agentsSdk,
+  knowledgeBase as knowledgeBaseSdk,
+} from "../../.."
+import * as knowledgeSourcesSdk from "../../../knowledgeSources"
 import {
   fetchSharePointSitesByConnection,
   getSharePointBearerToken,
   isAllowedSharePointNextLink,
   sharePointConnectionCacheKey,
-} from "../sharepoint"
+} from "../../../sharepoint"
 import {
   deleteFileForAgent,
   ensureKnowledgeBaseForAgent,
   listFilesForAgent,
-} from "./files"
+} from "../../files"
 
 interface SharePointDrive {
   id?: string
