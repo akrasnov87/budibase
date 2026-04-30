@@ -276,7 +276,7 @@ describe("agent files", () => {
 
       await config.api.agent.connectSharePointSite(
         created._id!,
-        { siteId: "site-1" },
+        { siteId: "site-1", connectionId: "connection-1" },
         {
           status: 400,
           body: {
