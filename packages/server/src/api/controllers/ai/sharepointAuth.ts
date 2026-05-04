@@ -260,7 +260,6 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
 
       const nextConnection = {
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        tenantId,
         tokenEndpoint,
         accessToken,
         refreshToken,
