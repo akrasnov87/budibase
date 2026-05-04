@@ -33,7 +33,6 @@ class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
     sourceType: AgentKnowledgeSourceType.SHAREPOINT
     authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
     account: string
-    tenantId: string
     tokenEndpoint: string
     clientId: string
     clientSecret: string
@@ -47,7 +46,6 @@ class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
     connectionId: string,
     input: {
       account: string
-      tenantId: string
       tokenEndpoint: string
       clientId: string
       clientSecret: string
@@ -61,7 +59,6 @@ class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
   validate = async (input: {
     sourceType: AgentKnowledgeSourceType.SHAREPOINT
     authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
-    tenantId: string
     tokenEndpoint: string
     clientId: string
     clientSecret: string

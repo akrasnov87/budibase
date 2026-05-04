@@ -132,7 +132,6 @@ describe("agent files", () => {
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
         authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
         account: "connected-sharepoint@budibase.com",
-        tenantId: config.getTenantId(),
         tokenEndpoint:
           "https://login.microsoftonline.com/common/oauth2/v2.0/token",
         accessToken: "header.payload.signature",

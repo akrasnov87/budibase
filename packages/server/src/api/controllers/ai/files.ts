@@ -167,7 +167,6 @@ export async function createAgentKnowledgeSourceConnection(
     sourceType,
     authType,
     account,
-    tenantId,
     tokenEndpoint,
     clientId,
     clientSecret,
@@ -190,7 +189,6 @@ export async function createAgentKnowledgeSourceConnection(
           sourceType,
           authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
           account,
-          tenantId,
           tokenEndpoint,
           clientId,
           clientSecret,
@@ -200,7 +198,6 @@ export async function createAgentKnowledgeSourceConnection(
           sourceType,
           authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
           account,
-          tenantId,
           tokenEndpoint,
           clientId,
           clientSecret,
@@ -233,7 +230,7 @@ export async function updateAgentKnowledgeSourceConnection(
   >
 ) {
   const { connectionId } = ctx.params
-  const { account, tenantId, tokenEndpoint, clientId, clientSecret, scope } =
+  const { account, tokenEndpoint, clientId, clientSecret, scope } =
     ctx.request.body
   const existingConnection =
     await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(connectionId)
@@ -260,7 +257,6 @@ export async function updateAgentKnowledgeSourceConnection(
       connectionId,
       {
         account,
-        tenantId,
         tokenEndpoint,
         clientId,
         clientSecret,

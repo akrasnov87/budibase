@@ -15,7 +15,6 @@ type SharePointConnectionRecord = Pick<
   AgentKnowledgeSourceConnection,
   | "account"
   | "authType"
-  | "tenantId"
   | "tokenEndpoint"
   | "scope"
   | "accessToken"
@@ -56,7 +55,6 @@ const mapPersistedToCacheRecord = (
   return {
     account: doc.account || "unknown",
     authType,
-    tenantId: doc.tenantId,
     tokenEndpoint: doc.tokenEndpoint,
     scope:
       authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
@@ -156,7 +154,6 @@ const refreshConnection = async (
   const saved = await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
     connectionId,
     {
-      tenantId: updated.tenantId,
       tokenEndpoint: updated.tokenEndpoint,
       scope: updated.scope,
       accessToken: updated.accessToken,

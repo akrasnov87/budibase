@@ -67,7 +67,6 @@ export interface CreateAgentKnowledgeSourceConnectionRequest {
   sourceType: AgentKnowledgeSourceType
   authType: AgentKnowledgeSourceConnectionAuthType
   account: string
-  tenantId: string
   tokenEndpoint: string
   clientId: string
   clientSecret: string
@@ -83,7 +82,6 @@ export interface CreateAgentKnowledgeSourceConnectionResponse {
 
 export interface UpdateAgentKnowledgeSourceConnectionRequest {
   account: string
-  tenantId: string
   tokenEndpoint: string
   clientId: string
   clientSecret: string
@@ -106,7 +104,6 @@ export interface UpdateAgentKnowledgeSourceConnectionResponse {
 export interface ValidateAgentKnowledgeSourceConnectionRequest {
   sourceType: AgentKnowledgeSourceType
   authType: AgentKnowledgeSourceConnectionAuthType
-  tenantId: string
   tokenEndpoint: string
   clientId: string
   clientSecret: string

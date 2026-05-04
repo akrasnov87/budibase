@@ -9,7 +9,6 @@ export interface AgentKnowledgeSourceConnection extends Document {
   sourceType: AgentKnowledgeSourceType
   authType: AgentKnowledgeSourceConnectionAuthType
   account: string
-  tenantId: string
   tokenEndpoint: string
   scope?: string
   accessToken?: string
