@@ -159,22 +159,11 @@ describe("agent files", () => {
     for (let i = 0; i < times; i++) {
       graphPool
         .intercept({
-          method: "POST",
-          path: "/v1.0/search/query",
+          method: "GET",
+          path: path => path.startsWith("/v1.0/sites?"),
         })
         .reply(200, {
-          value: [
-            {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: false,
-                  hits: sites.map(site => ({
-                    resource: site,
-                  })),
-                },
-              ],
-            },
-          ],
+          value: sites,
         })
     }
   }
