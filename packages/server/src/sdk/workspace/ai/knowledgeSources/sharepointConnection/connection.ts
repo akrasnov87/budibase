@@ -311,7 +311,7 @@ const fetchSharePointSitesByAppToken = async (
   const sitesById = new Map<string, KnowledgeSourceOption>()
   let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
 
-  while (nextLink) {
+  for (let page = 0; nextLink && page < 50; page++) {
     const response = await fetch(nextLink, {
       headers: {
         Authorization: bearerToken,
