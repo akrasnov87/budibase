@@ -169,6 +169,8 @@ const refreshConnection = async (
       expiresAt: updated.expiresAt,
       clientId: updated.clientId,
       clientSecret: encryption.encrypt(updated.clientSecret),
+      authType: updated.authType,
+      account: updated.account,
     }
   )
 

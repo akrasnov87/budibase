@@ -91,7 +91,13 @@ export interface CreateAgentKnowledgeSourceConnectionRequest {
 export interface CreateAgentKnowledgeSourceConnectionResponse {
   connection: Pick<
     AgentKnowledgeSourceConnection,
-    "_id" | "_rev" | "createdAt" | "updatedAt" | "sourceType" | "account"
+    | "_id"
+    | "_rev"
+    | "createdAt"
+    | "updatedAt"
+    | "sourceType"
+    | "account"
+    | "authType"
   >
 }
 

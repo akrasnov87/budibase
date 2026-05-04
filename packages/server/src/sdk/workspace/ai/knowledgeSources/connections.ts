@@ -10,11 +10,9 @@ type CreateKnowledgeSourceConnectionInput = Omit<
   "_id" | "_rev" | "createdAt" | "updatedAt"
 >
 
-type UpdateKnowledgeSourceConnectionInput = Partial<
-  Omit<
-    AgentKnowledgeSourceConnection,
-    "_id" | "_rev" | "createdAt" | "updatedAt" | "sourceType"
-  >
+type UpdateKnowledgeSourceConnectionInput = Omit<
+  AgentKnowledgeSourceConnection,
+  "_id" | "_rev" | "createdAt" | "updatedAt" | "sourceType"
 >
 
 export const getKnowledgeSourceConnection = async <

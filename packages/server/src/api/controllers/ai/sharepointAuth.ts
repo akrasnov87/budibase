@@ -243,6 +243,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
               clientId,
               clientSecret: encryptSecret(clientSecret),
               account,
+              authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
             }
           )
           return true

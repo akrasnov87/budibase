@@ -242,7 +242,7 @@ export async function createAgentKnowledgeSourceConnection(
     tokenEndpoint,
     clientId,
     clientSecret: encryptSecret(clientSecret),
-    ...(scope ? { scope } : {}),
+    ...(scope?.trim() ? { scope: scope.trim() } : {}),
   }
 
   const connection =
@@ -254,6 +254,7 @@ export async function createAgentKnowledgeSourceConnection(
     connection: {
       _id: connection._id,
       _rev: connection._rev,
+      authType: connection.authType,
       createdAt: connection.createdAt,
       updatedAt: connection.updatedAt,
       sourceType: connection.sourceType,
