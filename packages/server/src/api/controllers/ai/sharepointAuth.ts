@@ -83,6 +83,7 @@ export async function startSharePointAuth(ctx: UserCtx<void, void>) {
   authorizeUrl.searchParams.set("redirect_uri", callbackUrl)
   authorizeUrl.searchParams.set("response_mode", "query")
   authorizeUrl.searchParams.set("scope", DEFAULT_SCOPE)
+  authorizeUrl.searchParams.set("prompt", "select_account")
   authorizeUrl.searchParams.set("state", state)
 
   ctx.redirect(authorizeUrl.toString())
@@ -209,11 +210,14 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
     (async () => {
       const existingConnections =
         await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
+      const normalizedAccount = account.trim().toLowerCase()
+      const canReuseByAccount =
+        !!normalizedAccount && normalizedAccount !== "unknown"
       const matchedConnection = existingConnections.find(
         connection =>
+          canReuseByAccount &&
           connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
-          connection.account?.trim().toLowerCase() ===
-            account.trim().toLowerCase()
+          connection.account?.toLowerCase() === normalizedAccount
       )
 
       const nextConnection = {
