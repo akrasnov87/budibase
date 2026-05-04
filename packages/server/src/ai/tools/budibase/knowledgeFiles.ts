@@ -32,6 +32,7 @@ interface RankedMatch {
 
 const GEMINI_RETRIEVAL_UNAVAILABLE_MESSAGE =
   "Gemini knowledge retrieval is temporarily unavailable (upstream 503). Budibase is operating normally; please retry shortly."
+const GEMINI_UPSTREAM_EVENT = "ai.gemini.upstream_unavailable"
 
 const isGeminiRetrievalUnavailable = (error: unknown): boolean => {
   if (!error || typeof error !== "object") {
@@ -308,14 +309,22 @@ export const createKnowledgeSearchTool = (
           chunks: result.chunks,
         }
       } catch (error: any) {
+        if (isGeminiRetrievalUnavailable(error)) {
+          console.error("[AI_UPSTREAM] Gemini unavailable", {
+            event: GEMINI_UPSTREAM_EVENT,
+            provider: "gemini",
+            path: "knowledge_retrieval",
+            upstreamStatus: error?.status,
+            agentId,
+            errorMessage: error?.message,
+          })
+          throw new Error(GEMINI_RETRIEVAL_UNAVAILABLE_MESSAGE)
+        }
         console.error("Failed to retrieve agent knowledge context", {
           agentId,
           status: error?.status,
           message: error?.message,
         })
-        if (isGeminiRetrievalUnavailable(error)) {
-          throw new Error(GEMINI_RETRIEVAL_UNAVAILABLE_MESSAGE)
-        }
         throw error
       }
     },

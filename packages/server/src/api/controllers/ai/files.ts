@@ -22,6 +22,8 @@ import {
   RequiredKeys,
 } from "@budibase/types"
 import sdk from "../../../sdk"
+
+const GEMINI_UPSTREAM_EVENT = "ai.gemini.upstream_unavailable"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
 
 const normalizeUpload = (fileInput: any) => {
@@ -180,6 +182,22 @@ export async function uploadAgentFile(
     ctx.body = { file: updated }
     ctx.status = 201
   } catch (error: any) {
+    const normalizedMessage = String(error?.message || "").toLowerCase()
+    const isGeminiUpstreamUnavailable =
+      error?.status === 503 ||
+      normalizedMessage.includes("upstream unavailable") ||
+      normalizedMessage.includes("service unavailable")
+
+    if (isGeminiUpstreamUnavailable) {
+      console.error("[AI_UPSTREAM] Gemini unavailable", {
+        event: GEMINI_UPSTREAM_EVENT,
+        provider: "gemini",
+        path: "knowledge_ingest",
+        upstreamStatus: error?.status,
+        agentId,
+        errorMessage: error?.message,
+      })
+    }
     console.error("Failed to upload agent file", error)
     throw new HTTPError(
       error?.message || "Failed to process uploaded file",
