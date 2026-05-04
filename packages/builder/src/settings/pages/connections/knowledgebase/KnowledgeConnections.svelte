@@ -14,6 +14,7 @@
   import TypeRenderer from "../_components/TypeRenderer.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
   import EditKnowledgeConnectionRenderer from "./_components/EditKnowledgeConnectionRenderer.svelte"
+  import KnowledgeConnectionReconnectRenderer from "./_components/KnowledgeConnectionReconnectRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [
@@ -29,6 +30,10 @@
       column: "type",
       component: TypeRenderer,
     },
+    {
+      column: "reconnect",
+      component: KnowledgeConnectionReconnectRenderer,
+    },
   ]
 
   const schema = {
@@ -36,6 +41,8 @@
     account: { width: "1fr", displayName: "Account" },
     type: { width: "1fr", displayName: "Auth" },
     edit: { width: "auto", displayName: "" },
+
+    reconnect: { width: "auto", displayName: "" },
   }
 
   let loading = $state(true)
@@ -50,6 +57,7 @@
         },
         icon: connection.sourceType,
         account: connection.account || "-",
+
         authType: connection.authType,
         source:
           connection.authType === "client_credentials" ? "rest" : "oauth2",
@@ -58,18 +66,26 @@
             ? [{ type: "Client Credentials" }]
             : [{ type: "oauth2" }],
         __clickable: connection.authType !== "delegated_oauth",
+        reconnect: () => connectSharePoint(connection._id),
       }))
       .sort((a, b) => a.account.localeCompare(b.account))
   )
 
-  const connectSharePoint = () => {
+  const connectSharePoint = (connectionId?: string) => {
     const appId = $appStore.appId
     if (!appId) {
       notifications.error("Missing app context to connect SharePoint")
       return
     }
     const returnPath = window.location.pathname
-    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
+    const params = new URLSearchParams({
+      appId,
+      returnPath,
+    })
+    if (connectionId) {
+      params.set("connectionId", connectionId)
+    }
+    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?${params.toString()}`
     window.location.href = oauthUrl
   }
 
@@ -108,7 +124,9 @@
         <div slot="control">
           <Button cta size="M">Add connection</Button>
         </div>
-        <MenuItem on:click={connectSharePoint}>Connect with auth</MenuItem>
+        <MenuItem on:click={() => connectSharePoint()}
+          >Connect with auth</MenuItem
+        >
         <MenuItem on:click={openClientCredentialsModal}>
           Client credentials
         </MenuItem>
