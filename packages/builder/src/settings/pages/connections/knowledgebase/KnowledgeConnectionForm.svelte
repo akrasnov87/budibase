@@ -17,31 +17,35 @@
 
   let { connectionId }: Props = $props()
 
-  let creating = $state(false)
-  let editingConnectionId = $state<string | null>(null)
-  let manualAccount = $state("")
-  let manualTokenEndpoint = $state(
-    "https://login.microsoftonline.com/common/oauth2/v2.0/token"
-  )
-  let manualClientId = $state("")
-  let manualClientSecret = $state("")
-  let manualScope = $state("https://graph.microsoft.com/.default")
+  interface ConnectionDraft {
+    account: string
+    tokenEndpoint: string
+    clientId: string
+    clientSecret: string
+    scope: string
+  }
 
-  const validator = z.object({
-    manualAccount: z.string().trim().min(1),
-    manualTokenEndpoint: z.string().trim().url(),
-    manualClientId: z.string().trim().min(1),
-    manualClientSecret: z.string().trim().min(1),
+  const createDraft = (): ConnectionDraft => ({
+    account: "",
+    tokenEndpoint:
+      "https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token",
+    clientId: "",
+    clientSecret: "",
+    scope: "https://graph.microsoft.com/.default",
   })
 
-  let validationResult = $derived(
-    validator.safeParse({
-      manualAccount,
-      manualTokenEndpoint,
-      manualClientId,
-      manualClientSecret,
-    })
-  )
+  let creating = $state(false)
+  let editingConnectionId = $state<string | null>(null)
+  let draft = $state<ConnectionDraft>(createDraft())
+
+  const validator = z.object({
+    account: z.string().trim().min(1),
+    tokenEndpoint: z.string().trim().url(),
+    clientId: z.string().trim().min(1),
+    clientSecret: z.string().trim().min(1),
+  })
+
+  let validationResult = $derived(validator.safeParse(draft))
 
   const getErrorMessage = (error: unknown, fallback: string): string => {
     const asAny = error as any
@@ -52,22 +56,22 @@
     await knowledgeConnectionsStore.create({
       sourceType: AgentKnowledgeSourceType.SHAREPOINT,
       authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-      account: manualAccount.trim(),
-      tokenEndpoint: manualTokenEndpoint.trim(),
-      clientId: manualClientId.trim(),
-      clientSecret: manualClientSecret.trim(),
-      scope: manualScope.trim() || undefined,
+      account: draft.account.trim(),
+      tokenEndpoint: draft.tokenEndpoint.trim(),
+      clientId: draft.clientId.trim(),
+      clientSecret: draft.clientSecret.trim(),
+      scope: draft.scope.trim() || undefined,
     })
     notifications.success("Knowledge connection created")
   }
 
   const updateConnection = async (connectionId: string) => {
     await knowledgeConnectionsStore.updateConnection(connectionId, {
-      account: manualAccount.trim(),
-      tokenEndpoint: manualTokenEndpoint.trim(),
-      clientId: manualClientId.trim(),
-      clientSecret: manualClientSecret.trim(),
-      scope: manualScope.trim() || undefined,
+      account: draft.account.trim(),
+      tokenEndpoint: draft.tokenEndpoint.trim(),
+      clientId: draft.clientId.trim(),
+      clientSecret: draft.clientSecret.trim(),
+      scope: draft.scope.trim() || undefined,
     })
     notifications.success("Knowledge connection updated")
   }
@@ -123,11 +127,13 @@
         bb.settings("/connections/knowledge")
         return
       }
-      manualAccount = existing.account || ""
-      manualTokenEndpoint = existing.tokenEndpoint || manualTokenEndpoint
-      manualClientId = existing.clientId || ""
-      manualClientSecret = existing.clientSecret || ""
-      manualScope = existing.scope || "https://graph.microsoft.com/.default"
+      draft = {
+        account: existing.account || "",
+        tokenEndpoint: existing.tokenEndpoint || createDraft().tokenEndpoint,
+        clientId: existing.clientId || "",
+        clientSecret: existing.clientSecret || "",
+        scope: existing.scope || createDraft().scope,
+      }
     } catch (error) {
       console.error("Failed to load knowledge connection", error)
       notifications.error(
@@ -156,16 +162,16 @@
       </Button>
     </div>
   </RouteActions>
-  <Input label="Account label" required bind:value={manualAccount} />
-  <Input label="Token endpoint" required bind:value={manualTokenEndpoint} />
-  <EnvVariableInput label="Client ID" required bind:value={manualClientId} />
+  <Input label="Account label" required bind:value={draft.account} />
+  <Input label="Token endpoint" required bind:value={draft.tokenEndpoint} />
+  <EnvVariableInput label="Client ID" required bind:value={draft.clientId} />
   <EnvVariableInput
     label="Client secret"
     required
     type="password"
-    bind:value={manualClientSecret}
+    bind:value={draft.clientSecret}
   />
-  <Input label="Scope" bind:value={manualScope} />
+  <Input label="Scope" bind:value={draft.scope} />
 </Layout>
 
 <style>
