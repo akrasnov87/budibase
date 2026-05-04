@@ -7,7 +7,7 @@ export enum AgentKnowledgeSourceConnectionAuthType {
 
 export interface AgentKnowledgeSourceConnection extends Document {
   sourceType: AgentKnowledgeSourceType
-  authType?: AgentKnowledgeSourceConnectionAuthType
+  authType: AgentKnowledgeSourceConnectionAuthType
   account: string
   tenantId: string
   tokenEndpoint: string

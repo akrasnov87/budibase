@@ -75,7 +75,10 @@ export interface CreateAgentKnowledgeSourceConnectionRequest {
 }
 
 export interface CreateAgentKnowledgeSourceConnectionResponse {
-  connection: AgentKnowledgeSourceConnection
+  connection: Pick<
+    AgentKnowledgeSourceConnection,
+    "_id" | "_rev" | "createdAt" | "updatedAt" | "sourceType" | "account"
+  >
 }
 
 export interface UpdateAgentKnowledgeSourceConnectionRequest {
@@ -88,7 +91,16 @@ export interface UpdateAgentKnowledgeSourceConnectionRequest {
 }
 
 export interface UpdateAgentKnowledgeSourceConnectionResponse {
-  connection: AgentKnowledgeSourceConnection
+  connection: Pick<
+    AgentKnowledgeSourceConnection,
+    | "_id"
+    | "_rev"
+    | "createdAt"
+    | "updatedAt"
+    | "sourceType"
+    | "authType"
+    | "account"
+  >
 }
 
 export interface ValidateAgentKnowledgeSourceConnectionRequest {

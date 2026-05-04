@@ -9,6 +9,7 @@ import {
   getKnowledgeSourceConnection,
   updateKnowledgeSourceConnection,
 } from ".."
+import { utils } from "@budibase/shared-core"
 
 type SharePointConnectionRecord = Pick<
   AgentKnowledgeSourceConnection,
@@ -300,11 +301,81 @@ export const fetchSharePointSitesByBearerToken = async (
   )
 }
 
+const fetchSharePointSitesByAppToken = async (
+  bearerToken: string
+): Promise<KnowledgeSourceOption[]> => {
+  const sitesById = new Map<string, KnowledgeSourceOption>()
+  let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
+
+  while (nextLink) {
+    const response = await fetch(nextLink, {
+      headers: {
+        Authorization: bearerToken,
+      },
+    })
+    if (!response.ok) {
+      console.error("Failed to fetch SharePoint sites (app token)", {
+        status: response.status,
+      })
+      throw new HTTPError(
+        response.status === 401 || response.status === 403
+          ? "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
+          : `Failed to fetch SharePoint sites (${response.status})`,
+        400
+      )
+    }
+
+    const payload = (await response.json()) as {
+      value?: Array<{
+        id?: string
+        displayName?: string
+        name?: string
+        webUrl?: string
+      }>
+      "@odata.nextLink"?: string
+    }
+
+    for (const site of payload.value || []) {
+      if (!site?.id) {
+        continue
+      }
+      sitesById.set(site.id, {
+        id: site.id,
+        name: site.displayName || site.name,
+        webUrl: site.webUrl,
+      })
+    }
+
+    const nextPageLink = payload?.["@odata.nextLink"]
+    if (!nextPageLink) {
+      nextLink = ""
+      continue
+    }
+    if (!isAllowedSharePointNextLink(nextPageLink)) {
+      throw new HTTPError("Invalid SharePoint pagination URL", 400)
+    }
+    nextLink = nextPageLink
+  }
+
+  return Array.from(sitesById.values()).sort((a, b) =>
+    (a.name || a.id).localeCompare(b.name || b.id)
+  )
+}
+
 export const fetchSharePointSitesByConnection = async (
   connectionId: string
 ): Promise<KnowledgeSourceOption[]> => {
+  const connection = await readConnection(connectionId)
   const bearerToken = await getSharePointBearerToken(connectionId)
-  return fetchSharePointSitesByBearerToken(bearerToken)
+  switch (connection.authType) {
+    case AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS:
+      return fetchSharePointSitesByAppToken(bearerToken)
+    case AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH:
+      return fetchSharePointSitesByBearerToken(bearerToken)
+    default: {
+      throw utils.unreachable(connection.authType)
+    }
+  }
 }
 
 interface SharePointDrive {
