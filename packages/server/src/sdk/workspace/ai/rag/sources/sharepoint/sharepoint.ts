@@ -21,6 +21,7 @@ import {
 import {
   agents as agentsSdk,
   knowledgeBase as knowledgeBaseSdk,
+  knowledgeSources as knowledgeSourcesSdk,
 } from "../../.."
 import {
   collectSharePointFilesRecursive,
@@ -272,7 +273,18 @@ const runSharePointSourcesForAgent = async (
     sourceFilters,
   })
 
-  const connectionId = sourceConnectionId
+  let connectionId = sourceConnectionId
+  if (!connectionId) {
+    // Temporary compatibility for legacy sources created before connectionId
+    // was persisted on agent knowledge source config. New sources must include
+    // config.connectionId and should not rely on this fallback.
+    const sharePointConnections =
+      await knowledgeSourcesSdk.listKnowledgeSourceConnections()
+    const fallbackConnection = sharePointConnections.find(
+      connection => connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT
+    )
+    connectionId = fallbackConnection?._id
+  }
   if (!connectionId) {
     throw new HTTPError("SharePoint is not connected for this workspace", 400)
   }
