@@ -72,6 +72,28 @@ const fetchSharePointOptionsForConnection = async (
   return { options }
 }
 
+const ALLOWED_MICROSOFT_TOKEN_ENDPOINT_HOSTS = new Set([
+  "login.microsoftonline.com",
+  "login.microsoft.com",
+  "sts.windows.net",
+])
+
+const validateSharePointTokenEndpoint = (tokenEndpoint: string) => {
+  let parsed: URL
+  try {
+    parsed = new URL(tokenEndpoint)
+  } catch {
+    throw new HTTPError("Invalid tokenEndpoint URL", 400)
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new HTTPError("tokenEndpoint must use HTTPS", 400)
+  }
+  if (!ALLOWED_MICROSOFT_TOKEN_ENDPOINT_HOSTS.has(parsed.hostname)) {
+    throw new HTTPError("tokenEndpoint host is not allowed", 400)
+  }
+}
+
 const validateKnowledgeConnectionCredentials = async ({
   tokenEndpoint,
   clientId,
@@ -81,6 +103,7 @@ const validateKnowledgeConnectionCredentials = async ({
   ValidateAgentKnowledgeSourceConnectionRequest,
   "tokenEndpoint" | "clientId" | "clientSecret" | "scope"
 >) => {
+  validateSharePointTokenEndpoint(tokenEndpoint)
   const response = await fetch(tokenEndpoint, {
     method: "POST",
     headers: {
