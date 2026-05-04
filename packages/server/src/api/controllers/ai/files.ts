@@ -26,10 +26,13 @@ import {
   SyncAgentKnowledgeSourcesResponse,
   UserCtx,
   KnowledgeBaseFileStatus,
+  PASSWORD_REPLACEMENT,
 } from "@budibase/types"
 import sdk from "../../../sdk"
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
+
+const SECRET_MASK = PASSWORD_REPLACEMENT
 
 const normalizeUpload = (fileInput: any) => {
   if (!fileInput) {
@@ -162,6 +165,8 @@ export async function fetchAgentKnowledgeSourceConnections(
       sourceType: connection.sourceType,
       authType: connection.authType,
       account: connection.account,
+      clientId: connection.clientId,
+      clientSecret: connection.clientSecret ? SECRET_MASK : "",
     })),
   }
   ctx.status = 200
