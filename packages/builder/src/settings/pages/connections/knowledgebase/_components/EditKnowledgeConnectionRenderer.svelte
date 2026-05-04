@@ -30,6 +30,7 @@
       size="S"
       on:click={() => {
         if (!row?.id) {
+          notifications.error("Missing connection ID for editing")
           return
         }
         bb.settings(`/connections/knowledge/${row.id}`)

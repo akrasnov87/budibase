@@ -1,5 +1,6 @@
 <script lang="ts">
   import RouteActions from "@/settings/components/RouteActions.svelte"
+  import EnvVariableInput from "@/components/portal/environment/EnvVariableInput.svelte"
   import { bb } from "@/stores/bb"
   import { knowledgeConnectionsStore } from "@/stores/portal"
   import { onMount } from "svelte"
@@ -164,8 +165,8 @@
   <Input label="Account label" required bind:value={manualAccount} />
   <Input label="Tenant ID" required bind:value={manualTenantId} />
   <Input label="Token endpoint" required bind:value={manualTokenEndpoint} />
-  <Input label="Client ID" required bind:value={manualClientId} />
-  <Input
+  <EnvVariableInput label="Client ID" required bind:value={manualClientId} />
+  <EnvVariableInput
     label="Client secret"
     required
     type="password"
