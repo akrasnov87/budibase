@@ -133,7 +133,7 @@
   })
 </script>
 
-<Layout noPadding gap="M">
+<Layout noPadding gap="XS">
   <RouteActions>
     <div class="actions">
       <Button
