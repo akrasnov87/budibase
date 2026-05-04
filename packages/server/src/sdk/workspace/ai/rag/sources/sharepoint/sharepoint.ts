@@ -281,7 +281,8 @@ const runSharePointSourcesForAgent = async (
     const sharePointConnections =
       await knowledgeSourcesSdk.listKnowledgeSourceConnections()
     const fallbackConnection = sharePointConnections.find(
-      connection => connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT
+      connection =>
+        connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT
     )
     connectionId = fallbackConnection?._id
   }
