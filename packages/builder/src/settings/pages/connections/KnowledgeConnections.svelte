@@ -11,10 +11,15 @@
   } from "@budibase/bbui"
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
-  import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
+  import KnowledgeConnectionIconRenderer from "./knowledgebase/_components/KnowledgeConnectionIconRenderer.svelte"
+  import EditKnowledgeConnectionRenderer from "./knowledgebase/_components/EditKnowledgeConnectionRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [
+    {
+      column: "edit",
+      component: EditKnowledgeConnectionRenderer,
+    },
     {
       column: "icon",
       component: KnowledgeConnectionIconRenderer,
@@ -26,6 +31,7 @@
     connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
     authType: { width: "140px", displayName: "Auth" },
+    edit: { width: "auto", displayName: "" },
   }
 
   let loading = $state(true)
@@ -34,6 +40,7 @@
     $knowledgeConnectionsStore.connections
       ?.map(connection => ({
         id: connection._id!,
+        edit: connection._id!,
         icon: connection.sourceType,
         connectionName: "Microsoft",
         account: connection.account || "-",

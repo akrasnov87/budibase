@@ -19,13 +19,13 @@ import {
   AgentKnowledgeSourceConnectionAuthType,
   ValidateAgentKnowledgeSourceConnectionRequest,
   ValidateAgentKnowledgeSourceConnectionResponse,
+  UpdateAgentKnowledgeSourceConnectionRequest,
+  UpdateAgentKnowledgeSourceConnectionResponse,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
   UserCtx,
   KnowledgeBaseFileStatus,
-  AgentKnowledgeSourceConnectionSummary,
-  RequiredKeys,
 } from "@budibase/types"
 import sdk from "../../../sdk"
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
@@ -152,18 +152,7 @@ export async function fetchAgentKnowledgeSourceConnections(
   const connections =
     await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
   ctx.body = {
-    connections: connections.map(
-      connection =>
-        ({
-          _id: connection._id,
-          _rev: connection._rev,
-          createdAt: connection.createdAt,
-          updatedAt: connection.updatedAt,
-          sourceType: connection.sourceType,
-          authType: connection.authType,
-          account: connection.account,
-        }) satisfies RequiredKeys<AgentKnowledgeSourceConnectionSummary>
-    ),
+    connections,
   }
   ctx.status = 200
 }
@@ -234,6 +223,52 @@ export async function createAgentKnowledgeSourceConnection(
     },
   }
   ctx.status = 201
+}
+
+export async function updateAgentKnowledgeSourceConnection(
+  ctx: UserCtx<
+    UpdateAgentKnowledgeSourceConnectionRequest,
+    UpdateAgentKnowledgeSourceConnectionResponse,
+    { connectionId: string }
+  >
+) {
+  const { connectionId } = ctx.params
+  const { account, tenantId, tokenEndpoint, clientId, clientSecret, scope } =
+    ctx.request.body
+  await validateKnowledgeConnectionCredentials({
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    scope,
+  })
+  const connection =
+    await sdk.ai.knowledgeSources.updateKnowledgeSourceConnection(
+      connectionId,
+      {
+        account,
+        tenantId,
+        tokenEndpoint,
+        clientId,
+        clientSecret,
+        scope: scope?.trim() || undefined,
+        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+      }
+    )
+  if (!connection?._id) {
+    throw new HTTPError("Knowledge connection not found", 404)
+  }
+  ctx.body = {
+    connection: {
+      _id: connection._id,
+      _rev: connection._rev,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt,
+      sourceType: connection.sourceType,
+      authType: connection.authType,
+      account: connection.account,
+    },
+  }
+  ctx.status = 200
 }
 
 export async function validateAgentKnowledgeSourceConnection(

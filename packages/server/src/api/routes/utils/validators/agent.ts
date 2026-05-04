@@ -187,6 +187,19 @@ export function createAgentKnowledgeSourceConnectionValidator() {
   )
 }
 
+export function updateAgentKnowledgeSourceConnectionValidator() {
+  return auth.joiValidator.body(
+    Joi.object({
+      account: Joi.string().trim().disallow("").required(),
+      tenantId: Joi.string().trim().disallow("").required(),
+      tokenEndpoint: Joi.string().uri().required(),
+      clientId: Joi.string().trim().disallow("").required(),
+      clientSecret: Joi.string().trim().disallow("").required(),
+      scope: OPTIONAL_STRING,
+    }).required()
+  )
+}
+
 export function validateAgentKnowledgeSourceConnectionValidator() {
   return auth.joiValidator.body(
     Joi.object({

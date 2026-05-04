@@ -26,7 +26,7 @@ import Connections from "@/settings/pages/connections/Connections.svelte"
 import Connection from "@/settings/pages/connections/Connection.svelte"
 import CreateConnection from "./connections/CreateConnection.svelte"
 import KnowledgeConnections from "@/settings/pages/connections/KnowledgeConnections.svelte"
-import KnowledgeConnectionCreate from "@/settings/pages/connections/KnowledgeConnectionCreate.svelte"
+import KnowledgeConnectionForm from "@/settings/pages/connections/knowledgebase/KnowledgeConnectionForm.svelte"
 
 // App pages
 import GeneralInfoPage from "@/settings/pages/general.svelte"
@@ -80,7 +80,7 @@ const componentMap = {
   connection: Connection,
   create_connection: CreateConnection,
   knowledge_connections: KnowledgeConnections,
-  knowledge_connection_create: KnowledgeConnectionCreate,
+  knowledge_connection_form: KnowledgeConnectionForm,
 } satisfies Record<string, Component<any>>
 
 export const Pages = {

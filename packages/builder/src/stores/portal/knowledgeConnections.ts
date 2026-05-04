@@ -1,13 +1,13 @@
 import {
+  AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceConnectionAuthType,
-  AgentKnowledgeSourceConnectionSummary,
   AgentKnowledgeSourceType,
 } from "@budibase/types"
 import { API } from "@/api"
 import { BudiStore } from "../BudiStore"
 
 interface KnowledgeConnectionsState {
-  connections: AgentKnowledgeSourceConnectionSummary[]
+  connections: AgentKnowledgeSourceConnection[]
   loaded: boolean
 }
 
@@ -40,6 +40,21 @@ class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
     scope?: string
   }) => {
     await API.createAgentKnowledgeSourceConnection(input)
+    await this.fetch()
+  }
+
+  updateConnection = async (
+    connectionId: string,
+    input: {
+      account: string
+      tenantId: string
+      tokenEndpoint: string
+      clientId: string
+      clientSecret: string
+      scope?: string
+    }
+  ) => {
+    await API.updateAgentKnowledgeSourceConnection(connectionId, input)
     await this.fetch()
   }
 

@@ -59,19 +59,8 @@ export interface FetchAgentKnowledgeResponse {
   sharePointSources: SharePointKnowledgeSourceSnapshot[]
 }
 
-export type AgentKnowledgeSourceConnectionSummary = Pick<
-  AgentKnowledgeSourceConnection,
-  | "_id"
-  | "_rev"
-  | "createdAt"
-  | "updatedAt"
-  | "sourceType"
-  | "authType"
-  | "account"
->
-
 export interface FetchAgentKnowledgeSourceConnectionsResponse {
-  connections: AgentKnowledgeSourceConnectionSummary[]
+  connections: AgentKnowledgeSourceConnection[]
 }
 
 export interface CreateAgentKnowledgeSourceConnectionRequest {
@@ -86,7 +75,20 @@ export interface CreateAgentKnowledgeSourceConnectionRequest {
 }
 
 export interface CreateAgentKnowledgeSourceConnectionResponse {
-  connection: AgentKnowledgeSourceConnectionSummary
+  connection: AgentKnowledgeSourceConnection
+}
+
+export interface UpdateAgentKnowledgeSourceConnectionRequest {
+  account: string
+  tenantId: string
+  tokenEndpoint: string
+  clientId: string
+  clientSecret: string
+  scope?: string
+}
+
+export interface UpdateAgentKnowledgeSourceConnectionResponse {
+  connection: AgentKnowledgeSourceConnection
 }
 
 export interface ValidateAgentKnowledgeSourceConnectionRequest {

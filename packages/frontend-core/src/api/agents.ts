@@ -26,6 +26,8 @@ import {
   ToolMetadata,
   UpdateAgentSharePointSiteRequest,
   UpdateAgentSharePointSiteResponse,
+  UpdateAgentKnowledgeSourceConnectionRequest,
+  UpdateAgentKnowledgeSourceConnectionResponse,
   ValidateAgentKnowledgeSourceConnectionRequest,
   ValidateAgentKnowledgeSourceConnectionResponse,
   UpdateAgentRequest,
@@ -81,6 +83,10 @@ export interface AgentEndpoints {
   createAgentKnowledgeSourceConnection: (
     body: CreateAgentKnowledgeSourceConnectionRequest
   ) => Promise<CreateAgentKnowledgeSourceConnectionResponse>
+  updateAgentKnowledgeSourceConnection: (
+    connectionId: string,
+    body: UpdateAgentKnowledgeSourceConnectionRequest
+  ) => Promise<UpdateAgentKnowledgeSourceConnectionResponse>
   validateAgentKnowledgeSourceConnection: (
     body: ValidateAgentKnowledgeSourceConnectionRequest
   ) => Promise<ValidateAgentKnowledgeSourceConnectionResponse>
@@ -248,6 +254,15 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
       CreateAgentKnowledgeSourceConnectionResponse
     >({
       url: "/api/agent/knowledge-sources/connections",
+      body,
+    })
+  },
+  updateAgentKnowledgeSourceConnection: async (connectionId, body) => {
+    return await API.put<
+      UpdateAgentKnowledgeSourceConnectionRequest,
+      UpdateAgentKnowledgeSourceConnectionResponse
+    >({
+      url: `/api/agent/knowledge-sources/connections/${encodeURIComponent(connectionId)}`,
       body,
     })
   },

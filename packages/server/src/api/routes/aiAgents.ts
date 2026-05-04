@@ -19,6 +19,7 @@ import {
   toggleAgentSlackDeploymentValidator,
   updateAgentSharePointSiteValidator,
   updateAgentValidator,
+  updateAgentKnowledgeSourceConnectionValidator,
   validateAgentKnowledgeSourceConnectionValidator,
 } from "./utils/validators/agent"
 
@@ -76,6 +77,11 @@ aiRagBuilderAdminRoutes
     "/api/agent/knowledge-sources/connections",
     createAgentKnowledgeSourceConnectionValidator(),
     ai.createAgentKnowledgeSourceConnection
+  )
+  .put(
+    "/api/agent/knowledge-sources/connections/:connectionId",
+    updateAgentKnowledgeSourceConnectionValidator(),
+    ai.updateAgentKnowledgeSourceConnection
   )
   .post(
     "/api/agent/knowledge-sources/connections/validate",
