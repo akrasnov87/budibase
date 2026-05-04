@@ -20,7 +20,6 @@
   let creating = $state(false)
   let editingConnectionId = $state<string | null>(null)
   let manualAccount = $state("")
-  let manualTenantId = $state("common")
   let manualTokenEndpoint = $state(
     "https://login.microsoftonline.com/common/oauth2/v2.0/token"
   )
@@ -30,7 +29,6 @@
 
   const validator = z.object({
     manualAccount: z.string().trim().min(1),
-    manualTenantId: z.string().trim().min(1),
     manualTokenEndpoint: z.string().trim().url(),
     manualClientId: z.string().trim().min(1),
     manualClientSecret: z.string().trim().min(1),
@@ -39,7 +37,6 @@
   let validationResult = $derived(
     validator.safeParse({
       manualAccount,
-      manualTenantId,
       manualTokenEndpoint,
       manualClientId,
       manualClientSecret,
@@ -56,7 +53,6 @@
       sourceType: AgentKnowledgeSourceType.SHAREPOINT,
       authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
       account: manualAccount.trim(),
-      tenantId: manualTenantId.trim(),
       tokenEndpoint: manualTokenEndpoint.trim(),
       clientId: manualClientId.trim(),
       clientSecret: manualClientSecret.trim(),
@@ -68,7 +64,6 @@
   const updateConnection = async (connectionId: string) => {
     await knowledgeConnectionsStore.updateConnection(connectionId, {
       account: manualAccount.trim(),
-      tenantId: manualTenantId.trim(),
       tokenEndpoint: manualTokenEndpoint.trim(),
       clientId: manualClientId.trim(),
       clientSecret: manualClientSecret.trim(),
@@ -129,7 +124,6 @@
         return
       }
       manualAccount = existing.account || ""
-      manualTenantId = existing.tenantId || "common"
       manualTokenEndpoint = existing.tokenEndpoint || manualTokenEndpoint
       manualClientId = existing.clientId || ""
       manualClientSecret = existing.clientSecret || ""
@@ -163,7 +157,6 @@
     </div>
   </RouteActions>
   <Input label="Account label" required bind:value={manualAccount} />
-  <Input label="Tenant ID" required bind:value={manualTenantId} />
   <Input label="Token endpoint" required bind:value={manualTokenEndpoint} />
   <EnvVariableInput label="Client ID" required bind:value={manualClientId} />
   <EnvVariableInput
