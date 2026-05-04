@@ -8,6 +8,7 @@ import {
   AgentKnowledgeSourceType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
+  PASSWORD_REPLACEMENT,
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
@@ -537,6 +538,91 @@ describe("agent files", () => {
       expect(response.sharePointSources).toHaveLength(1)
       expect(response.sharePointSources[0].sourceId).toBe(sourceId)
       expect(response.sharePointSources[0].lastRunAt).toBe(nowIso)
+    })
+  })
+
+  it("returns token endpoint, scope, client id and masked secret for knowledge source connections", async () => {
+    await withRagEnabled(async () => {
+      const created = await config.api.agent.create({
+        name: "SharePoint Connection Metadata Agent",
+        aiconfig: "default",
+      })
+      const connectionId = await setSharePointConnection(created._id!)
+
+      const response = await config.api.agent.fetchKnowledgeSourceConnections()
+      const connection = response.connections.find(c => c._id === connectionId)
+
+      expect(connection).toBeDefined()
+      expect(connection).toMatchObject({
+        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
+        tokenEndpoint:
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        clientId: "client-id",
+        clientSecret: PASSWORD_REPLACEMENT,
+      })
+    })
+  })
+
+  it("preserves stored clientSecret when updating with PASSWORD_REPLACEMENT", async () => {
+    await withRagEnabled(async () => {
+      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_token: "ok" }),
+      } as Response)
+
+      const connection = await config.doInContext(
+        config.getDevWorkspaceId(),
+        async () =>
+          await createKnowledgeSourceConnection({
+          sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+          authType:
+            AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+          account: "client-credentials-account",
+          tokenEndpoint:
+            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          scope: "https://graph.microsoft.com/.default",
+          })
+      )
+      const connectionId = connection._id!
+
+      await config.api.agent.updateKnowledgeSourceConnection(connectionId, {
+        account: "client-credentials-account",
+        tokenEndpoint:
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        clientId: "client-id",
+        clientSecret: PASSWORD_REPLACEMENT,
+        scope: "https://graph.microsoft.com/.default",
+      })
+
+      expect(fetchSpy).toHaveBeenCalled()
+      const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
+        ?.body as URLSearchParams
+      expect(body.get("client_secret")).toBe("client-secret")
+    })
+  })
+
+  it("rejects non-https token endpoint during connection validation", async () => {
+    await withRagEnabled(async () => {
+      await config.api.agent.validateKnowledgeSourceConnection(
+        {
+          sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+          authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+          tokenEndpoint: "http://localhost:4001/token",
+          clientId: "client-id",
+          clientSecret: "client-secret",
+          scope: "https://graph.microsoft.com/.default",
+        },
+        {
+          status: 400,
+          body: {
+            message: "tokenEndpoint must use HTTPS",
+          },
+        }
+      )
     })
   })
 })

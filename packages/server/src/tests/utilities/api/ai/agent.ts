@@ -3,11 +3,14 @@ import {
   AgentFileUploadResponse,
   ConnectAgentSharePointSiteRequest,
   ConnectAgentSharePointSiteResponse,
+  CreateAgentKnowledgeSourceConnectionRequest,
+  CreateAgentKnowledgeSourceConnectionResponse,
   DisconnectAgentSharePointSiteResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
+  FetchAgentKnowledgeSourceConnectionsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
@@ -20,6 +23,10 @@ import {
   ToggleAgentDeploymentResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
+  UpdateAgentKnowledgeSourceConnectionRequest,
+  UpdateAgentKnowledgeSourceConnectionResponse,
+  ValidateAgentKnowledgeSourceConnectionRequest,
+  ValidateAgentKnowledgeSourceConnectionResponse,
 } from "@budibase/types"
 import { AttachedFile, Expectations, TestAPI } from "../base"
 
@@ -222,6 +229,58 @@ export class AgentAPI extends TestAPI {
   ): Promise<SyncAgentKnowledgeSourcesResponse> => {
     return await this._post<SyncAgentKnowledgeSourcesResponse>(
       `/api/agent/${agentId}/knowledge-sources/${encodeURIComponent(sourceId)}/sync`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
+  fetchKnowledgeSourceConnections = async (
+    expectations?: Expectations
+  ): Promise<FetchAgentKnowledgeSourceConnectionsResponse> => {
+    return await this._get<FetchAgentKnowledgeSourceConnectionsResponse>(
+      "/api/agent/knowledge-sources/connections",
+      { expectations }
+    )
+  }
+
+  createKnowledgeSourceConnection = async (
+    body: CreateAgentKnowledgeSourceConnectionRequest,
+    expectations?: Expectations
+  ): Promise<CreateAgentKnowledgeSourceConnectionResponse> => {
+    return await this._post<CreateAgentKnowledgeSourceConnectionResponse>(
+      "/api/agent/knowledge-sources/connections",
+      {
+        body,
+        expectations: {
+          ...expectations,
+          status: expectations?.status || 201,
+        },
+      }
+    )
+  }
+
+  updateKnowledgeSourceConnection = async (
+    connectionId: string,
+    body: UpdateAgentKnowledgeSourceConnectionRequest,
+    expectations?: Expectations
+  ): Promise<UpdateAgentKnowledgeSourceConnectionResponse> => {
+    return await this._put<UpdateAgentKnowledgeSourceConnectionResponse>(
+      `/api/agent/knowledge-sources/connections/${encodeURIComponent(connectionId)}`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
+  validateKnowledgeSourceConnection = async (
+    body: ValidateAgentKnowledgeSourceConnectionRequest,
+    expectations?: Expectations
+  ): Promise<ValidateAgentKnowledgeSourceConnectionResponse> => {
+    return await this._post<ValidateAgentKnowledgeSourceConnectionResponse>(
+      "/api/agent/knowledge-sources/connections/validate",
       {
         body,
         expectations,
