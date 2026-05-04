@@ -39,7 +39,7 @@
   }
 
   let loading = $state(true)
-
+  let appId = $derived($appStore.appId)
   let rows = $derived(
     $knowledgeConnectionsStore.connections
       ?.map(connection => ({
@@ -64,7 +64,6 @@
   )
 
   const connectSharePoint = (connectionId?: string) => {
-    const appId = $appStore.appId
     if (!appId) {
       notifications.error("Missing app context to connect SharePoint")
       return
