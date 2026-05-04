@@ -76,6 +76,8 @@ export class BBStore extends BudiStore<BBState> {
             },
           },
           open: true,
+          pendingPath: undefined,
+          pendingParams: undefined,
         },
       }))
     } else {
