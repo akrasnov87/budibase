@@ -1,7 +1,18 @@
 import {
+  fetchSharePointSitesByConnection,
   fetchSharePointSitesByBearerToken,
   isAllowedSharePointNextLink,
 } from "./connection"
+
+const mockGetKnowledgeSourceConnection = jest.fn()
+const mockUpdateKnowledgeSourceConnection = jest.fn()
+
+jest.mock("..", () => ({
+  getKnowledgeSourceConnection: (...args: any[]) =>
+    mockGetKnowledgeSourceConnection(...args),
+  updateKnowledgeSourceConnection: (...args: any[]) =>
+    mockUpdateKnowledgeSourceConnection(...args),
+}))
 
 describe("isAllowedSharePointNextLink", () => {
   it("accepts Graph v1.0 root and nested paths", () => {
@@ -59,21 +70,10 @@ describe("fetchSharePointSitesByBearerToken", () => {
       json: async () => ({
         value: [
           {
-            hitsContainers: [
-              {
-                moreResultsAvailable: false,
-                hits: [
-                  {
-                    resource: {
-                      id: "site-1",
-                      displayName: "Site One",
-                      name: "Ignored Name",
-                      webUrl: "https://contoso.sharepoint.com/sites/site-1",
-                    },
-                  },
-                ],
-              },
-            ],
+            id: "site-1",
+            displayName: "Site One",
+            name: "Ignored Name",
+            webUrl: "https://contoso.sharepoint.com/sites/site-1",
           },
         ],
       }),
@@ -82,12 +82,10 @@ describe("fetchSharePointSitesByBearerToken", () => {
     const sites = await fetchSharePointSitesByBearerToken(bearerToken)
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://graph.microsoft.com/v1.0/search/query",
+      expect.stringContaining("https://graph.microsoft.com/v1.0/sites?"),
       expect.objectContaining({
-        method: "POST",
         headers: expect.objectContaining({
           Authorization: bearerToken,
-          "Content-Type": "application/json",
         }),
       })
     )
@@ -109,29 +107,18 @@ describe("fetchSharePointSitesByBearerToken", () => {
         json: async () => ({
           value: [
             {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: true,
-                  hits: [
-                    {
-                      resource: {
-                        id: "site-1",
-                        displayName: "Site One",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-1",
-                      },
-                    },
-                    {
-                      resource: {
-                        id: "site-2",
-                        displayName: "Site Two",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-2",
-                      },
-                    },
-                  ],
-                },
-              ],
+              id: "site-1",
+              displayName: "Site One",
+              webUrl: "https://contoso.sharepoint.com/sites/site-1",
+            },
+            {
+              id: "site-2",
+              displayName: "Site Two",
+              webUrl: "https://contoso.sharepoint.com/sites/site-2",
             },
           ],
+          "@odata.nextLink":
+            "https://graph.microsoft.com/v1.0/sites?$skiptoken=abc",
         }),
       } as Response)
       .mockResolvedValueOnce({
@@ -139,27 +126,14 @@ describe("fetchSharePointSitesByBearerToken", () => {
         json: async () => ({
           value: [
             {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: false,
-                  hits: [
-                    {
-                      resource: {
-                        id: "site-2",
-                        displayName: "Site Two Updated",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-2",
-                      },
-                    },
-                    {
-                      resource: {
-                        id: "site-3",
-                        displayName: "Site Three",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-3",
-                      },
-                    },
-                  ],
-                },
-              ],
+              id: "site-2",
+              displayName: "Site Two Updated",
+              webUrl: "https://contoso.sharepoint.com/sites/site-2",
+            },
+            {
+              id: "site-3",
+              displayName: "Site Three",
+              webUrl: "https://contoso.sharepoint.com/sites/site-3",
             },
           ],
         }),
@@ -170,37 +144,17 @@ describe("fetchSharePointSitesByBearerToken", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "https://graph.microsoft.com/v1.0/search/query",
-      expect.objectContaining({
-        body: JSON.stringify({
-          requests: [
-            {
-              entityTypes: ["site"],
-              query: { queryString: "*" },
-              fields: ["id", "displayName", "name", "webUrl"],
-              from: 0,
-              size: 25,
-            },
-          ],
-        }),
-      })
+      expect.stringContaining(
+        "https://graph.microsoft.com/v1.0/sites?search=*&$top=200&$select=id,displayName,name,webUrl"
+      ),
+      expect.any(Object)
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "https://graph.microsoft.com/v1.0/search/query",
-      expect.objectContaining({
-        body: JSON.stringify({
-          requests: [
-            {
-              entityTypes: ["site"],
-              query: { queryString: "*" },
-              fields: ["id", "displayName", "name", "webUrl"],
-              from: 25,
-              size: 25,
-            },
-          ],
-        }),
-      })
+      expect.stringContaining(
+        "https://graph.microsoft.com/v1.0/sites?$skiptoken=abc"
+      ),
+      expect.any(Object)
     )
     expect(sites).toEqual([
       {
@@ -233,8 +187,45 @@ describe("fetchSharePointSitesByBearerToken", () => {
     ).rejects.toEqual(
       expect.objectContaining({
         message:
-          "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted.",
+          "Access denied by Microsoft Graph. Ensure delegated SharePoint permissions are granted.",
         status: 400,
+      })
+    )
+  })
+})
+
+describe("fetchSharePointSitesByConnection", () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+    jest.clearAllMocks()
+  })
+
+  it("uses app-permission guidance for client credentials 403", async () => {
+    mockGetKnowledgeSourceConnection.mockResolvedValue({
+      _id: "agentknowledgeconn_1",
+      sourceType: "sharepoint",
+      authType: "client_credentials",
+      account: "acct",
+      tokenEndpoint:
+        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+      clientId: "client-id",
+      clientSecret: "secret",
+      tokenType: "Bearer",
+      accessToken: "token",
+      expiresAt: Date.now() + 60_000,
+    })
+    jest.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({}),
+    } as Response)
+
+    await expect(
+      fetchSharePointSitesByConnection("agentknowledgeconn_1")
+    ).rejects.toEqual(
+      expect.objectContaining({
+        message:
+          "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted.",
       })
     )
   })
