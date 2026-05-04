@@ -2,7 +2,9 @@ import { Optional } from "../../../shared"
 import {
   Agent,
   AgentKnowledgeSourceConnection,
+  AgentKnowledgeSourceConnectionAuthType,
   AgentKnowledgeSourceSyncRunStatus,
+  AgentKnowledgeSourceType,
   ChatApp,
   ChatConversation,
   ChatConversationRequest,
@@ -59,11 +61,32 @@ export interface FetchAgentKnowledgeResponse {
 
 export type AgentKnowledgeSourceConnectionSummary = Pick<
   AgentKnowledgeSourceConnection,
-  "_id" | "_rev" | "createdAt" | "updatedAt" | "sourceType" | "account"
+  | "_id"
+  | "_rev"
+  | "createdAt"
+  | "updatedAt"
+  | "sourceType"
+  | "authType"
+  | "account"
 >
 
 export interface FetchAgentKnowledgeSourceConnectionsResponse {
   connections: AgentKnowledgeSourceConnectionSummary[]
+}
+
+export interface CreateAgentKnowledgeSourceConnectionRequest {
+  sourceType: AgentKnowledgeSourceType
+  authType: AgentKnowledgeSourceConnectionAuthType
+  account: string
+  tenantId: string
+  tokenEndpoint: string
+  clientId: string
+  clientSecret: string
+  scope?: string
+}
+
+export interface CreateAgentKnowledgeSourceConnectionResponse {
+  connection: AgentKnowledgeSourceConnectionSummary
 }
 
 export interface KnowledgeSourceEntry {

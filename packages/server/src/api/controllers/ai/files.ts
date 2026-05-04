@@ -1,6 +1,7 @@
 import { readFile, unlink } from "node:fs/promises"
 import { HTTPError } from "@budibase/backend-core"
 import {
+  AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
   AgentFileUploadResponse,
   ConnectAgentSharePointSiteRequest,
@@ -13,6 +14,9 @@ import {
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
   FetchAgentKnowledgeSourceConnectionsResponse,
+  CreateAgentKnowledgeSourceConnectionRequest,
+  CreateAgentKnowledgeSourceConnectionResponse,
+  AgentKnowledgeSourceConnectionAuthType,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
@@ -120,11 +124,72 @@ export async function fetchAgentKnowledgeSourceConnections(
           createdAt: connection.createdAt,
           updatedAt: connection.updatedAt,
           sourceType: connection.sourceType,
+          authType: connection.authType,
           account: connection.account,
         }) satisfies RequiredKeys<AgentKnowledgeSourceConnectionSummary>
     ),
   }
   ctx.status = 200
+}
+
+export async function createAgentKnowledgeSourceConnection(
+  ctx: UserCtx<
+    CreateAgentKnowledgeSourceConnectionRequest,
+    CreateAgentKnowledgeSourceConnectionResponse
+  >
+) {
+  const {
+    sourceType,
+    authType,
+    account,
+    tenantId,
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    scope,
+  } = ctx.request.body
+  const connectionInput: Omit<
+    AgentKnowledgeSourceConnection,
+    "_id" | "_rev" | "createdAt" | "updatedAt"
+  > =
+    authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+      ? {
+          sourceType,
+          authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
+          account,
+          tenantId,
+          tokenEndpoint,
+          clientId,
+          clientSecret,
+          refreshToken: "",
+        }
+      : {
+          sourceType,
+          authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+          account,
+          tenantId,
+          tokenEndpoint,
+          clientId,
+          clientSecret,
+          ...(scope ? { scope } : {}),
+        }
+
+  const connection =
+    await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(
+      connectionInput
+    )
+
+  ctx.body = {
+    connection: {
+      _id: connection._id,
+      _rev: connection._rev,
+      createdAt: connection.createdAt,
+      updatedAt: connection.updatedAt,
+      sourceType: connection.sourceType,
+      account: connection.account,
+    },
+  }
+  ctx.status = 201
 }
 
 export async function uploadAgentFile(

@@ -1,6 +1,14 @@
 <script lang="ts">
   import { onMount } from "svelte"
-  import { Layout, Table, Button, notifications } from "@budibase/bbui"
+  import { bb } from "@/stores/bb"
+  import {
+    Layout,
+    Table,
+    Button,
+    ActionMenu,
+    MenuItem,
+    notifications,
+  } from "@budibase/bbui"
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
@@ -17,9 +25,11 @@
     icon: { width: "40px", displayName: "" },
     connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
+    authType: { width: "140px", displayName: "Auth" },
   }
 
   let loading = $state(true)
+
   let rows = $derived(
     $knowledgeConnectionsStore.connections
       ?.map(connection => ({
@@ -27,6 +37,10 @@
         icon: connection.sourceType,
         connectionName: "Microsoft",
         account: connection.account || "-",
+        authType:
+          connection.authType === "client_credentials"
+            ? "Client credentials"
+            : "OAuth",
       }))
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   )
@@ -40,6 +54,10 @@
     const returnPath = window.location.pathname
     const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
     window.location.href = oauthUrl
+  }
+
+  const openClientCredentialsModal = () => {
+    bb.settings("/connections/knowledge/new")
   }
 
   onMount(async () => {
@@ -57,7 +75,15 @@
 <Layout noPadding gap="XS">
   <RouteActions>
     <div class="section-header">
-      <Button cta size="M" on:click={connectSharePoint}>Add connection</Button>
+      <ActionMenu align="right">
+        <div slot="control">
+          <Button cta size="M">Add connection</Button>
+        </div>
+        <MenuItem on:click={connectSharePoint}>Connect with auth</MenuItem>
+        <MenuItem on:click={openClientCredentialsModal}>
+          Client credentials
+        </MenuItem>
+      </ActionMenu>
     </div>
   </RouteActions>
 

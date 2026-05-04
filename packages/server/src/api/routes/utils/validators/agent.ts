@@ -1,4 +1,8 @@
 import { auth } from "@budibase/backend-core"
+import {
+  AgentKnowledgeSourceConnectionAuthType,
+  AgentKnowledgeSourceType,
+} from "@budibase/types"
 import Joi from "joi"
 
 const OPTIONAL_STRING = Joi.string().optional().allow(null).allow("")
@@ -160,6 +164,25 @@ export function updateAgentSharePointSiteValidator() {
           .items(Joi.string().trim().disallow(""))
           .optional(),
       }).optional(),
+    }).required()
+  )
+}
+
+export function createAgentKnowledgeSourceConnectionValidator() {
+  return auth.joiValidator.body(
+    Joi.object({
+      sourceType: Joi.string()
+        .valid(...Object.values(AgentKnowledgeSourceType))
+        .required(),
+      authType: Joi.string()
+        .valid(...Object.values(AgentKnowledgeSourceConnectionAuthType))
+        .required(),
+      account: Joi.string().trim().disallow("").required(),
+      tenantId: Joi.string().trim().disallow("").required(),
+      tokenEndpoint: Joi.string().uri().required(),
+      clientId: Joi.string().trim().disallow("").required(),
+      clientSecret: Joi.string().trim().disallow("").required(),
+      scope: OPTIONAL_STRING,
     }).required()
   )
 }

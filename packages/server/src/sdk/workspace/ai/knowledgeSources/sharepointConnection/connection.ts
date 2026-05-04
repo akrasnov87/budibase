@@ -1,6 +1,7 @@
 import { HTTPError } from "@budibase/backend-core"
 import {
   AgentKnowledgeSourceConnection,
+  AgentKnowledgeSourceConnectionAuthType,
   AgentKnowledgeSourceType,
   KnowledgeSourceOption,
 } from "@budibase/types"
@@ -12,8 +13,10 @@ import {
 type SharePointConnectionRecord = Pick<
   AgentKnowledgeSourceConnection,
   | "account"
+  | "authType"
   | "tenantId"
   | "tokenEndpoint"
+  | "scope"
   | "accessToken"
   | "refreshToken"
   | "tokenType"
@@ -47,12 +50,22 @@ interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
 const mapPersistedToCacheRecord = (
   doc: SharePointConnectionDoc
 ): SharePointConnectionRecord => {
+  const authType =
+    doc.authType || AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
   return {
     account: doc.account || "unknown",
+    authType,
     tenantId: doc.tenantId,
     tokenEndpoint: doc.tokenEndpoint,
+    scope:
+      authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+        ? doc.scope
+        : undefined,
     accessToken: doc.accessToken,
-    refreshToken: doc.refreshToken,
+    refreshToken:
+      authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+        ? doc.refreshToken
+        : undefined,
     tokenType: doc.tokenType,
     expiresAt: doc.expiresAt,
     clientId: doc.clientId,
@@ -68,9 +81,6 @@ const readPersistedConnection = async (
   if (doc?.sourceType !== AgentKnowledgeSourceType.SHAREPOINT) {
     return
   }
-  if (!doc?.refreshToken) {
-    return
-  }
   return doc
 }
 
@@ -78,7 +88,12 @@ const readConnection = async (
   connectionId: string
 ): Promise<SharePointConnectionRecord> => {
   const persistedConnection = await readPersistedConnection(connectionId)
-  if (persistedConnection?.refreshToken) {
+  if (
+    persistedConnection &&
+    (persistedConnection.authType ===
+      AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS ||
+      !!persistedConnection.refreshToken)
+  ) {
     return mapPersistedToCacheRecord(persistedConnection)
   }
   throw new HTTPError(
@@ -91,6 +106,9 @@ const refreshConnection = async (
   connectionId: string,
   connection: SharePointConnectionRecord
 ): Promise<SharePointConnectionRecord> => {
+  const isClientCredentials =
+    connection.authType ===
+    AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
   const response = await fetch(connection.tokenEndpoint, {
     method: "POST",
     headers: {
@@ -99,8 +117,10 @@ const refreshConnection = async (
     body: new URLSearchParams({
       client_id: connection.clientId,
       client_secret: connection.clientSecret,
-      grant_type: "refresh_token",
-      refresh_token: connection.refreshToken,
+      grant_type: isClientCredentials ? "client_credentials" : "refresh_token",
+      ...(isClientCredentials
+        ? { ...(connection.scope ? { scope: connection.scope } : {}) }
+        : { refresh_token: connection.refreshToken || "" }),
     }),
   })
   const payload = await response.json()
@@ -114,19 +134,30 @@ const refreshConnection = async (
   }
 
   const expiresIn = Number(payload?.expires_in || 0)
-  const updated: SharePointConnectionRecord = {
+  const baseUpdated = {
     ...connection,
     accessToken: payload?.access_token || connection.accessToken,
-    refreshToken: payload?.refresh_token || connection.refreshToken,
     tokenType: payload?.token_type || connection.tokenType || "Bearer",
     expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
   }
+  const updated: SharePointConnectionRecord = isClientCredentials
+    ? {
+        ...baseUpdated,
+        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+        scope: connection.scope,
+      }
+    : {
+        ...baseUpdated,
+        authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
+        refreshToken: payload?.refresh_token || connection.refreshToken || "",
+      }
 
   const saved = await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
     connectionId,
     {
       tenantId: updated.tenantId,
       tokenEndpoint: updated.tokenEndpoint,
+      scope: updated.scope,
       accessToken: updated.accessToken,
       refreshToken: updated.refreshToken,
       tokenType: updated.tokenType,
@@ -148,7 +179,13 @@ export const getSharePointBearerToken = async (
 ): Promise<string> => {
   let connection = await readConnection(connectionId)
   const expiresAt = Number(connection.expiresAt || 0)
-  if (!connection.accessToken || expiresAt <= Date.now()) {
+  const needsRefresh =
+    !connection.accessToken ||
+    expiresAt <= Date.now() ||
+    (connection.authType !==
+      AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS &&
+      !connection.refreshToken)
+  if (needsRefresh) {
     connection = await refreshConnection(connectionId, connection)
   }
   const tokenType = connection.tokenType?.trim() || "Bearer"

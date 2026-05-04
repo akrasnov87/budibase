@@ -2,6 +2,8 @@ import {
   AgentFileUploadResponse,
   ConnectAgentSharePointSiteRequest,
   ConnectAgentSharePointSiteResponse,
+  CreateAgentKnowledgeSourceConnectionRequest,
+  CreateAgentKnowledgeSourceConnectionResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   DisconnectAgentSharePointSiteResponse,
@@ -74,6 +76,9 @@ export interface AgentEndpoints {
     connectionId: string
   ) => Promise<FetchAgentKnowledgeSourceOptionsResponse>
   fetchAgentKnowledgeSourceConnections: () => Promise<FetchAgentKnowledgeSourceConnectionsResponse>
+  createAgentKnowledgeSourceConnection: (
+    body: CreateAgentKnowledgeSourceConnectionRequest
+  ) => Promise<CreateAgentKnowledgeSourceConnectionResponse>
   fetchAgentKnowledgeSourceAllEntries: (
     agentId: string,
     siteId: string
@@ -229,6 +234,16 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
   fetchAgentKnowledgeSourceConnections: async () => {
     return await API.get<FetchAgentKnowledgeSourceConnectionsResponse>({
       url: "/api/agent/knowledge-sources/connections",
+    })
+  },
+
+  createAgentKnowledgeSourceConnection: async body => {
+    return await API.post<
+      CreateAgentKnowledgeSourceConnectionRequest,
+      CreateAgentKnowledgeSourceConnectionResponse
+    >({
+      url: "/api/agent/knowledge-sources/connections",
+      body,
     })
   },
 

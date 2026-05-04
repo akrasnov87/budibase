@@ -1,4 +1,8 @@
-import type { AgentKnowledgeSourceConnectionSummary } from "@budibase/types"
+import {
+  AgentKnowledgeSourceConnectionAuthType,
+  AgentKnowledgeSourceConnectionSummary,
+  AgentKnowledgeSourceType,
+} from "@budibase/types"
 import { API } from "@/api"
 import { BudiStore } from "../BudiStore"
 
@@ -23,6 +27,20 @@ class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
       return state
     })
     return response.connections || []
+  }
+
+  create = async (input: {
+    sourceType: AgentKnowledgeSourceType.SHAREPOINT
+    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+    account: string
+    tenantId: string
+    tokenEndpoint: string
+    clientId: string
+    clientSecret: string
+    scope?: string
+  }) => {
+    await API.createAgentKnowledgeSourceConnection(input)
+    await this.fetch()
   }
 }
 

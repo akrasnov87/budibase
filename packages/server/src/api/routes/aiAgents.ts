@@ -8,6 +8,7 @@ import {
 } from "./endpointGroups"
 import {
   connectAgentSharePointSiteValidator,
+  createAgentKnowledgeSourceConnectionValidator,
   createAgentValidator,
   provisionAgentSlackChannelValidator,
   provisionAgentMSTeamsChannelValidator,
@@ -69,6 +70,11 @@ aiRagBuilderAdminRoutes
   .get(
     "/api/agent/knowledge-sources/connections",
     ai.fetchAgentKnowledgeSourceConnections
+  )
+  .post(
+    "/api/agent/knowledge-sources/connections",
+    createAgentKnowledgeSourceConnectionValidator(),
+    ai.createAgentKnowledgeSourceConnection
   )
   .get(
     "/api/agent/knowledge-sources/sharepoint/connect",
