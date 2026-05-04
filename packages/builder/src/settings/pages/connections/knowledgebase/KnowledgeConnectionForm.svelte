@@ -117,6 +117,16 @@
         bb.settings("/connections/knowledge")
         return
       }
+      if (
+        existing.authType ===
+        AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+      ) {
+        notifications.error(
+          "OAuth delegated connections cannot be edited here. Reconnect instead."
+        )
+        bb.settings("/connections/knowledge")
+        return
+      }
       manualAccount = existing.account || ""
       manualTenantId = existing.tenantId || "common"
       manualTokenEndpoint = existing.tokenEndpoint || manualTokenEndpoint

@@ -235,6 +235,20 @@ export async function updateAgentKnowledgeSourceConnection(
   const { connectionId } = ctx.params
   const { account, tenantId, tokenEndpoint, clientId, clientSecret, scope } =
     ctx.request.body
+  const existingConnection =
+    await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(connectionId)
+  if (!existingConnection?._id) {
+    throw new HTTPError("Knowledge connection not found", 404)
+  }
+  if (
+    existingConnection.authType ===
+    AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+  ) {
+    throw new HTTPError(
+      "OAuth delegated connections cannot be edited. Reconnect instead.",
+      400
+    )
+  }
   await validateKnowledgeConnectionCredentials({
     tokenEndpoint,
     clientId,

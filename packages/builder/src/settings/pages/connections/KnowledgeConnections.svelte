@@ -30,7 +30,7 @@
     icon: { width: "40px", displayName: "" },
     connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
-    authType: { width: "140px", displayName: "Auth" },
+    authTypeLabel: { width: "140px", displayName: "Auth" },
     edit: { width: "auto", displayName: "" },
   }
 
@@ -40,11 +40,15 @@
     $knowledgeConnectionsStore.connections
       ?.map(connection => ({
         id: connection._id!,
-        edit: connection._id!,
+        edit: {
+          id: connection._id!,
+          authType: connection.authType,
+        },
         icon: connection.sourceType,
         connectionName: "Microsoft",
         account: connection.account || "-",
-        authType:
+        authType: connection.authType,
+        authTypeLabel:
           connection.authType === "client_credentials"
             ? "Client credentials"
             : "OAuth",
