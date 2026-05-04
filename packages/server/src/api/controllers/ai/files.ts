@@ -177,6 +177,7 @@ export async function uploadAgentFile(
     const normalizedMessage = String(error?.message || "").toLowerCase()
     const isGeminiUpstreamUnavailable =
       error?.status === 503 ||
+      error?.statusCode === 503 ||
       normalizedMessage.includes("upstream unavailable") ||
       normalizedMessage.includes("service unavailable")
 
