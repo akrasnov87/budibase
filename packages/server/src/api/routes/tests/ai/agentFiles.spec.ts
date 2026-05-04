@@ -4,6 +4,7 @@ import { utils } from "@budibase/backend-core/tests"
 import type { MockAgent } from "undici"
 import {
   type Agent,
+  AgentKnowledgeSourceConnectionAuthType,
   AgentKnowledgeSourceType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
@@ -129,6 +130,7 @@ describe("agent files", () => {
     return await config.doInContext(config.getDevWorkspaceId(), async () => {
       const connection = await createKnowledgeSourceConnection({
         sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
         account: "connected-sharepoint@budibase.com",
         tenantId: config.getTenantId(),
         tokenEndpoint:
