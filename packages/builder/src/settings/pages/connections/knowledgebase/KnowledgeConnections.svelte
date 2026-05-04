@@ -11,8 +11,8 @@
   } from "@budibase/bbui"
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
-  import KnowledgeConnectionIconRenderer from "./knowledgebase/_components/KnowledgeConnectionIconRenderer.svelte"
-  import EditKnowledgeConnectionRenderer from "./knowledgebase/_components/EditKnowledgeConnectionRenderer.svelte"
+  import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
+  import EditKnowledgeConnectionRenderer from "./_components/EditKnowledgeConnectionRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [

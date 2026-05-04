@@ -24,18 +24,28 @@
   }
 </script>
 
-{#if canEdit}
-  <ActionButton
-    size="S"
-    on:click={() => {
-      if (!row?.id) {
-        return
-      }
-      bb.settings(`/connections/knowledge/${row.id}`)
-    }}
-  >
-    Edit
-  </ActionButton>
-{:else}
-  <ActionButton size="S" on:click={reconnect}>Reconnect</ActionButton>
-{/if}
+<div class="action">
+  {#if canEdit}
+    <ActionButton
+      size="S"
+      on:click={() => {
+        if (!row?.id) {
+          return
+        }
+        bb.settings(`/connections/knowledge/${row.id}`)
+      }}
+    >
+      Edit
+    </ActionButton>
+  {:else}
+    <ActionButton size="S" on:click={reconnect}>Reconnect</ActionButton>
+  {/if}
+</div>
+
+<style>
+  .action {
+    min-width: 96px;
+    display: flex;
+    justify-content: center;
+  }
+</style>
