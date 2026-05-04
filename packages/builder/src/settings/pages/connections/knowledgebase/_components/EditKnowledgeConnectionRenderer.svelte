@@ -13,13 +13,22 @@
     row?.authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
 
   const reconnect = () => {
+    if (!row?.id) {
+      notifications.error("Missing connection ID to reconnect SharePoint")
+      return
+    }
     const appId = $appStore.appId
     if (!appId) {
       notifications.error("Missing app context to reconnect SharePoint")
       return
     }
     const returnPath = window.location.pathname
-    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
+    const params = new URLSearchParams({
+      appId,
+      returnPath,
+      connectionId: row.id,
+    })
+    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?${params.toString()}`
     window.location.href = oauthUrl
   }
 </script>

@@ -14,7 +14,6 @@
   import TypeRenderer from "../_components/TypeRenderer.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
   import EditKnowledgeConnectionRenderer from "./_components/EditKnowledgeConnectionRenderer.svelte"
-  import KnowledgeConnectionReconnectRenderer from "./_components/KnowledgeConnectionReconnectRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [
@@ -30,10 +29,6 @@
       column: "type",
       component: TypeRenderer,
     },
-    {
-      column: "reconnect",
-      component: KnowledgeConnectionReconnectRenderer,
-    },
   ]
 
   const schema = {
@@ -41,8 +36,6 @@
     account: { width: "1fr", displayName: "Account" },
     type: { width: "1fr", displayName: "Auth" },
     edit: { width: "auto", displayName: "" },
-
-    reconnect: { width: "auto", displayName: "" },
   }
 
   let loading = $state(true)
@@ -66,7 +59,6 @@
             ? [{ type: "Client Credentials" }]
             : [{ type: "oauth2" }],
         __clickable: connection.authType !== "delegated_oauth",
-        reconnect: () => connectSharePoint(connection._id),
       }))
       .sort((a, b) => a.account.localeCompare(b.account))
   )
@@ -93,12 +85,8 @@
     bb.settings("/connections/knowledge/new")
   }
 
-  const openConnection = (
-    event: CustomEvent<{
-      row: { id?: string; authType?: string }
-    }>
-  ) => {
-    const row = event.detail?.row
+  const openConnection = (event: CustomEvent<(typeof rows)[number]>) => {
+    const row = event.detail
     if (!row?.id || row.authType !== "client_credentials") {
       return
     }
@@ -144,7 +132,7 @@
     hideHeader
     allowEditRows={false}
     allowClickRows={false}
-    on:rowClick={openConnection}
+    on:click={openConnection}
     allowEditColumns={false}
   />
 </Layout>
