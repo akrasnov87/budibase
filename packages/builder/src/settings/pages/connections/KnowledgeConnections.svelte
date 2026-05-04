@@ -71,6 +71,18 @@
     bb.settings("/connections/knowledge/new")
   }
 
+  const openConnection = (
+    event: CustomEvent<{
+      row: { id?: string; authType?: string }
+    }>
+  ) => {
+    const row = event.detail?.row
+    if (!row?.id || row.authType !== "client_credentials") {
+      return
+    }
+    bb.settings(`/connections/knowledge/${row.id}`)
+  }
+
   onMount(async () => {
     try {
       await knowledgeConnectionsStore.fetch()
@@ -107,7 +119,8 @@
     {customRenderers}
     hideHeader
     allowEditRows={false}
-    allowClickRows={false}
+    allowClickRows
+    on:rowClick={openConnection}
     allowEditColumns={false}
   />
 </Layout>
