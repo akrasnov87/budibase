@@ -31,7 +31,7 @@
       "https://login.microsoftonline.com/{tenantId}/oauth2/v2.0/token",
     clientId: "",
     clientSecret: "",
-    scope: "https://graph.microsoft.com/.default",
+    scope: "",
   })
 
   let creating = $state(false)
