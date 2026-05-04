@@ -209,11 +209,14 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
     (async () => {
       const existingConnections =
         await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
+      const normalizedAccount = account.trim().toLowerCase()
+      const canReuseByAccount =
+        !!normalizedAccount && normalizedAccount !== "unknown"
       const matchedConnection = existingConnections.find(
         connection =>
+          canReuseByAccount &&
           connection.sourceType === AgentKnowledgeSourceType.SHAREPOINT &&
-          connection.account?.trim().toLowerCase() ===
-            account.trim().toLowerCase()
+          connection.account?.toLowerCase() === normalizedAccount
       )
 
       const nextConnection = {
