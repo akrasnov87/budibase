@@ -52,6 +52,7 @@
           connection.authType === "client_credentials"
             ? "Client credentials"
             : "OAuth",
+        __clickable: connection.authType !== "delegated_oauth",
       }))
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   )
@@ -119,7 +120,7 @@
     {customRenderers}
     hideHeader
     allowEditRows={false}
-    allowClickRows
+    allowClickRows={false}
     on:rowClick={openConnection}
     allowEditColumns={false}
   />
