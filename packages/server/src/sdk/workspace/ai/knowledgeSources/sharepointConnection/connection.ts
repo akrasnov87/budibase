@@ -202,11 +202,15 @@ export const getSharePointBearerToken = async (
 export const fetchSharePointSitesByBearerToken = async (
   bearerToken: string
 ): Promise<KnowledgeSourceOption[]> => {
-  return fetchSharePointSitesByAppToken(bearerToken)
+  return fetchSharePointSitesByAppToken(
+    bearerToken,
+    AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+  )
 }
 
 const fetchSharePointSitesByAppToken = async (
-  bearerToken: string
+  bearerToken: string,
+  authType: AgentKnowledgeSourceConnectionAuthType
 ): Promise<KnowledgeSourceOption[]> => {
   const sitesById = new Map<string, KnowledgeSourceOption>()
   let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
@@ -220,10 +224,13 @@ const fetchSharePointSitesByAppToken = async (
     if (!response.ok) {
       console.error("Failed to fetch SharePoint sites (app token)", {
         status: response.status,
+        authType,
       })
       throw new HTTPError(
         response.status === 401 || response.status === 403
-          ? "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
+          ? authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+            ? "Access denied by Microsoft Graph. Ensure delegated SharePoint permissions are granted."
+            : "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
           : `Failed to fetch SharePoint sites (${response.status})`,
         400
       )
@@ -282,7 +289,10 @@ export const fetchSharePointSitesByConnection = async (
   const bearerToken = await getSharePointBearerToken(connectionId)
   switch (connection.authType) {
     case AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS:
-      return fetchSharePointSitesByAppToken(bearerToken)
+      return fetchSharePointSitesByAppToken(
+        bearerToken,
+        AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+      )
     case AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH:
       return fetchSharePointSitesByBearerToken(bearerToken)
     default: {
