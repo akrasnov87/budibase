@@ -44,7 +44,7 @@
 
 <style>
   .action {
-    min-width: 96px;
+    min-width: 100%;
     display: flex;
     justify-content: center;
   }

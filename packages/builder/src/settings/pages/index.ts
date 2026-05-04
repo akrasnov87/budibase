@@ -25,7 +25,7 @@ import UsagePage from "@/settings/pages/usage.svelte"
 import Connections from "@/settings/pages/connections/Connections.svelte"
 import Connection from "@/settings/pages/connections/Connection.svelte"
 import CreateConnection from "./connections/CreateConnection.svelte"
-import KnowledgeConnections from "@/settings/pages/connections/KnowledgeConnections.svelte"
+import KnowledgeConnections from "@/settings/pages/connections/knowledgebase/KnowledgeConnections.svelte"
 import KnowledgeConnectionForm from "@/settings/pages/connections/knowledgebase/KnowledgeConnectionForm.svelte"
 
 // App pages

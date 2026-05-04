@@ -11,6 +11,7 @@
   } from "@budibase/bbui"
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
+  import TypeRenderer from "../_components/TypeRenderer.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
   import EditKnowledgeConnectionRenderer from "./_components/EditKnowledgeConnectionRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
@@ -24,13 +25,16 @@
       column: "icon",
       component: KnowledgeConnectionIconRenderer,
     },
+    {
+      column: "type",
+      component: TypeRenderer,
+    },
   ]
 
   const schema = {
     icon: { width: "40px", displayName: "" },
-    connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
-    authTypeLabel: { width: "140px", displayName: "Auth" },
+    type: { width: "1fr", displayName: "Auth" },
     edit: { width: "auto", displayName: "" },
   }
 
@@ -45,16 +49,17 @@
           authType: connection.authType,
         },
         icon: connection.sourceType,
-        connectionName: "Microsoft",
         account: connection.account || "-",
         authType: connection.authType,
-        authTypeLabel:
+        source:
+          connection.authType === "client_credentials" ? "rest" : "oauth2",
+        auth:
           connection.authType === "client_credentials"
-            ? "Client credentials"
-            : "OAuth",
+            ? [{ type: "oauth2" }]
+            : [],
         __clickable: connection.authType !== "delegated_oauth",
       }))
-      .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
+      .sort((a, b) => a.account.localeCompare(b.account))
   )
 
   const connectSharePoint = () => {
