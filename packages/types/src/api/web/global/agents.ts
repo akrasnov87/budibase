@@ -60,7 +60,18 @@ export interface FetchAgentKnowledgeResponse {
 }
 
 export interface FetchAgentKnowledgeSourceConnectionsResponse {
-  connections: AgentKnowledgeSourceConnection[]
+  connections: Array<
+    Pick<
+      AgentKnowledgeSourceConnection,
+      | "_id"
+      | "_rev"
+      | "createdAt"
+      | "updatedAt"
+      | "sourceType"
+      | "authType"
+      | "account"
+    >
+  >
 }
 
 export interface CreateAgentKnowledgeSourceConnectionRequest {

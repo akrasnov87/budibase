@@ -152,7 +152,18 @@ export async function fetchAgentKnowledgeSourceConnections(
   const connections =
     await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
   ctx.body = {
-    connections,
+    connections: connections.map(
+      connection =>
+        ({
+          _id: connection._id,
+          _rev: connection._rev,
+          createdAt: connection.createdAt,
+          updatedAt: connection.updatedAt,
+          sourceType: connection.sourceType,
+          authType: connection.authType,
+          account: connection.account,
+        })
+    ),
   }
   ctx.status = 200
 }
