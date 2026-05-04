@@ -163,6 +163,8 @@ export async function fetchAgentKnowledgeSourceConnections(
       sourceType: connection.sourceType,
       authType: connection.authType,
       account: connection.account,
+      tokenEndpoint: connection.tokenEndpoint,
+      scope: connection.scope,
       clientId: connection.clientId,
       clientSecret: connection.clientSecret ? PASSWORD_REPLACEMENT : "",
     })),

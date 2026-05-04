@@ -70,6 +70,8 @@ export interface FetchAgentKnowledgeSourceConnectionsResponse {
       | "sourceType"
       | "authType"
       | "account"
+      | "tokenEndpoint"
+      | "scope"
       | "clientId"
       | "clientSecret"
     >
