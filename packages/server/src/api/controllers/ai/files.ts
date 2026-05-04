@@ -308,6 +308,10 @@ export async function updateAgentKnowledgeSourceConnection(
         clientSecret: encryptSecret(resolvedClientSecret),
         scope: scope?.trim() || undefined,
         authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+        // Force token refresh after credential updates.
+        accessToken: undefined,
+        tokenType: undefined,
+        expiresAt: undefined,
       }
     )
   if (!connection?._id) {
