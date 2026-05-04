@@ -42,6 +42,18 @@ class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
     await API.createAgentKnowledgeSourceConnection(input)
     await this.fetch()
   }
+
+  validate = async (input: {
+    sourceType: AgentKnowledgeSourceType.SHAREPOINT
+    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+    tenantId: string
+    tokenEndpoint: string
+    clientId: string
+    clientSecret: string
+    scope?: string
+  }) => {
+    return await API.validateAgentKnowledgeSourceConnection(input)
+  }
 }
 
 export const knowledgeConnectionsStore = new KnowledgeConnectionsStore()

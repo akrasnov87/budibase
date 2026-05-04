@@ -26,6 +26,8 @@ import {
   ToolMetadata,
   UpdateAgentSharePointSiteRequest,
   UpdateAgentSharePointSiteResponse,
+  ValidateAgentKnowledgeSourceConnectionRequest,
+  ValidateAgentKnowledgeSourceConnectionResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
 } from "@budibase/types"
@@ -79,6 +81,9 @@ export interface AgentEndpoints {
   createAgentKnowledgeSourceConnection: (
     body: CreateAgentKnowledgeSourceConnectionRequest
   ) => Promise<CreateAgentKnowledgeSourceConnectionResponse>
+  validateAgentKnowledgeSourceConnection: (
+    body: ValidateAgentKnowledgeSourceConnectionRequest
+  ) => Promise<ValidateAgentKnowledgeSourceConnectionResponse>
   fetchAgentKnowledgeSourceAllEntries: (
     agentId: string,
     siteId: string
@@ -243,6 +248,16 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
       CreateAgentKnowledgeSourceConnectionResponse
     >({
       url: "/api/agent/knowledge-sources/connections",
+      body,
+    })
+  },
+
+  validateAgentKnowledgeSourceConnection: async body => {
+    return await API.post<
+      ValidateAgentKnowledgeSourceConnectionRequest,
+      ValidateAgentKnowledgeSourceConnectionResponse
+    >({
+      url: "/api/agent/knowledge-sources/connections/validate",
       body,
     })
   },

@@ -37,6 +37,11 @@
     })
   )
 
+  const getErrorMessage = (error: unknown, fallback: string): string => {
+    const asAny = error as any
+    return asAny?.cause?.message || asAny?.message || fallback
+  }
+
   const createConnection = async () => {
     if (!validationResult.success) {
       notifications.error("Please complete all required fields")
@@ -58,7 +63,9 @@
       bb.settings("/connections/knowledge")
     } catch (error) {
       console.error("Failed to create knowledge connection", error)
-      notifications.error("Failed to create knowledge connection")
+      notifications.error(
+        getErrorMessage(error, "Failed to create knowledge connection")
+      )
     } finally {
       creating = false
     }

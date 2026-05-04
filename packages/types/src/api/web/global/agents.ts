@@ -89,6 +89,20 @@ export interface CreateAgentKnowledgeSourceConnectionResponse {
   connection: AgentKnowledgeSourceConnectionSummary
 }
 
+export interface ValidateAgentKnowledgeSourceConnectionRequest {
+  sourceType: AgentKnowledgeSourceType
+  authType: AgentKnowledgeSourceConnectionAuthType
+  tenantId: string
+  tokenEndpoint: string
+  clientId: string
+  clientSecret: string
+  scope?: string
+}
+
+export interface ValidateAgentKnowledgeSourceConnectionResponse {
+  valid: true
+}
+
 export interface KnowledgeSourceEntry {
   id: string
   name: string

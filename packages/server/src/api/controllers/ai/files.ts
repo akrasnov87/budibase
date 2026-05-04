@@ -17,6 +17,8 @@ import {
   CreateAgentKnowledgeSourceConnectionRequest,
   CreateAgentKnowledgeSourceConnectionResponse,
   AgentKnowledgeSourceConnectionAuthType,
+  ValidateAgentKnowledgeSourceConnectionRequest,
+  ValidateAgentKnowledgeSourceConnectionResponse,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
@@ -58,6 +60,40 @@ const fetchSharePointOptionsForConnection = async (
 ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
   const options = await fetchSharePointSitesByConnection(connectionId)
   return { options }
+}
+
+const validateKnowledgeConnectionCredentials = async ({
+  tokenEndpoint,
+  clientId,
+  clientSecret,
+  scope,
+}: Pick<
+  ValidateAgentKnowledgeSourceConnectionRequest,
+  "tokenEndpoint" | "clientId" | "clientSecret" | "scope"
+>) => {
+  const response = await fetch(tokenEndpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({
+      client_id: clientId,
+      client_secret: clientSecret,
+      grant_type: "client_credentials",
+      scope: scope?.trim() || "https://graph.microsoft.com/.default",
+    }),
+  })
+  const payload = await response.json()
+  if (!response.ok) {
+    const description =
+      typeof payload?.error_description === "string"
+        ? payload.error_description
+        : ""
+    const message =
+      description ||
+      "Failed to validate SharePoint credentials against Microsoft token endpoint"
+    throw new HTTPError(message, 400)
+  }
 }
 
 export async function fetchAgentKnowledge(
@@ -148,6 +184,14 @@ export async function createAgentKnowledgeSourceConnection(
     clientSecret,
     scope,
   } = ctx.request.body
+  if (authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS) {
+    await validateKnowledgeConnectionCredentials({
+      tokenEndpoint,
+      clientId,
+      clientSecret,
+      scope,
+    })
+  }
   const connectionInput: Omit<
     AgentKnowledgeSourceConnection,
     "_id" | "_rev" | "createdAt" | "updatedAt"
@@ -190,6 +234,27 @@ export async function createAgentKnowledgeSourceConnection(
     },
   }
   ctx.status = 201
+}
+
+export async function validateAgentKnowledgeSourceConnection(
+  ctx: UserCtx<
+    ValidateAgentKnowledgeSourceConnectionRequest,
+    ValidateAgentKnowledgeSourceConnectionResponse
+  >
+) {
+  const { authType, tokenEndpoint, clientId, clientSecret, scope } =
+    ctx.request.body
+  if (authType !== AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS) {
+    throw new HTTPError("Only client credentials can be validated", 400)
+  }
+  await validateKnowledgeConnectionCredentials({
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    scope,
+  })
+  ctx.body = { valid: true }
+  ctx.status = 200
 }
 
 export async function uploadAgentFile(
