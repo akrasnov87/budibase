@@ -1,5 +1,5 @@
 import { readFile, unlink } from "node:fs/promises"
-import { HTTPError } from "@budibase/backend-core"
+import { encryption, HTTPError } from "@budibase/backend-core"
 import {
   AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
@@ -31,6 +31,15 @@ import {
 import sdk from "../../../sdk"
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
+
+const encryptSecret = (value: string) => encryption.encrypt(value)
+const decryptSecretOrPlaintext = (value: string) => {
+  try {
+    return encryption.decrypt(value)
+  } catch {
+    return value
+  }
+}
 
 const normalizeUpload = (fileInput: any) => {
   if (!fileInput) {
@@ -209,7 +218,7 @@ export async function createAgentKnowledgeSourceConnection(
     account,
     tokenEndpoint,
     clientId,
-    clientSecret,
+    clientSecret: encryptSecret(clientSecret),
     ...(scope ? { scope } : {}),
   }
 
@@ -257,7 +266,7 @@ export async function updateAgentKnowledgeSourceConnection(
   }
   const resolvedClientSecret =
     clientSecret === PASSWORD_REPLACEMENT
-      ? existingConnection.clientSecret
+      ? decryptSecretOrPlaintext(existingConnection.clientSecret)
       : clientSecret
 
   await validateKnowledgeConnectionCredentials({
@@ -273,7 +282,7 @@ export async function updateAgentKnowledgeSourceConnection(
         account,
         tokenEndpoint,
         clientId,
-        clientSecret: resolvedClientSecret,
+        clientSecret: encryptSecret(resolvedClientSecret),
         scope: scope?.trim() || undefined,
         authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
       }

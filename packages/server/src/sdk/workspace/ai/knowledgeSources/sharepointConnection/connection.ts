@@ -1,4 +1,4 @@
-import { HTTPError } from "@budibase/backend-core"
+import { encryption, HTTPError } from "@budibase/backend-core"
 import {
   AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceConnectionAuthType,
@@ -27,6 +27,13 @@ type SharePointConnectionRecord = Pick<
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
+const decryptSecretOrPlaintext = (value: string) => {
+  try {
+    return encryption.decrypt(value)
+  } catch {
+    return value
+  }
+}
 
 export const isAllowedSharePointNextLink = (value: string): boolean => {
   try {
@@ -68,7 +75,7 @@ const mapPersistedToCacheRecord = (
     tokenType: doc.tokenType,
     expiresAt: doc.expiresAt,
     clientId: doc.clientId,
-    clientSecret: doc.clientSecret,
+    clientSecret: decryptSecretOrPlaintext(doc.clientSecret),
   }
 }
 
@@ -161,7 +168,7 @@ const refreshConnection = async (
       tokenType: updated.tokenType,
       expiresAt: updated.expiresAt,
       clientId: updated.clientId,
-      clientSecret: updated.clientSecret,
+      clientSecret: encryption.encrypt(updated.clientSecret),
     }
   )
 

@@ -3,6 +3,7 @@ import {
   configs,
   constants,
   context,
+  encryption,
   env,
   utils,
 } from "@budibase/backend-core"
@@ -18,6 +19,7 @@ const DEFAULT_SCOPE = env.RAG_SHAREPOINT_DEFAULT_SCOPE
 const STATE_CACHE_TTL_SECONDS = 600
 const MICROSOFT_PROVIDER = "microsoft"
 const MICROSOFT_GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+const encryptSecret = (value: string) => encryption.encrypt(value)
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -239,7 +241,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
               tokenType,
               expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
               clientId,
-              clientSecret,
+              clientSecret: encryptSecret(clientSecret),
               account,
             }
           )
@@ -268,7 +270,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         tokenType,
         expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
         clientId,
-        clientSecret,
+        clientSecret: encryptSecret(clientSecret),
         account,
       }
 
