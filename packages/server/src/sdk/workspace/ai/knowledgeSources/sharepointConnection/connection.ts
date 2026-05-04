@@ -43,7 +43,7 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
   }
 }
 
-interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
+type SharePointConnectionDoc = AgentKnowledgeSourceConnection & {
   sourceType: AgentKnowledgeSourceType.SHAREPOINT
 }
 

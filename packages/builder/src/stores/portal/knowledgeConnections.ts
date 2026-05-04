@@ -1,13 +1,13 @@
 import {
-  AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceConnectionAuthType,
   AgentKnowledgeSourceType,
+  FetchAgentKnowledgeSourceConnectionsResponse,
 } from "@budibase/types"
 import { API } from "@/api"
 import { BudiStore } from "../BudiStore"
 
 interface KnowledgeConnectionsState {
-  connections: AgentKnowledgeSourceConnection[]
+  connections: FetchAgentKnowledgeSourceConnectionsResponse["connections"]
   loaded: boolean
 }
 

@@ -5,16 +5,33 @@ export enum AgentKnowledgeSourceConnectionAuthType {
   CLIENT_CREDENTIALS = "client_credentials",
 }
 
-export interface AgentKnowledgeSourceConnection extends Document {
+interface AgentKnowledgeSourceConnectionBase extends Document {
   sourceType: AgentKnowledgeSourceType
-  authType: AgentKnowledgeSourceConnectionAuthType
   account: string
   tokenEndpoint: string
   scope?: string
+  clientId: string
+  clientSecret: string
+}
+
+export interface DelegatedOAuthKnowledgeSourceConnection
+  extends AgentKnowledgeSourceConnectionBase {
+  authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+  accessToken: string
+  refreshToken: string
+  tokenType: string
+  expiresAt: number
+}
+
+export interface ClientCredentialsKnowledgeSourceConnection
+  extends AgentKnowledgeSourceConnectionBase {
+  authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
   accessToken?: string
   refreshToken?: string
   tokenType?: string
   expiresAt?: number
-  clientId: string
-  clientSecret: string
 }
+
+export type AgentKnowledgeSourceConnection =
+  | DelegatedOAuthKnowledgeSourceConnection
+  | ClientCredentialsKnowledgeSourceConnection

@@ -32,8 +32,6 @@ import sdk from "../../../sdk"
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
 
-const SECRET_MASK = PASSWORD_REPLACEMENT
-
 const normalizeUpload = (fileInput: any) => {
   if (!fileInput) {
     return undefined
@@ -166,7 +164,7 @@ export async function fetchAgentKnowledgeSourceConnections(
       authType: connection.authType,
       account: connection.account,
       clientId: connection.clientId,
-      clientSecret: connection.clientSecret ? SECRET_MASK : "",
+      clientSecret: connection.clientSecret ? PASSWORD_REPLACEMENT : "",
     })),
   }
   ctx.status = 200
@@ -194,30 +192,24 @@ export async function createAgentKnowledgeSourceConnection(
       clientSecret,
       scope,
     })
+  } else {
+    throw new HTTPError(
+      "Delegated OAuth connections must be created via the SharePoint connect flow",
+      400
+    )
   }
   const connectionInput: Omit<
     AgentKnowledgeSourceConnection,
     "_id" | "_rev" | "createdAt" | "updatedAt"
-  > =
-    authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-      ? {
-          sourceType,
-          authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
-          account,
-          tokenEndpoint,
-          clientId,
-          clientSecret,
-          refreshToken: "",
-        }
-      : {
-          sourceType,
-          authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-          account,
-          tokenEndpoint,
-          clientId,
-          clientSecret,
-          ...(scope ? { scope } : {}),
-        }
+  > = {
+    sourceType,
+    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+    account,
+    tokenEndpoint,
+    clientId,
+    clientSecret,
+    ...(scope ? { scope } : {}),
+  }
 
   const connection =
     await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(
@@ -261,10 +253,15 @@ export async function updateAgentKnowledgeSourceConnection(
       400
     )
   }
+  const resolvedClientSecret =
+    clientSecret === PASSWORD_REPLACEMENT
+      ? existingConnection.clientSecret
+      : clientSecret
+
   await validateKnowledgeConnectionCredentials({
     tokenEndpoint,
     clientId,
-    clientSecret,
+    clientSecret: resolvedClientSecret,
     scope,
   })
   const connection =
@@ -274,7 +271,7 @@ export async function updateAgentKnowledgeSourceConnection(
         account,
         tokenEndpoint,
         clientId,
-        clientSecret,
+        clientSecret: resolvedClientSecret,
         scope: scope?.trim() || undefined,
         authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
       }
