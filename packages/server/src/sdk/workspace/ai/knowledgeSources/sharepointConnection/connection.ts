@@ -361,6 +361,15 @@ const fetchSharePointSitesByAppToken = async (
     nextLink = nextPageLink
   }
 
+  if (nextLink) {
+    console.warn(
+      "Stopped fetching SharePoint sites due to reaching maximum page limit",
+      {
+        lastNextLink: nextLink,
+      }
+    )
+  }
+
   return Array.from(sitesById.values()).sort((a, b) =>
     (a.name || a.id).localeCompare(b.name || b.id)
   )
