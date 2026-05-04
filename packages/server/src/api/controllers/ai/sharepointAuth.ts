@@ -41,6 +41,10 @@ export async function startSharePointAuth(ctx: UserCtx<void, void>) {
   const appId = String(ctx.query.appId || "").trim()
   const returnPath =
     typeof ctx.query.returnPath === "string" ? ctx.query.returnPath : undefined
+  const connectionId =
+    typeof ctx.query.connectionId === "string"
+      ? ctx.query.connectionId.trim()
+      : undefined
 
   if (!appId) {
     ctx.throw(400, "appId query param not present.")
@@ -48,6 +52,7 @@ export async function startSharePointAuth(ctx: UserCtx<void, void>) {
   console.log("Starting SharePoint OAuth flow", {
     appId,
     hasReturnPath: !!returnPath,
+    hasConnectionId: !!connectionId,
   })
 
   const { clientId, tenantId } = getMicrosoftConfig()
@@ -60,6 +65,7 @@ export async function startSharePointAuth(ctx: UserCtx<void, void>) {
     {
       appId,
       provider: MICROSOFT_PROVIDER,
+      ...(connectionId ? { connectionId } : {}),
     },
     STATE_CACHE_TTL_SECONDS
   )
@@ -70,6 +76,7 @@ export async function startSharePointAuth(ctx: UserCtx<void, void>) {
       provider: MICROSOFT_PROVIDER,
       appId,
       returnPath,
+      connectionId,
     } satisfies DatasourceAuthCookie,
     constants.Cookie.DatasourceAuth
   )
@@ -100,7 +107,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   }
   const statePayload = (await cache.get(
     `datasource:${MICROSOFT_PROVIDER}:state:${state}`
-  )) as { appId?: string; provider?: string }
+  )) as { appId?: string; provider?: string; connectionId?: string }
   await cache.destroy(`datasource:${MICROSOFT_PROVIDER}:state:${state}`)
   const stateAppId =
     typeof statePayload?.appId === "string" ? statePayload.appId.trim() : ""
@@ -112,6 +119,12 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
     throw new Error("Microsoft OAuth state is invalid or expired")
   }
   const appId = stateAppId
+  const reconnectConnectionId =
+    (typeof statePayload?.connectionId === "string" &&
+      statePayload.connectionId.trim()) ||
+    (typeof authStateCookie?.connectionId === "string" &&
+      authStateCookie.connectionId.trim()) ||
+    undefined
 
   const oauthError = String(ctx.query.error || "").trim()
   if (oauthError) {
@@ -207,6 +220,32 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
   }
   const reusedExistingConnection = await context.doInContext(appId, () =>
     (async () => {
+      if (reconnectConnectionId) {
+        const existingConnection =
+          await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(
+            reconnectConnectionId
+          )
+        if (
+          existingConnection?._id &&
+          existingConnection.sourceType === AgentKnowledgeSourceType.SHAREPOINT
+        ) {
+          await sdk.ai.knowledgeSources.updateKnowledgeSourceConnection(
+            reconnectConnectionId,
+            {
+              tokenEndpoint,
+              accessToken,
+              refreshToken,
+              tokenType,
+              expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
+              clientId,
+              clientSecret,
+              account,
+            }
+          )
+          return true
+        }
+      }
+
       const existingConnections =
         await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
       const normalizedAccount = account.trim().toLowerCase()

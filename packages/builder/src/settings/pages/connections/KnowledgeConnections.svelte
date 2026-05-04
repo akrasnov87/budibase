@@ -4,6 +4,7 @@
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
+  import KnowledgeConnectionReconnectRenderer from "./_components/KnowledgeConnectionReconnectRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [
@@ -11,12 +12,17 @@
       column: "icon",
       component: KnowledgeConnectionIconRenderer,
     },
+    {
+      column: "reconnect",
+      component: KnowledgeConnectionReconnectRenderer,
+    },
   ]
 
   const schema = {
     icon: { width: "40px", displayName: "" },
     connectionName: { width: "160px", displayName: "Connection" },
     account: { width: "1fr", displayName: "Account" },
+    reconnect: { width: "auto", displayName: "" },
   }
 
   let loading = $state(true)
@@ -27,18 +33,26 @@
         icon: connection.sourceType,
         connectionName: "Microsoft",
         account: connection.account || "-",
+        reconnect: () => connectSharePoint(connection._id),
       }))
       .sort((a, b) => a.connectionName.localeCompare(b.connectionName))
   )
 
-  const connectSharePoint = () => {
+  const connectSharePoint = (connectionId?: string) => {
     const appId = $appStore.appId
     if (!appId) {
       notifications.error("Missing app context to connect SharePoint")
       return
     }
     const returnPath = window.location.pathname
-    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?appId=${encodeURIComponent(appId)}&returnPath=${encodeURIComponent(returnPath)}`
+    const params = new URLSearchParams({
+      appId,
+      returnPath,
+    })
+    if (connectionId) {
+      params.set("connectionId", connectionId)
+    }
+    const oauthUrl = `/api/agent/knowledge-sources/sharepoint/connect?${params.toString()}`
     window.location.href = oauthUrl
   }
 
@@ -57,7 +71,9 @@
 <Layout noPadding gap="XS">
   <RouteActions>
     <div class="section-header">
-      <Button cta size="M" on:click={connectSharePoint}>Add connection</Button>
+      <Button cta size="M" on:click={() => connectSharePoint()}
+        >Add connection</Button
+      >
     </div>
   </RouteActions>
 
