@@ -2,6 +2,14 @@ import {
   KnowledgeBaseFileStatus,
   type KnowledgeBaseFile,
 } from "@budibase/types"
+
+import { features } from "@budibase/backend-core"
+import sdk from "../../../../sdk"
+import {
+  createKnowledgeFilesTool,
+  createKnowledgeSearchTool,
+} from "../knowledgeFiles"
+
 jest.mock("@budibase/backend-core", () => ({
   features: {
     isEnabled: jest.fn(),
@@ -22,10 +30,6 @@ jest.mock("../../../../sdk", () => ({
     },
   },
 }))
-
-import { features } from "@budibase/backend-core"
-import sdk from "../../../../sdk"
-import { createKnowledgeFilesTool, createKnowledgeSearchTool } from "../knowledgeFiles"
 
 const executeTool = async (
   agentId: string,
@@ -353,7 +357,9 @@ describe("AI Tools - Knowledge search", () => {
   })
 
   it("hard-fails with a clear message when Gemini retrieval is unavailable", async () => {
-    jest.spyOn(sdk.ai.agents, "getOrThrow").mockResolvedValue({ _id: "agent_1" } as any)
+    jest
+      .spyOn(sdk.ai.agents, "getOrThrow")
+      .mockResolvedValue({ _id: "agent_1" } as any)
     jest
       .spyOn(sdk.ai.rag, "retrieveContextForAgent")
       .mockRejectedValue({ status: 503, message: "upstream unavailable" })
@@ -366,7 +372,9 @@ describe("AI Tools - Knowledge search", () => {
   })
 
   it("preserves non-provider retrieval errors", async () => {
-    jest.spyOn(sdk.ai.agents, "getOrThrow").mockResolvedValue({ _id: "agent_1" } as any)
+    jest
+      .spyOn(sdk.ai.agents, "getOrThrow")
+      .mockResolvedValue({ _id: "agent_1" } as any)
     jest
       .spyOn(sdk.ai.rag, "retrieveContextForAgent")
       .mockRejectedValue(new Error("Failed to map source metadata"))

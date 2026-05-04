@@ -23,7 +23,6 @@ import {
 } from "@budibase/types"
 import sdk from "../../../sdk"
 
-
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
 
