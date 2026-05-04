@@ -55,8 +55,8 @@
           connection.authType === "client_credentials" ? "rest" : "oauth2",
         auth:
           connection.authType === "client_credentials"
-            ? [{ type: "oauth2" }]
-            : [],
+            ? [{ type: "Client Credentials" }]
+            : [{ type: "oauth2" }],
         __clickable: connection.authType !== "delegated_oauth",
       }))
       .sort((a, b) => a.account.localeCompare(b.account))
