@@ -576,15 +576,14 @@ describe("agent files", () => {
         config.getDevWorkspaceId(),
         async () =>
           await createKnowledgeSourceConnection({
-          sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-          authType:
-            AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-          account: "client-credentials-account",
-          tokenEndpoint:
-            "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-          clientId: "client-id",
-          clientSecret: "client-secret",
-          scope: "https://graph.microsoft.com/.default",
+            sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+            authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+            account: "client-credentials-account",
+            tokenEndpoint:
+              "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            clientId: "client-id",
+            clientSecret: "client-secret",
+            scope: "https://graph.microsoft.com/.default",
           })
       )
       const connectionId = connection._id!
