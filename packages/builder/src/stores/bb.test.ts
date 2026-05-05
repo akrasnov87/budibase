@@ -15,6 +15,8 @@ describe("BBStore pending settings", () => {
 
     expect(get(store).settings.open).toBe(false)
     expect(get(store).settings.route).toBeUndefined()
+    expect(get(store).settings.pendingPath).toBe("/connections/knowledge")
+    expect(get(store).settings.pendingParams).toBeUndefined()
   })
 
   it("resolves a pending settings route when resolver becomes available", () => {
