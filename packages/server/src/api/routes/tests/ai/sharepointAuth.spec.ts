@@ -43,81 +43,85 @@ describe("sharepoint oauth callback", () => {
     jest.restoreAllMocks()
   })
 
-  it("stores oauth expiry with a 60 second safety buffer", async () => {
+  const startOauthAndGetState = async () => {
+    const headers = config.defaultHeaders()
+    const connectResponse = await config
+      .getRequest()!
+      .get("/api/agent/knowledge-sources/sharepoint/connect")
+      .query({
+        appId: config.getDevWorkspaceId(),
+        returnPath: `/builder/workspace/${config.getDevWorkspaceId()}`,
+      })
+      .set(headers)
+      .expect(302)
+
+    const authorizeLocation = String(connectResponse.headers.location)
+    const state = new URL(authorizeLocation).searchParams.get("state")
+    expect(state).toBeTruthy()
+
+    return {
+      state: state!,
+      callbackHeaders: {
+        Host: config.tenantHost(),
+        Cookie: connectResponse.headers["set-cookie"],
+      },
+    }
+  }
+
+  const mockMicrosoftTokenAndProfile = (profile: {
+    mail?: string
+    userPrincipalName?: string
+  }) => {
+    const tokenPool = installHttpMocking().get(
+      "https://login.microsoftonline.com"
+    )
+    tokenPool
+      .intercept({
+        method: "POST",
+        path: "/common/oauth2/v2.0/token",
+      })
+      .reply(200, {
+        access_token: "new-access-token",
+        refresh_token: "new-refresh-token",
+        expires_in: 3600,
+        token_type: "Bearer",
+      })
+
+    const graphPool = installHttpMocking().get("https://graph.microsoft.com")
+    graphPool
+      .intercept({
+        method: "GET",
+        path: "/v1.0/me?$select=displayName,mail,userPrincipalName",
+      })
+      .reply(200, profile)
+  }
+
+  it("reuses existing sharepoint connection by normalized account, updates expiry, and marks redirect", async () => {
     await features.testutils.withFeatureFlags(
       config.getTenantId(),
       { [FeatureFlag.AI_RAG]: true },
       async () => {
         const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1_000_000)
 
-        const connectionId = await config.doInContext(
-          config.getDevWorkspaceId(),
-          async () => {
-            const connection = await createKnowledgeSourceConnection({
-              sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-              account: "existing@budibase.com",
-              tokenEndpoint:
-                "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-              accessToken: "old-access-token",
-              refreshToken: "old-refresh-token",
-              tokenType: "Bearer",
-              expiresAt: Date.now() + 60_000,
-              clientId: "client-id",
-              clientSecret: "client-secret",
-            })
-            return connection._id!
-          }
-        )
-
-        const headers = config.defaultHeaders()
-        const connectResponse = await config
-          .getRequest()!
-          .get("/api/agent/knowledge-sources/sharepoint/connect")
-          .query({
-            appId: config.getDevWorkspaceId(),
-            connectionId,
-            returnPath: `/builder/workspace/${config.getDevWorkspaceId()}`,
+        await config.doInContext(config.getDevWorkspaceId(), async () => {
+          await createKnowledgeSourceConnection({
+            sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+            account: "USER@EXAMPLE.COM",
+            tokenEndpoint:
+              "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            accessToken: "old-access-token",
+            refreshToken: "old-refresh-token",
+            tokenType: "Bearer",
+            expiresAt: Date.now() + 60_000,
+            clientId: "client-id",
+            clientSecret: "client-secret",
           })
-          .set(headers)
-          .expect(302)
+        })
 
-        const authorizeLocation = String(connectResponse.headers.location)
-        const state = new URL(authorizeLocation).searchParams.get("state")
-        expect(state).toBeTruthy()
+        const { state, callbackHeaders } = await startOauthAndGetState()
+        mockMicrosoftTokenAndProfile({ mail: "user@example.com" })
 
-        const tokenPool = installHttpMocking().get(
-          "https://login.microsoftonline.com"
-        )
-        tokenPool
-          .intercept({
-            method: "POST",
-            path: "/common/oauth2/v2.0/token",
-          })
-          .reply(200, {
-            access_token: "new-access-token",
-            refresh_token: "new-refresh-token",
-            expires_in: 3600,
-            token_type: "Bearer",
-          })
-
-        const graphPool = installHttpMocking().get(
-          "https://graph.microsoft.com"
-        )
-        graphPool
-          .intercept({
-            method: "GET",
-            path: "/v1.0/me?$select=displayName,mail,userPrincipalName",
-          })
-          .reply(200, {
-            mail: "test@example.com",
-          })
-
-        const callbackHeaders = {
-          Host: config.tenantHost(),
-          Cookie: connectResponse.headers["set-cookie"],
-        }
-
-        await config
+        const callbackResponse = await config
           .getRequest()!
           .get("/api/agent/knowledge-sources/sharepoint/callback")
           .query({
@@ -127,20 +131,70 @@ describe("sharepoint oauth callback", () => {
           .set(callbackHeaders)
           .expect(302)
 
-        const updatedConnection = await config.doInContext(
+        expect(String(callbackResponse.headers.location)).toContain(
+          "microsoft_connection_reused=1"
+        )
+
+        const connections = await config.doInContext(
           config.getDevWorkspaceId(),
           async () => {
-            return await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(
-              connectionId
-            )
+            return await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
           }
         )
-
-        expect(updatedConnection?.expiresAt).toBe(
-          1_000_000 + (3600 - 60) * 1000
-        )
+        expect(connections).toHaveLength(1)
+        expect(connections[0].account).toBe("user@example.com")
+        expect(connections[0].expiresAt).toBe(1_000_000 + (3600 - 60) * 1000)
 
         nowSpy.mockRestore()
+      }
+    )
+  })
+
+  it("creates a new connection when oauth account is unknown", async () => {
+    await features.testutils.withFeatureFlags(
+      config.getTenantId(),
+      { [FeatureFlag.AI_RAG]: true },
+      async () => {
+        await config.doInContext(config.getDevWorkspaceId(), async () => {
+          await createKnowledgeSourceConnection({
+            sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+            account: "existing@example.com",
+            tokenEndpoint:
+              "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            accessToken: "old-access-token",
+            refreshToken: "old-refresh-token",
+            tokenType: "Bearer",
+            expiresAt: Date.now() + 60_000,
+            clientId: "client-id",
+            clientSecret: "client-secret",
+          })
+        })
+
+        const { state, callbackHeaders } = await startOauthAndGetState()
+        mockMicrosoftTokenAndProfile({})
+
+        const callbackResponse = await config
+          .getRequest()!
+          .get("/api/agent/knowledge-sources/sharepoint/callback")
+          .query({
+            state,
+            code: "oauth-code",
+          })
+          .set(callbackHeaders)
+          .expect(302)
+
+        expect(String(callbackResponse.headers.location)).not.toContain(
+          "microsoft_connection_reused=1"
+        )
+
+        const connections = await config.doInContext(
+          config.getDevWorkspaceId(),
+          async () => {
+            return await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
+          }
+        )
+        expect(connections).toHaveLength(2)
+        expect(connections.some(c => c.account === "unknown")).toBe(true)
       }
     )
   })
