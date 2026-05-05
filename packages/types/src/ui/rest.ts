@@ -50,6 +50,7 @@ export type RestTemplateId =
   | "deel"
   | "dixa"
   | "dodo-payments"
+  | "documenso"
   | "dots"
   | "factorial"
   | "fastspring"

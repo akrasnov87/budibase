@@ -130,6 +130,24 @@ describe("RestTemplatesStore", () => {
     })
   })
 
+  describe("flat vendor templates", () => {
+    it("exposes Documenso as a single-spec flat template", () => {
+      const template = store.flatTemplates.find(t => t.id === "documenso")
+
+      expect(template).toBeDefined()
+      expect(template?.name).toBe("Documenso")
+      expect(template?.connectionMode).toBeUndefined()
+      expect(template?.templates).toBeUndefined()
+      expect(template?.operationsCount).toBe(85)
+      expect(template?.specs).toEqual([
+        {
+          version: "1.0.0",
+          url: "https://raw.githubusercontent.com/Budibase/openapi-rest-templates/main/documenso/openapi.yaml",
+        },
+      ])
+    })
+  })
+
   describe("get", () => {
     it("returns undefined for undefined/empty input", () => {
       expect(store.get(undefined)).toBeUndefined()

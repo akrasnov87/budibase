@@ -9,6 +9,7 @@ import ConfluenceLogo from "assets/rest-template-icons/confluence.svg"
 import CustomerIoLogo from "assets/rest-template-icons/customer-io.avif"
 import DiscordLogo from "assets/rest-template-icons/discord.svg"
 import DocuSignLogo from "assets/rest-template-icons/docusign.avif"
+import DocumensoLogo from "assets/rest-template-icons/documenso.svg"
 import FigmaLogo from "assets/rest-template-icons/figma.svg"
 import JiraLogo from "assets/rest-template-icons/jira.svg"
 import GitHubLogo from "assets/rest-template-icons/github.svg"
@@ -2134,6 +2135,20 @@ const INITIAL_REST_TEMPLATES_STATE: RestTemplatesState = {
       ],
       operationsCount: 227,
       icon: DiscordLogo,
+    },
+    {
+      id: "documenso",
+      name: "Documenso",
+      description:
+        "Open source document signing, templates, recipients, fields, and e-signature workflows.",
+      specs: [
+        {
+          version: "1.0.0",
+          url: "https://raw.githubusercontent.com/Budibase/openapi-rest-templates/main/documenso/openapi.yaml",
+        },
+      ],
+      operationsCount: 85,
+      icon: DocumensoLogo,
     },
     {
       id: "figma",
