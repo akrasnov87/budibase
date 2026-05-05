@@ -17,6 +17,12 @@ const DEFAULT_SCOPE = env.RAG_SHAREPOINT_DEFAULT_SCOPE
 const STATE_CACHE_TTL_SECONDS = 600
 const MICROSOFT_PROVIDER = "microsoft"
 const MICROSOFT_GRAPH_BASE = "https://graph.microsoft.com/v1.0"
+const TOKEN_EXPIRY_BUFFER_SECONDS = 60
+
+export const calculateTokenExpiry = (expiresInSeconds: number) => {
+  const bufferedTtlSeconds = Math.max(expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS, 0)
+  return Date.now() + bufferedTtlSeconds * 1000
+}
 
 const getMicrosoftConfig = () => {
   if (!env.MICROSOFT_CLIENT_ID || !env.MICROSOFT_CLIENT_SECRET) {
@@ -236,7 +242,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
               accessToken,
               refreshToken,
               tokenType,
-              expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
+              expiresAt: calculateTokenExpiry(expiresIn),
               clientId,
               clientSecret,
               account,
@@ -264,7 +270,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         accessToken,
         refreshToken,
         tokenType,
-        expiresAt: Date.now() + Math.max((expiresIn || 0) - 60, 0) * 1000,
+        expiresAt: calculateTokenExpiry(expiresIn),
         clientId,
         clientSecret,
         account,
