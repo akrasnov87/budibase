@@ -58,6 +58,10 @@ const isRetryableResponse = (response: GeminiFileStoreResponse) => {
   return !response.ok && RETRYABLE_STATUS_CODES.has(response.status)
 }
 
+const isRetryableFetchError = (error: unknown) => {
+  return error instanceof Error && error.name === "FetchError"
+}
+
 const requestWithRetries = async <TResponse extends GeminiFileStoreResponse>(
   request: () => Promise<TResponse>
 ): Promise<TResponse> => {
@@ -73,7 +77,10 @@ const requestWithRetries = async <TResponse extends GeminiFileStoreResponse>(
       const delayMs = RETRY_DELAYS_MS[attempt]
       await wait(delayMs)
     } catch (error) {
-      if (attempt >= RETRY_DELAYS_MS.length) {
+      if (
+        !isRetryableFetchError(error) ||
+        attempt >= RETRY_DELAYS_MS.length
+      ) {
         throw error
       }
 

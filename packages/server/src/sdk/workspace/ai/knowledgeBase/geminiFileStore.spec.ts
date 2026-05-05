@@ -42,6 +42,11 @@ const response = ({
   text: async () => text || "",
 })
 
+const fetchError = (message = "fetch failed") =>
+  Object.assign(new Error(message), {
+    name: "FetchError",
+  })
+
 describe("geminiFileStore", () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -181,6 +186,43 @@ describe("geminiFileStore", () => {
         },
       ])
       expect(mockFetch).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it("retries transient fetch errors", async () => {
+    await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
+      mockFetch
+        .mockRejectedValueOnce(fetchError())
+        .mockResolvedValueOnce(
+          response({
+            ok: true,
+            status: 200,
+            json: { data: [] },
+          })
+        )
+
+      await expect(
+        searchGeminiFileStore({
+          vectorStoreId: "vector-store-1",
+          query: "hello",
+        })
+      ).resolves.toEqual([])
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it("does not retry non-fetch errors", async () => {
+    await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
+      mockGetKeySettings.mockRejectedValueOnce(new Error("config failed"))
+
+      await expect(
+        searchGeminiFileStore({
+          vectorStoreId: "vector-store-1",
+          query: "hello",
+        })
+      ).rejects.toThrow("config failed")
+      expect(mockGetKeySettings).toHaveBeenCalledTimes(1)
+      expect(mockFetch).not.toHaveBeenCalled()
     })
   })
 
