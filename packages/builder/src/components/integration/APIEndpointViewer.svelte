@@ -71,7 +71,11 @@
   } from "./query"
   import { applyBaseUrl } from "@budibase/shared-core"
   import restUtils from "@/helpers/data/utils"
-  import { getRestTemplateImportInfoRequest } from "@/helpers/restTemplates"
+  import {
+    addEndpointDisplayLabels,
+    type EndpointDisplayFields,
+    getRestTemplateImportInfoRequest,
+  } from "@/helpers/restTemplates"
   import ConnectedQueryScreens from "./ConnectedQueryScreens.svelte"
   import RestBodyInput from "./RestBodyInput.svelte"
   import CodeEditor from "../common/CodeEditor/CodeEditor.svelte"
@@ -101,12 +105,13 @@
   $beforeUrlChange
   $: goto = $gotoStore
 
-  type EndpointWithIcon = ImportEndpoint & {
-    icon?: {
-      component: typeof APIEndpointVerbBadge
-      props: { verb?: string; color?: string }
+  type EndpointWithIcon = ImportEndpoint &
+    EndpointDisplayFields & {
+      icon?: {
+        component: typeof APIEndpointVerbBadge
+        props: { verb?: string; color?: string }
+      }
     }
-  }
 
   let activeDatasourceId: string | undefined = datasourceId
   let connectionSelectRef: ConnectionSelect
@@ -444,7 +449,9 @@
   const getEndpointOptions = (
     endpoints: ImportEndpoint[]
   ): EndpointWithIcon[] => {
-    return endpoints.reduce<EndpointWithIcon[]>((acc, e) => {
+    const options = endpoints.reduce<
+      Array<ImportEndpoint & Pick<EndpointWithIcon, "icon">>
+    >((acc, e) => {
       const verb = e.method
       const color = customQueryIconColor(e.queryVerb)
       acc.push({
@@ -458,6 +465,7 @@
       })
       return acc
     }, [])
+    return addEndpointDisplayLabels(options)
   }
 
   // Prepend selected endpoint so it's always visible even if not in the loaded list
@@ -489,24 +497,28 @@
       const method = QUERY_VERB_MAP[query.queryVerb]
       const endpointName = getRestTemplateQueryDisplayName(query)
 
-      const endpoint = {
-        id:
-          metadata.operationId ||
-          `${method.toLowerCase()}::${metadata.originalPath}`,
-        name: endpointName,
-        method,
-        path: metadata.originalPath || "",
-        description: metadata.description || "",
-        queryVerb: query.queryVerb,
-        docsUrl: metadata.docsUrl,
-        icon: {
-          component: APIEndpointVerbBadge,
-          props: {
-            verb: method,
-            color: customQueryIconColor(query.queryVerb),
+      const endpoint = addEndpointDisplayLabels([
+        {
+          id:
+            metadata.operationId ||
+            `${method.toLowerCase()}::${metadata.originalPath}`,
+          name: endpointName,
+          summary: metadata.summary,
+          method,
+          path: metadata.originalPath || "",
+          description: metadata.description || "",
+          tags: metadata.tags,
+          queryVerb: query.queryVerb,
+          docsUrl: metadata.docsUrl,
+          icon: {
+            component: APIEndpointVerbBadge,
+            props: {
+              verb: method,
+              color: customQueryIconColor(query.queryVerb),
+            },
           },
         },
-      }
+      ])[0]
 
       selectedEndpointOption = endpoint
       if (metadata.restTemplateId) {
@@ -544,16 +556,18 @@
         })
 
         if (found) {
-          selectedEndpointOption = {
-            ...found,
-            icon: {
-              component: APIEndpointVerbBadge,
-              props: {
-                verb: found.method,
-                color: customQueryIconColor(found.queryVerb),
+          selectedEndpointOption = addEndpointDisplayLabels([
+            {
+              ...found,
+              icon: {
+                component: APIEndpointVerbBadge,
+                props: {
+                  verb: found.method,
+                  color: customQueryIconColor(found.queryVerb),
+                },
               },
             },
-          }
+          ])[0]
         } else {
           console.error("No matching endpoint found in list")
         }
@@ -875,6 +889,8 @@
       ? {
           originalName: endpoint.name,
           operationId: endpoint.operationId,
+          summary: endpoint.summary,
+          tags: endpoint.tags,
           docsUrl: endpoint.docsUrl,
           description: endpoint.description,
           originalPath: endpoint.originalPath,

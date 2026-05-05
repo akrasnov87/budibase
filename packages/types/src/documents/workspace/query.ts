@@ -20,9 +20,11 @@ export interface EndpointMetadata {
 export interface ImportEndpoint {
   id: string
   name: string
+  summary?: string
   method?: string
   path?: string
   description?: string
+  tags?: string[]
   queryVerb?: QueryVerb
   externalDocs?: string
   operationId?: string
@@ -145,6 +147,8 @@ export enum HttpMethod {
 export interface RestTemplateQueryMetadata {
   originalName?: string
   operationId?: string
+  summary?: string
+  tags?: string[]
   docsUrl?: string
   description?: string
   originalPath?: string

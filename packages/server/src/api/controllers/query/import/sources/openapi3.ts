@@ -181,6 +181,8 @@ export class OpenAPI3 extends OpenAPISource {
     const metadata: RestTemplateQueryMetadata = {
       originalName: endpointName,
       operationId: operation.operationId,
+      summary: operation.summary,
+      tags: operation.tags,
       docsUrl: this.getDocsUrl(operation),
       description: operation.description || operation.summary,
       originalPath: path,
@@ -403,9 +405,11 @@ export class OpenAPI3 extends OpenAPISource {
       endpoints.push({
         id: this.buildEndpointId(method || "", path),
         name: query.name,
+        summary: metadata.summary,
         method: method?.toUpperCase() || "",
         path,
         description: metadata.description,
+        tags: metadata.tags,
         queryVerb: query.queryVerb,
         operationId: metadata.operationId,
         docsUrl: metadata.docsUrl,

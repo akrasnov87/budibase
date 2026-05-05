@@ -14,6 +14,8 @@
   export let disabled: boolean = false
   export let options: O[] = []
   export let getOptionLabel = (option: O, _index?: number) => `${option}`
+  export let getOptionSearchText = (option: O, index?: number) =>
+    getOptionLabel(option, index)
   export let getOptionValue = (option: O, _index?: number) =>
     option as unknown as V
   export let getOptionIcon = (option: O, _index?: number) =>
@@ -127,6 +129,7 @@
   {align}
   {footer}
   {getOptionLabel}
+  {getOptionSearchText}
   {getOptionValue}
   {getOptionIcon}
   {getOptionColour}
