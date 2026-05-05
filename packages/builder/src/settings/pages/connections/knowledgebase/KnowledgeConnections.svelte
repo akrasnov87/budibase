@@ -11,7 +11,7 @@
   } from "@budibase/bbui"
   import { appStore } from "@/stores/builder/app"
   import RouteActions from "@/settings/components/RouteActions.svelte"
-  import TypeRenderer from "../_components/TypeRenderer.svelte"
+  import TypeRenderer from "./_components/TypeRenderer.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
   import EditKnowledgeConnectionRenderer from "./_components/EditKnowledgeConnectionRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
@@ -54,10 +54,7 @@
         authType: connection.authType,
         source:
           connection.authType === "client_credentials" ? "rest" : "oauth2",
-        auth:
-          connection.authType === "client_credentials"
-            ? [{ type: "Client Credentials" }]
-            : [{ type: "oauth2" }],
+        auth: [{ type: connection.authType }],
         __clickable: connection.authType !== "delegated_oauth",
       }))
       .sort((a, b) => a.account.localeCompare(b.account))
