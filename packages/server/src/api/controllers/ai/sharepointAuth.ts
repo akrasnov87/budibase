@@ -205,7 +205,9 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
       error,
     })
   }
-  const reusedExistingConnection = await context.doInContext(appId, async () => {
+  const reusedExistingConnection = await context.doInContext(
+    appId,
+    async () => {
       const existingConnections =
         await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
       const normalizedAccount = account.trim().toLowerCase()
