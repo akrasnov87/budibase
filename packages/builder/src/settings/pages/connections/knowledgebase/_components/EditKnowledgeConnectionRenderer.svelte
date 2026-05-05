@@ -2,18 +2,17 @@
   import { ActionButton, notifications } from "@budibase/bbui"
   import { bb } from "@/stores/bb"
   import { appStore } from "@/stores/builder/app"
-  import { AgentKnowledgeSourceConnectionAuthType } from "@budibase/types"
+  import type { AgentKnowledgeSourceConnectionAuthType } from "@budibase/types"
 
   export let row: {
-    id?: string
-    authType?: AgentKnowledgeSourceConnectionAuthType
+    id: string
+    authType: AgentKnowledgeSourceConnectionAuthType
   }
 
-  $: canEdit =
-    row?.authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+  $: canEdit = row.authType === "client_credentials"
 
   const reconnect = () => {
-    if (!row?.id) {
+    if (!row.id) {
       notifications.error("Missing connection ID to reconnect SharePoint")
       return
     }
@@ -38,10 +37,6 @@
     <ActionButton
       size="S"
       on:click={() => {
-        if (!row?.id) {
-          notifications.error("Missing connection ID for editing")
-          return
-        }
         bb.settings(`/connections/knowledge/${row.id}`)
       }}
     >
