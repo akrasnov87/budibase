@@ -141,6 +141,56 @@ const isSharePointPathIncludedByFilters = (
   return matchesConfiguredPatterns(path, patterns)
 }
 
+type SharePointFileMetadataFingerprint = {
+  etag?: string
+  lastModifiedAt?: string
+  remoteSize?: number
+}
+
+const hasSharePointFileMetadataChanged = ({
+  local,
+  remote,
+}: {
+  local: SharePointFileMetadataFingerprint
+  remote: SharePointFileMetadataFingerprint
+}) => {
+  const { etag: localEtag, lastModifiedAt: localLastModifiedAt, remoteSize: localRemoteSize } =
+    local
+  const {
+    etag: remoteEtag,
+    lastModifiedAt: remoteLastModifiedAt,
+    remoteSize,
+  } = remote
+
+  if (localEtag && remoteEtag) {
+    return localEtag !== remoteEtag
+  }
+
+  const hasLocalFallbackMetadata =
+    localLastModifiedAt !== undefined || localRemoteSize !== undefined
+  if (!hasLocalFallbackMetadata) {
+    return false
+  }
+
+  if (
+    localLastModifiedAt !== undefined &&
+    remoteLastModifiedAt !== undefined &&
+    localLastModifiedAt !== remoteLastModifiedAt
+  ) {
+    return true
+  }
+
+  if (
+    localRemoteSize !== undefined &&
+    remoteSize !== undefined &&
+    localRemoteSize !== remoteSize
+  ) {
+    return true
+  }
+
+  return false
+}
+
 export const fetchAllSharePointEntriesForAgent = async (
   agentId: string,
   siteId: string
@@ -297,6 +347,9 @@ const runSharePointSourcesForAgent = async (
       siteId: string
       knowledgeSourceId?: string
       status?: KnowledgeBaseFileStatus
+      etag?: string
+      lastModifiedAt?: string
+      remoteSize?: number
     }
   >()
   for (const file of existingFiles) {
@@ -317,6 +370,9 @@ const runSharePointSourcesForAgent = async (
       siteId: file.source.siteId,
       knowledgeSourceId: file.source.knowledgeSourceId,
       status: file.status,
+      etag: file.source.etag,
+      lastModifiedAt: file.source.lastModifiedAt,
+      remoteSize: file.source.remoteSize,
     })
   }
   const existingExternalIds = new Set(
@@ -413,6 +469,18 @@ const runSharePointSourcesForAgent = async (
         if (existingExternalIds.has(externalSourceId)) {
           const existingEntry =
             existingSharePointFilesByExternalId.get(externalSourceId)
+          const hasMetadataChanged = hasSharePointFileMetadataChanged({
+            local: {
+              etag: existingEntry?.etag,
+              lastModifiedAt: existingEntry?.lastModifiedAt,
+              remoteSize: existingEntry?.remoteSize,
+            },
+            remote: {
+              etag: file.etag,
+              lastModifiedAt: file.lastModifiedAt,
+              remoteSize: file.remoteSize,
+            },
+          })
           const shouldRetryFailedIngestion =
             existingEntry?.status === KnowledgeBaseFileStatus.FAILED &&
             existingEntry.siteId === siteId &&
@@ -439,12 +507,37 @@ const runSharePointSourcesForAgent = async (
               failed++
             }
             continue
-          } else {
+          }
+
+          if (!hasMetadataChanged) {
             skipped++
             alreadySynced++
 
             continue
           }
+
+          if (existingEntry?.fileId) {
+            try {
+              await deleteFileForAgent(agentId, existingEntry.fileId)
+              deleted++
+            } catch (error) {
+              console.error(
+                "Failed to delete stale SharePoint file before re-sync",
+                {
+                  agentId,
+                  siteId,
+                  driveId,
+                  itemId: file.itemId,
+                  error,
+                }
+              )
+              deleteFailed++
+              failed++
+              continue
+            }
+          }
+
+          existingExternalIds.delete(externalSourceId)
         }
 
         try {
@@ -463,6 +556,10 @@ const runSharePointSourcesForAgent = async (
               driveId,
               itemId: file.itemId,
               path: file.path,
+              externalId: `${siteId}:${driveId}:${file.itemId}`,
+              etag: file.etag,
+              lastModifiedAt: file.lastModifiedAt,
+              remoteSize: file.remoteSize,
             },
             filename: file.filename,
             mimetype: file.mimetype,
