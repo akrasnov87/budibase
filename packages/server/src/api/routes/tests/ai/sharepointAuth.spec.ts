@@ -1,5 +1,9 @@
 import { env, features } from "@budibase/backend-core"
-import { AgentKnowledgeSourceType, FeatureFlag } from "@budibase/types"
+import {
+  AgentKnowledgeSourceConnectionAuthType,
+  AgentKnowledgeSourceType,
+  FeatureFlag,
+} from "@budibase/types"
 import sdk from "../../../../sdk"
 import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
@@ -112,9 +116,10 @@ describe("sharepoint oauth callback", () => {
             accessToken: "old-access-token",
             refreshToken: "old-refresh-token",
             tokenType: "Bearer",
-            expiresAt: Date.now() + 60_000,
+            expiresAt: Date.now() + 60000,
             clientId: "client-id",
             clientSecret: "client-secret",
+            authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
           })
         })
 
@@ -167,6 +172,7 @@ describe("sharepoint oauth callback", () => {
             expiresAt: Date.now() + 60_000,
             clientId: "client-id",
             clientSecret: "client-secret",
+            authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
           })
         })
 
