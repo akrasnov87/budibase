@@ -1417,7 +1417,7 @@ const gongRestTemplateGroup: RestTemplate = {
   templates: [
     {
       id: "gong-public-api",
-      name: "Public",
+      name: "Public API",
       description:
         "Access Gong calls, transcripts, users, scorecards, libraries, and conversation data.",
       specs: [
@@ -1450,7 +1450,7 @@ const salesforceRestTemplateGroup: RestTemplate = {
   icon: SalesforceLogo,
   description:
     "CRM data, sObjects, SOQL queries, composite requests, and bulk jobs.",
-  connectionMode: "independent",
+  connectionMode: "shared",
   operationsCount: 29,
   templates: [
     {
@@ -1468,7 +1468,7 @@ const salesforceRestTemplateGroup: RestTemplate = {
     },
     {
       id: "salesforce-bulk-api-2",
-      name: "Bulk 2.0",
+      name: "Bulk API 2.0",
       description:
         "Asynchronous large-volume ingest, delete, upsert, and query jobs for Salesforce data.",
       specs: [
