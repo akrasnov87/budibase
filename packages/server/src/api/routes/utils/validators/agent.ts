@@ -8,6 +8,7 @@ import Joi from "joi"
 const OPTIONAL_STRING = Joi.string().optional().allow(null).allow("")
 const OPTIONAL_NUMBER = Joi.number().optional().allow(null)
 const OPTIONAL_AICONFIG = Joi.string().optional().allow("")
+const NON_EMPTY_STRING = Joi.string().trim().min(1)
 
 const DISCORD_INTEGRATION_SCHEMA = Joi.object({
   applicationId: OPTIONAL_STRING,
@@ -24,7 +25,7 @@ const DISCORD_INTEGRATION_SCHEMA = Joi.object({
 const TEAMS_INTEGRATION_SCHEMA = Joi.object({
   appId: OPTIONAL_STRING,
   appPassword: OPTIONAL_STRING,
-  tenantId: Joi.string().required().trim().disallow(""),
+  tenantId: NON_EMPTY_STRING.required(),
   chatAppId: OPTIONAL_STRING,
   messagingEndpointUrl: OPTIONAL_STRING,
   idleTimeoutMinutes: OPTIONAL_NUMBER.integer().min(1).max(1440),
@@ -134,7 +135,7 @@ export function toggleAgentSlackDeploymentValidator() {
 export function generateAgentInstructionsValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      prompt: Joi.string().trim().disallow("").required(),
+      prompt: NON_EMPTY_STRING.required(),
       agentName: OPTIONAL_STRING,
       goal: OPTIONAL_STRING,
       toolReferences: Joi.array().items(Joi.string()).optional(),
@@ -149,9 +150,9 @@ export function syncAgentKnowledgeSourcesValidator() {
 export function connectAgentSharePointSiteValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      siteId: Joi.string().trim().disallow("").required(),
-      connectionId: Joi.string().trim().disallow("").required(),
-      filters: Joi.array().items(Joi.string().trim().disallow("")).optional(),
+      siteId: NON_EMPTY_STRING.required(),
+      connectionId: NON_EMPTY_STRING.required(),
+      filters: Joi.array().items(NON_EMPTY_STRING).optional(),
     }).required()
   )
 }
@@ -160,9 +161,7 @@ export function updateAgentSharePointSiteValidator() {
   return auth.joiValidator.body(
     Joi.object({
       filters: Joi.object({
-        patterns: Joi.array()
-          .items(Joi.string().trim().disallow(""))
-          .optional(),
+        patterns: Joi.array().items(NON_EMPTY_STRING).optional(),
       }).optional(),
     }).required()
   )
@@ -177,10 +176,10 @@ export function createAgentKnowledgeSourceConnectionValidator() {
       authType: Joi.string()
         .valid(...Object.values(AgentKnowledgeSourceConnectionAuthType))
         .required(),
-      account: Joi.string().trim().disallow("").required(),
+      account: NON_EMPTY_STRING.required(),
       tokenEndpoint: Joi.string().uri().required(),
-      clientId: Joi.string().trim().disallow("").required(),
-      clientSecret: Joi.string().trim().disallow("").required(),
+      clientId: NON_EMPTY_STRING.required(),
+      clientSecret: NON_EMPTY_STRING.required(),
       scope: OPTIONAL_STRING,
     }).required()
   )
@@ -189,10 +188,10 @@ export function createAgentKnowledgeSourceConnectionValidator() {
 export function updateAgentKnowledgeSourceConnectionValidator() {
   return auth.joiValidator.body(
     Joi.object({
-      account: Joi.string().trim().disallow("").required(),
+      account: NON_EMPTY_STRING.required(),
       tokenEndpoint: Joi.string().uri().required(),
-      clientId: Joi.string().trim().disallow("").required(),
-      clientSecret: Joi.string().trim().disallow("").required(),
+      clientId: NON_EMPTY_STRING.required(),
+      clientSecret: NON_EMPTY_STRING.required(),
       scope: OPTIONAL_STRING,
     }).required()
   )
@@ -208,8 +207,8 @@ export function validateAgentKnowledgeSourceConnectionValidator() {
         .valid(AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS)
         .required(),
       tokenEndpoint: Joi.string().uri().required(),
-      clientId: Joi.string().trim().disallow("").required(),
-      clientSecret: Joi.string().trim().disallow("").required(),
+      clientId: NON_EMPTY_STRING.required(),
+      clientSecret: NON_EMPTY_STRING.required(),
       scope: OPTIONAL_STRING,
     }).required()
   )
