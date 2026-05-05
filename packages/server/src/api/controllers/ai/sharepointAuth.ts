@@ -227,8 +227,9 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
       error,
     })
   }
-  const reusedExistingConnection = await context.doInContext(appId, () =>
-    (async () => {
+  const reusedExistingConnection = await context.doInContext(
+    appId,
+    async () => {
       if (reconnectConnectionId) {
         const existingConnection =
           await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(
@@ -291,7 +292,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         )
         return false
       }
-    })()
+    }
   )
   console.log("Completed SharePoint OAuth flow", {
     appId,
