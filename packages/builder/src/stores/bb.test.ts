@@ -50,4 +50,24 @@ describe("BBStore pending settings", () => {
       initial: "value",
     })
   })
+
+  it("opens settings immediately when route is resolvable", () => {
+    setSettingsRouteResolver(path => {
+      if (path !== "/connections/apis") {
+        return null
+      }
+      return {
+        entry: {
+          path: "/connections/apis",
+        },
+        params: {},
+      }
+    })
+
+    store.settings("/connections/apis")
+
+    expect(get(store).settings.open).toBe(true)
+    expect(get(store).settings.route?.entry.path).toBe("/connections/apis")
+    expect(get(store).settings.pendingPath).toBeUndefined()
+  })
 })

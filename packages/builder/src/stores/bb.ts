@@ -128,7 +128,17 @@ export class BBStore extends BudiStore<BBState> {
     }
 
     const matchedRoute = settingsRouteResolver?.(path)
-    if (!matchedRoute) return
+    if (!matchedRoute) {
+      this.update(state => ({
+        ...state,
+        settings: {
+          ...state.settings,
+          pendingPath: path,
+          pendingParams: undefined,
+        },
+      }))
+      return
+    }
 
     // Entering subtree mode — initialise with empty stack
     if (locked === "subtree") {
@@ -141,15 +151,6 @@ export class BBStore extends BudiStore<BBState> {
           subtreeStack: [],
           open: true,
           pendingPath: undefined,
-          pendingParams: undefined,
-        },
-      }))
-    } else {
-      this.update(state => ({
-        ...state,
-        settings: {
-          ...state.settings,
-          pendingPath: path,
           pendingParams: undefined,
         },
       }))
@@ -169,6 +170,8 @@ export class BBStore extends BudiStore<BBState> {
         route: matchedRoute,
         locked: locked ?? currentState.locked,
         open: true,
+        pendingPath: undefined,
+        pendingParams: undefined,
       },
     }))
   }
