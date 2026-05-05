@@ -474,7 +474,7 @@ describe("/plugins", () => {
     it("should be able to create a plugin from a URL", async () => {
       await withEnv(
         {
-          // Set blacklist to empty to allow the request to go through, since the blacklist is mocked in this suite and doesn't actually perform DNS lookups.
+          // Set blacklist to empty to allow the request to go through, since the url is mocked in this test we don't want to perform DNS lookups.
           BLACKLIST_IPS: "",
         },
         async () => {
