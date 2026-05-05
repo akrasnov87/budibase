@@ -191,15 +191,13 @@ describe("geminiFileStore", () => {
 
   it("retries transient fetch errors", async () => {
     await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
-      mockFetch
-        .mockRejectedValueOnce(fetchError())
-        .mockResolvedValueOnce(
-          response({
-            ok: true,
-            status: 200,
-            json: { data: [] },
-          })
-        )
+      mockFetch.mockRejectedValueOnce(fetchError()).mockResolvedValueOnce(
+        response({
+          ok: true,
+          status: 200,
+          json: { data: [] },
+        })
+      )
 
       await expect(
         searchGeminiFileStore({

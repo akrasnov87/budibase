@@ -77,10 +77,7 @@ const requestWithRetries = async <TResponse extends GeminiFileStoreResponse>(
       const delayMs = RETRY_DELAYS_MS[attempt]
       await wait(delayMs)
     } catch (error) {
-      if (
-        !isRetryableFetchError(error) ||
-        attempt >= RETRY_DELAYS_MS.length
-      ) {
+      if (!isRetryableFetchError(error) || attempt >= RETRY_DELAYS_MS.length) {
         throw error
       }
 
