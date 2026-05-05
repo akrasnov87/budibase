@@ -226,14 +226,29 @@ const fetchSharePointSitesByAppToken = async (
         status: response.status,
         authType,
       })
-      throw new HTTPError(
-        response.status === 401 || response.status === 403
-          ? authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-            ? "Access denied by Microsoft Graph. Ensure delegated SharePoint permissions are granted."
-            : "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
-          : `Failed to fetch SharePoint sites (${response.status})`,
-        400
-      )
+      let errorMessage = `Failed to fetch SharePoint sites (${response.status})`
+      if (response.status === 401) {
+        if (
+          authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+        ) {
+          errorMessage =
+            "Authentication failed with Microsoft Graph. Reconnect SharePoint and try again."
+        } else {
+          errorMessage =
+            "Authentication failed with Microsoft Graph. Verify SharePoint application credentials and try again."
+        }
+      } else if (response.status === 403) {
+        if (
+          authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
+        ) {
+          errorMessage =
+            "Access denied by Microsoft Graph. Ensure delegated SharePoint permissions are granted."
+        } else {
+          errorMessage =
+            "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
+        }
+      }
+      throw new HTTPError(errorMessage, 400)
     }
 
     const payload = (await response.json()) as {

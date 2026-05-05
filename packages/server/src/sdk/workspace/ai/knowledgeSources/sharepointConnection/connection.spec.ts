@@ -192,6 +192,24 @@ describe("fetchSharePointSitesByBearerToken", () => {
       })
     )
   })
+
+  it("throws authentication failed error for 401", async () => {
+    jest.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+    } as Response)
+
+    await expect(
+      fetchSharePointSitesByBearerToken(bearerToken)
+    ).rejects.toEqual(
+      expect.objectContaining({
+        message:
+          "Authentication failed with Microsoft Graph. Reconnect SharePoint and try again.",
+        status: 400,
+      })
+    )
+  })
 })
 
 describe("fetchSharePointSitesByConnection", () => {
@@ -226,6 +244,36 @@ describe("fetchSharePointSitesByConnection", () => {
       expect.objectContaining({
         message:
           "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted.",
+      })
+    )
+  })
+
+  it("uses credential guidance for client credentials 401", async () => {
+    mockGetKnowledgeSourceConnection.mockResolvedValue({
+      _id: "agentknowledgeconn_1",
+      sourceType: "sharepoint",
+      authType: "client_credentials",
+      account: "acct",
+      tokenEndpoint:
+        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+      clientId: "client-id",
+      clientSecret: "secret",
+      tokenType: "Bearer",
+      accessToken: "token",
+      expiresAt: Date.now() + 60_000,
+    })
+    jest.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 401,
+      json: async () => ({}),
+    } as Response)
+
+    await expect(
+      fetchSharePointSitesByConnection("agentknowledgeconn_1")
+    ).rejects.toEqual(
+      expect.objectContaining({
+        message:
+          "Authentication failed with Microsoft Graph. Verify SharePoint application credentials and try again.",
       })
     )
   })
