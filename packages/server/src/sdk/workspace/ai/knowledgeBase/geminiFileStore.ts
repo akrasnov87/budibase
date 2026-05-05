@@ -1,4 +1,5 @@
 import { HTTPError } from "@budibase/backend-core"
+import { helpers } from "@budibase/shared-core"
 import fetch from "node-fetch"
 import environment from "../../../../environment"
 import { getKeySettings } from "../configs/litellm"
@@ -50,10 +51,6 @@ const getGeminiApiKey = () => {
   return key
 }
 
-const wait = async (ms: number) => {
-  await new Promise(resolve => setTimeout(resolve, ms))
-}
-
 const isRetryableResponse = (response: GeminiFileStoreResponse) => {
   return !response.ok && RETRYABLE_STATUS_CODES.has(response.status)
 }
@@ -75,14 +72,14 @@ const requestWithRetries = async <TResponse extends GeminiFileStoreResponse>(
       }
 
       const delayMs = RETRY_DELAYS_MS[attempt]
-      await wait(delayMs)
+      await helpers.wait(delayMs)
     } catch (error) {
       if (!isRetryableFetchError(error) || attempt >= RETRY_DELAYS_MS.length) {
         throw error
       }
 
       const delayMs = RETRY_DELAYS_MS[attempt]
-      await wait(delayMs)
+      await helpers.wait(delayMs)
     }
 
     attempt++
