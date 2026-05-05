@@ -34,8 +34,15 @@
     scope: "https://graph.microsoft.com/.default",
   })
 
-  let creating = $state(false)
+  let submitting = $state(false)
   let editingConnectionId = $state<string | null>(null)
+  let isEdit = $derived(!!editingConnectionId)
+  let submitLabel = $derived.by(() => {
+    if (submitting) {
+      return isEdit ? "Saving..." : "Creating..."
+    }
+    return isEdit ? "Save connection" : "Create connection"
+  })
   let draft = $state<ConnectionDraft>(createDraft())
 
   const validator = z.object({
@@ -81,22 +88,22 @@
       notifications.error("Please complete all required fields")
       return
     }
-    creating = true
+    submitting = true
     try {
-      if (editingConnectionId) {
+      if (isEdit && editingConnectionId) {
         await updateConnection(editingConnectionId)
       } else {
         await createConnection()
       }
       bb.settings("/connections/knowledge")
     } catch (error) {
-      const actionLabel = editingConnectionId ? "update" : "create"
+      const actionLabel = isEdit ? "update" : "create"
       console.error(`Failed to ${actionLabel} knowledge connection`, error)
       notifications.error(
         getErrorMessage(error, `Failed to ${actionLabel} knowledge connection`)
       )
     } finally {
-      creating = false
+      submitting = false
     }
   }
 
@@ -150,15 +157,9 @@
       <Button
         cta
         on:click={submitConnection}
-        disabled={creating || !validationResult.success}
+        disabled={submitting || !validationResult.success}
       >
-        {creating
-          ? editingConnectionId
-            ? "Saving..."
-            : "Creating..."
-          : editingConnectionId
-            ? "Save connection"
-            : "Create connection"}
+        {submitLabel}
       </Button>
     </div>
   </RouteActions>
