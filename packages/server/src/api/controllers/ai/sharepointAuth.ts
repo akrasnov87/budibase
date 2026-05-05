@@ -19,7 +19,7 @@ const MICROSOFT_PROVIDER = "microsoft"
 const MICROSOFT_GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 const TOKEN_EXPIRY_BUFFER_SECONDS = 60
 
-export const calculateTokenExpiry = (expiresInSeconds: number) => {
+export const calculateBufferedTokenExpiry = (expiresInSeconds: number) => {
   const bufferedTtlSeconds = Math.max(
     expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS,
     0
@@ -245,7 +245,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
               accessToken,
               refreshToken,
               tokenType,
-              expiresAt: calculateTokenExpiry(expiresIn),
+              expiresAt: calculateBufferedTokenExpiry(expiresIn),
               clientId,
               clientSecret,
               account,
@@ -273,7 +273,7 @@ export async function completeSharePointAuth(ctx: UserCtx<void, void>) {
         accessToken,
         refreshToken,
         tokenType,
-        expiresAt: calculateTokenExpiry(expiresIn),
+        expiresAt: calculateBufferedTokenExpiry(expiresIn),
         clientId,
         clientSecret,
         account,
