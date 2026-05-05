@@ -96,11 +96,13 @@ describe("sharepoint oauth callback", () => {
       .reply(200, profile)
   }
 
-  it("reuses existing sharepoint connection by normalized account and marks redirect", async () => {
+  it("reuses existing sharepoint connection by normalized account, updates expiry, and marks redirect", async () => {
     await features.testutils.withFeatureFlags(
       config.getTenantId(),
       { [FeatureFlag.AI_RAG]: true },
       async () => {
+        const nowSpy = jest.spyOn(Date, "now").mockReturnValue(1_000_000)
+
         await config.doInContext(config.getDevWorkspaceId(), async () => {
           await createKnowledgeSourceConnection({
             sourceType: AgentKnowledgeSourceType.SHAREPOINT,
@@ -141,6 +143,9 @@ describe("sharepoint oauth callback", () => {
         )
         expect(connections).toHaveLength(1)
         expect(connections[0].account).toBe("user@example.com")
+        expect(connections[0].expiresAt).toBe(1_000_000 + (3600 - 60) * 1000)
+
+        nowSpy.mockRestore()
       }
     )
   })
