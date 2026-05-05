@@ -470,7 +470,7 @@ describe("/plugins", () => {
 
   describe("url", () => {
     it("should be able to create a plugin from a URL", async () => {
-      nock("https://www.someurl.com")
+      nock("https://example.com")
         .get("/comment-box/comment-box-1.0.2.tar.gz")
         .replyWithFile(
           200,
@@ -479,7 +479,7 @@ describe("/plugins", () => {
 
       const { plugin } = await config.api.plugin.create({
         source: PluginSource.URL,
-        url: "https://www.someurl.com/comment-box/comment-box-1.0.2.tar.gz",
+        url: "https://example.com/comment-box/comment-box-1.0.2.tar.gz",
       })
       expect(plugin._id).toEqual("plg_comment-box")
       expect(events.plugin.imported).toHaveBeenCalledTimes(1)
