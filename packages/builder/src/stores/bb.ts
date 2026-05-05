@@ -150,7 +150,7 @@ export class BBStore extends BudiStore<BBState> {
         settings: {
           ...state.settings,
           pendingPath: path,
-          pendingParams: params,
+          pendingParams: undefined,
         },
       }))
       return
