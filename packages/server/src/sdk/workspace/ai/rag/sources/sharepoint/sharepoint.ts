@@ -12,6 +12,8 @@ import {
   DocumentType,
   type FetchAgentKnowledgeSourceEntriesResponse,
   isKnowledgeFileSupported,
+  type KnowledgeBaseFile,
+  type SharePointKnowledgeBaseFileSource,
   type KnowledgeSourceEntry,
   type KnowledgeSourceSyncRun,
   type SyncAgentKnowledgeSourcesResponse,
@@ -141,6 +143,22 @@ const isSharePointPathIncludedByFilters = (
   return matchesConfiguredPatterns(path, patterns)
 }
 
+const isSharePointKnowledgeBaseFile = (
+  file: KnowledgeBaseFile,
+  sourceId: string,
+  siteId: string
+): file is KnowledgeBaseFile & {
+  _id: string
+  source: SharePointKnowledgeBaseFileSource
+} => {
+  return (
+    !!file._id &&
+    file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT &&
+    file.source.knowledgeSourceId === sourceId &&
+    file.source.siteId === siteId
+  )
+}
+
 type SharePointFileMetadataFingerprint = {
   etag?: string
   lastModifiedAt?: string
@@ -154,8 +172,11 @@ const hasSharePointFileMetadataChanged = ({
   local: SharePointFileMetadataFingerprint
   remote: SharePointFileMetadataFingerprint
 }) => {
-  const { etag: localEtag, lastModifiedAt: localLastModifiedAt, remoteSize: localRemoteSize } =
-    local
+  const {
+    etag: localEtag,
+    lastModifiedAt: localLastModifiedAt,
+    remoteSize: localRemoteSize,
+  } = local
   const {
     etag: remoteEtag,
     lastModifiedAt: remoteLastModifiedAt,
@@ -390,12 +411,8 @@ const runSharePointSourcesForAgent = async (
   let deleted = 0
   let deleteFailed = 0
 
-  const existingSourceFiles = existingFiles.filter(
-    file =>
-      file._id &&
-      file.source?.type === KnowledgeBaseFileSourceType.SHAREPOINT &&
-      file.source.knowledgeSourceId === sourceId &&
-      file.source.siteId === siteId
+  const existingSourceFiles = existingFiles.filter(file =>
+    isSharePointKnowledgeBaseFile(file, sourceId, siteId)
   )
   const filteredOutFileIds = existingSourceFiles
     .filter(file => {
