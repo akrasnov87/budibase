@@ -22,8 +22,11 @@ import {
   RequiredKeys,
 } from "@budibase/types"
 import sdk from "../../../sdk"
+
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
+
+const GEMINI_UPSTREAM_EVENT = "ai.gemini.upstream_unavailable"
 
 const normalizeUpload = (fileInput: any) => {
   if (!fileInput) {
@@ -65,12 +68,14 @@ export async function fetchAgentKnowledge(
     sdk.ai.agents.getOrThrow(agentId),
     sdk.ai.rag.fetchKnowledgeSourceSyncStateForAgent(agentId),
   ])
-  const runsBySiteId = new Map(syncState.runs.map(run => [run.sourceId, run]))
+  const runsBySourceId = new Map(syncState.runs.map(run => [run.sourceId, run]))
   const sharePointSources = getSharePointSources(agent)
     .filter(source => source.config.site.id)
     .map<SharePointKnowledgeSourceSnapshot>(source => {
       const site = source.config.site
-      const run = runsBySiteId.get(source.id)
+      // Temporary compatibility for pre-source-id sync state rows keyed by raw site id.
+      // New sync state writes use source.id as the canonical key.
+      const run = runsBySourceId.get(source.id) || runsBySourceId.get(site.id)
       const filesForSource = files.filter(
         file => file.source?.knowledgeSourceId === source.id
       )
@@ -169,6 +174,23 @@ export async function uploadAgentFile(
     ctx.body = { file: updated }
     ctx.status = 201
   } catch (error: any) {
+    const normalizedMessage = String(error?.message || "").toLowerCase()
+    const isGeminiUpstreamUnavailable =
+      error?.status === 503 ||
+      error?.statusCode === 503 ||
+      normalizedMessage.includes("upstream unavailable") ||
+      normalizedMessage.includes("service unavailable")
+
+    if (isGeminiUpstreamUnavailable) {
+      console.error("[AI_UPSTREAM] Gemini unavailable", {
+        event: GEMINI_UPSTREAM_EVENT,
+        provider: "gemini",
+        path: "knowledge_ingest",
+        upstreamStatus: error?.status,
+        agentId,
+        errorMessage: error?.message,
+      })
+    }
     console.error("Failed to upload agent file", error)
     throw new HTTPError(
       error?.message || "Failed to process uploaded file",
