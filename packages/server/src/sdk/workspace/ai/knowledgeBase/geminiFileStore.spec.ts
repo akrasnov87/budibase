@@ -15,6 +15,7 @@ import {
   createGeminiFileStore,
   deleteGeminiFileFromStore,
   ingestGeminiFile,
+  searchGeminiFileStore,
 } from "./geminiFileStore"
 
 interface MockResponse {
@@ -140,6 +141,65 @@ describe("geminiFileStore", () => {
           fileId: "missing-file",
         })
       ).resolves.toBeUndefined()
+    })
+  })
+
+  it("retries transient search failures", async () => {
+    await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
+      mockFetch
+        .mockResolvedValueOnce(
+          response({ ok: false, status: 503, text: "upstream unavailable" })
+        )
+        .mockResolvedValueOnce(
+          response({
+            ok: true,
+            status: 200,
+            json: {
+              data: [
+                {
+                  file_id: "file-1",
+                  filename: "notes.txt",
+                  score: 0.8,
+                  content: [{ type: "text", text: "hello" }],
+                },
+              ],
+            },
+          })
+        )
+
+      const result = await searchGeminiFileStore({
+        vectorStoreId: "vector-store-1",
+        query: "hello",
+      })
+
+      expect(result).toEqual([
+        {
+          file_id: "file-1",
+          filename: "notes.txt",
+          score: 0.8,
+          content: [{ type: "text", text: "hello" }],
+        },
+      ])
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+    })
+  })
+
+  it("does not retry search validation failures", async () => {
+    await withEnv({ GEMINI_API_KEY: "test-gemini-key" }, async () => {
+      mockFetch.mockResolvedValue(
+        response({ ok: false, status: 400, text: "bad request" })
+      )
+
+      await expect(
+        searchGeminiFileStore({
+          vectorStoreId: "vector-store-1",
+          query: "hello",
+        })
+      ).rejects.toMatchObject({
+        status: 400,
+        message: "bad request",
+      })
+      expect(mockFetch).toHaveBeenCalledTimes(1)
     })
   })
 })
