@@ -100,7 +100,9 @@ describe("sharepoint oauth callback", () => {
             token_type: "Bearer",
           })
 
-        const graphPool = installHttpMocking().get("https://graph.microsoft.com")
+        const graphPool = installHttpMocking().get(
+          "https://graph.microsoft.com"
+        )
         graphPool
           .intercept({
             method: "GET",

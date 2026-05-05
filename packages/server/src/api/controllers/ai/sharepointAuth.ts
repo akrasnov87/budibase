@@ -20,7 +20,10 @@ const MICROSOFT_GRAPH_BASE = "https://graph.microsoft.com/v1.0"
 const TOKEN_EXPIRY_BUFFER_SECONDS = 60
 
 export const calculateTokenExpiry = (expiresInSeconds: number) => {
-  const bufferedTtlSeconds = Math.max(expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS, 0)
+  const bufferedTtlSeconds = Math.max(
+    expiresInSeconds - TOKEN_EXPIRY_BUFFER_SECONDS,
+    0
+  )
   return Date.now() + bufferedTtlSeconds * 1000
 }
 
