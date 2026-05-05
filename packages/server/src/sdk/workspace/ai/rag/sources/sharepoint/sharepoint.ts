@@ -361,6 +361,25 @@ const runSharePointSourcesForAgent = async (
     deleteFailed = deleteResults.length - deleted
   }
 
+  const existingSourceExternalIdsByFileId = new Map<string, string>()
+  for (const file of existingSourceFiles) {
+    const fileId = file._id
+    if (!fileId) {
+      continue
+    }
+    existingSourceExternalIdsByFileId.set(
+      fileId,
+      getSharePointFileDedupKey({
+        siteId,
+        driveId: file.source.driveId,
+        itemId: file.source.itemId,
+      })
+    )
+  }
+
+  const discoveredExternalIds = new Set<string>()
+  let discoveryCompleted = false
+
   try {
     const driveIds = await listSharePointDrives(bearerToken, siteId)
     console.log("Fetched SharePoint drives for site", {
@@ -390,6 +409,7 @@ const runSharePointSourcesForAgent = async (
           driveId,
           itemId: file.itemId,
         })
+        discoveredExternalIds.add(externalSourceId)
         if (existingExternalIds.has(externalSourceId)) {
           const existingEntry =
             existingSharePointFilesByExternalId.get(externalSourceId)
@@ -465,6 +485,28 @@ const runSharePointSourcesForAgent = async (
         }
       }
     }
+
+    discoveryCompleted = true
+
+    const staleFileIds = existingSourceFiles
+      .map(file => file._id)
+      .filter((fileId): fileId is string => !!fileId)
+      .filter(fileId => !filteredOutFileIds.includes(fileId))
+      .filter(fileId => {
+        const externalId = existingSourceExternalIdsByFileId.get(fileId)
+        return !!externalId && !discoveredExternalIds.has(externalId)
+      })
+
+    if (staleFileIds.length > 0) {
+      const staleDeleteResults = await Promise.allSettled(
+        staleFileIds.map(fileId => deleteFileForAgent(agentId, fileId))
+      )
+      const staleDeleted = staleDeleteResults.filter(
+        result => result.status === "fulfilled"
+      ).length
+      deleted += staleDeleted
+      deleteFailed += staleDeleteResults.length - staleDeleted
+    }
   } catch (error) {
     console.error("Failed to sync SharePoint site for agent", {
       agentId,
@@ -485,6 +527,7 @@ const runSharePointSourcesForAgent = async (
     console.log("Completed SharePoint site sync for agent", {
       agentId,
       siteId,
+      discoveryCompleted,
       synced,
       deleted,
       deleteFailed,

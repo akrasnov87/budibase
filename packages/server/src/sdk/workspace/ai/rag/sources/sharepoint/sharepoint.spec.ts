@@ -427,6 +427,80 @@ describe("rag/sharepoint sync deduplication", () => {
     })
   })
 
+  it("deletes existing files removed from SharePoint", async () => {
+    const sourceId = "sharepoint_source_1"
+    const siteId = "site-1"
+
+    mockAgentsGetOrThrow.mockResolvedValue(
+      makeSharePointAgent(sourceId, siteId)
+    )
+
+    mockKnowledgeBaseListFiles.mockResolvedValue([
+      makeSharePointFile({
+        id: "existing_keep",
+        sourceId,
+        siteId,
+        driveId: "drive-a",
+        itemId: "item-keep",
+        path: "keep/file.txt",
+      }),
+      makeSharePointFile({
+        id: "existing_removed",
+        sourceId,
+        siteId,
+        driveId: "drive-a",
+        itemId: "item-removed",
+        path: "removed/file.txt",
+      }),
+    ])
+
+    const fetchMock = createFetchMock([
+      {
+        match: `/sites/${encodeURIComponent(siteId)}/drives`,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            value: [{ id: "drive-a" }],
+          }),
+        } as Response,
+      },
+      {
+        match: "/drives/drive-a/root/children",
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            value: [
+              {
+                id: "item-keep",
+                name: "file.txt",
+                file: { mimeType: "text/plain" },
+              },
+            ],
+          }),
+        } as Response,
+      },
+    ])
+
+    const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
+
+    expect(fetchMock).toHaveBeenCalled()
+    expect(mockDeleteFileForAgent).toHaveBeenCalledTimes(1)
+    expect(mockDeleteFileForAgent).toHaveBeenCalledWith(
+      "agent_1",
+      "existing_removed"
+    )
+    expect(result).toMatchObject({
+      synced: 0,
+      alreadySynced: 1,
+      deleted: 1,
+      failed: 0,
+      unsupported: 0,
+      totalDiscovered: 1,
+    })
+  })
+
   it("retries files that previously failed ingestion via queue", async () => {
     const sourceId = "sharepoint_source_1"
     const siteId = "site-1"
