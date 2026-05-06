@@ -40,8 +40,6 @@
     | undefined = undefined
   export let onSelectOption: (_value: V) => void = () => {}
   export let getOptionLabel = (option: O, _index?: number) => `${option}`
-  export let getOptionSearchText = (option: O, index?: number) =>
-    getOptionLabel(option, index)
   export let getOptionValue = (option: O, _index?: number) =>
     option as unknown as V
   export let getOptionIcon = (option: O, _index?: number) =>
@@ -120,7 +118,7 @@
   $: filteredOptions = getFilteredOptions(
     sortedOptions,
     searchTerm,
-    getOptionSearchText
+    getOptionLabel
   )
   $: virtualizationEnabled =
     !wrapText && filteredOptions.length > VIRTUALIZATION_THRESHOLD

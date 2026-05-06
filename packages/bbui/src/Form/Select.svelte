@@ -18,8 +18,6 @@
   export let options: O[] = []
   export let getOptionLabel = (option: O, _index?: number) =>
     extractProperty(option, "label")
-  export let getOptionSearchText = (option: O, index?: number) =>
-    getOptionLabel(option, index)
   export let getOptionValue = (option: O, _index?: number) =>
     extractProperty(option, "value")
   export let getOptionSubtitle = (option: O, _index?: number) =>
@@ -100,7 +98,6 @@
     {align}
     {footer}
     {getOptionLabel}
-    {getOptionSearchText}
     {getOptionValue}
     {getOptionIcon}
     {getOptionColour}

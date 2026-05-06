@@ -2,15 +2,13 @@
   import { createEventDispatcher, tick } from "svelte"
   import { Icon, Select, ActionMenu, MenuItem } from "@budibase/bbui"
   import type { RestTemplate, ImportEndpoint } from "@budibase/types"
-  import type { EndpointDisplayFields } from "@/helpers/restTemplates"
 
-  type EndpointWithIcon = ImportEndpoint &
-    EndpointDisplayFields & {
-      icon?: {
-        component: any
-        props: { verb?: string; color?: string }
-      }
+  type EndpointWithIcon = ImportEndpoint & {
+    icon?: {
+      component: any
+      props: { verb?: string; color?: string }
     }
+  }
 
   export let templates: RestTemplate[] = []
   export let endpointOptions: EndpointWithIcon[] = []
@@ -118,9 +116,7 @@
       value={selectedEndpoint}
       options={endpointOptions}
       getOptionValue={endpoint => endpoint}
-      getOptionLabel={endpoint => endpoint.displayName || endpoint.name}
-      getOptionSearchText={endpoint =>
-        endpoint.searchText || endpoint.displayName || endpoint.name}
+      getOptionLabel={endpoint => endpoint.name}
       compare={compareEndpoints}
       disabled={endpointsLoading ||
         disabled ||
