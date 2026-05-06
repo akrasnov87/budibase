@@ -1,5 +1,5 @@
 import { DerivedBudiStore } from "../BudiStore"
-import { Datasource, OAuth2RestAuthConfig } from "@budibase/types"
+import { Datasource, OAuth2RestAuthConfig, RestAuthType } from "@budibase/types"
 import { derived, get, Writable } from "svelte/store"
 import { datasources } from "../builder/datasources"
 
@@ -28,15 +28,17 @@ class KnowledgeConnectionsStore extends DerivedBudiStore<
         const connections = list.flatMap(datasource => {
           const authConfigs = (datasource.config?.authConfigs ||
             []) as OAuth2RestAuthConfig[]
-          return authConfigs.map(config => ({
-            _id: `${datasource._id}:${config._id}`,
-            datasourceId: datasource._id!,
-            authConfigId: config._id,
-            sourceType: "sharepoint" as const,
-            authType: "client_credentials" as const,
-            datasourceName: datasource.name || "Datasource",
-            authConfigName: config.name || "OAuth2 config",
-          }))
+          return authConfigs
+            .filter(config => config.type === RestAuthType.OAUTH2)
+            .map(config => ({
+              _id: `${datasource._id}:${config._id}`,
+              datasourceId: datasource._id!,
+              authConfigId: config._id,
+              sourceType: "sharepoint" as const,
+              authType: "client_credentials" as const,
+              datasourceName: datasource.name || "Datasource",
+              authConfigName: config.name || "OAuth2 config",
+            }))
         })
         return { connections }
       })
