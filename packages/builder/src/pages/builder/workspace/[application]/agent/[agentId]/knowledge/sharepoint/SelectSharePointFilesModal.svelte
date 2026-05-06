@@ -104,6 +104,22 @@
     }
   }
 
+  const rehydrateSelectedEntryPaths = () => {
+    const selectablePathSet = new Set(selectablePaths)
+    selectedEntryPaths = rehydrateFromPatterns(
+      initialPatterns,
+      selectablePaths
+    ).filter(path => selectablePathSet.has(path))
+  }
+
+  const retryLoadAllEntries = async () => {
+    const loaded = await loadAllEntries()
+    if (!loaded) {
+      return
+    }
+    rehydrateSelectedEntryPaths()
+  }
+
   export async function show() {
     selectedEntryPaths = []
     loadEntriesError = null
@@ -114,12 +130,7 @@
       modal?.show()
       return
     }
-
-    const selectablePathSet = new Set(selectablePaths)
-    selectedEntryPaths = rehydrateFromPatterns(
-      initialPatterns,
-      selectablePaths
-    ).filter(path => selectablePathSet.has(path))
+    rehydrateSelectedEntryPaths()
 
     modal?.show()
   }
@@ -215,7 +226,7 @@
     {:else if loadEntriesError}
       <div class="load-error">
         <Body size="S">{loadEntriesError}</Body>
-        <ActionButton quiet icon="refresh" on:click={loadAllEntries}
+        <ActionButton quiet icon="refresh" on:click={retryLoadAllEntries}
           >Retry</ActionButton
         >
       </div>
