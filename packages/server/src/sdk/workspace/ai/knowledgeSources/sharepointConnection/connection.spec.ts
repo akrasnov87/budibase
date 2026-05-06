@@ -79,7 +79,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
           },
         ],
       }),
-    } as Response)
+    } as unknown as Response)
 
     const sites = await fetchSharePointSitesByBearerToken(bearerToken)
 
@@ -135,7 +135,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
             },
           ],
         }),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         json: async () => ({
@@ -165,7 +165,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
             },
           ],
         }),
-      } as Response)
+      } as unknown as Response)
 
     const sites = await fetchSharePointSitesByBearerToken(bearerToken)
 
@@ -228,7 +228,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
       ok: false,
       status: 403,
       json: async () => ({}),
-    } as Response)
+    } as unknown as Response)
 
     await expect(
       fetchSharePointSitesByBearerToken(bearerToken)
@@ -249,7 +249,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
         status: 429,
         headers: { get: () => null },
         json: async () => ({}),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -274,7 +274,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
             },
           ],
         }),
-      } as Response)
+      } as unknown as Response)
 
     const sites = await fetchSharePointSitesByBearerToken(bearerToken)
 
@@ -299,7 +299,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
           get: (name: string) => (name === "Retry-After" ? "2" : null),
         },
         json: async () => ({}),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -316,7 +316,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
             },
           ],
         }),
-      } as Response)
+      } as unknown as Response)
 
     await fetchSharePointSitesByBearerToken(bearerToken)
 
@@ -346,13 +346,13 @@ describe("SharePoint listing retries", () => {
         status: 429,
         headers: { get: () => null },
         json: async () => ({}),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: { get: () => null },
         json: async () => ({ value: [{ id: "drive-1" }] }),
-      } as Response)
+      } as unknown as Response)
 
     const drives = await listSharePointDrives(bearerToken, "site-1")
 
@@ -366,7 +366,7 @@ describe("SharePoint listing retries", () => {
       status: 403,
       headers: { get: () => null },
       json: async () => ({}),
-    } as Response)
+    } as unknown as Response)
 
     await expect(listSharePointDrives(bearerToken, "site-1")).rejects.toEqual(
       expect.objectContaining({
@@ -389,13 +389,13 @@ describe("SharePoint listing retries", () => {
           get: (name: string) => (name === "Retry-After" ? "2" : null),
         },
         json: async () => ({}),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
         headers: { get: () => null },
         json: async () => ({ value: [{ id: "drive-1" }] }),
-      } as Response)
+      } as unknown as Response)
 
     await listSharePointDrives(bearerToken, "site-1")
 
@@ -417,7 +417,7 @@ describe("SharePoint listing retries", () => {
         status: 503,
         headers: { get: () => null },
         json: async () => ({}),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -433,7 +433,7 @@ describe("SharePoint listing retries", () => {
           "@odata.nextLink":
             "https://graph.microsoft.com/v1.0/drives/drive-1/root/children?$skiptoken=abc",
         }),
-      } as Response)
+      } as unknown as Response)
       .mockResolvedValueOnce({
         ok: true,
         status: 200,
@@ -447,7 +447,7 @@ describe("SharePoint listing retries", () => {
             },
           ],
         }),
-      } as Response)
+      } as unknown as Response)
 
     const files = await collectSharePointFilesRecursive(bearerToken, "drive-1")
 
