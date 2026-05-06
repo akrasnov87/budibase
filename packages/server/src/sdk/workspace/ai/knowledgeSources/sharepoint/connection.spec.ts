@@ -2,6 +2,8 @@ import {
   fetchSharePointSitesByDatasourceAuthConfig,
   isAllowedSharePointNextLink,
 } from "./connection"
+import { type Datasource, RestAuthType } from "@budibase/types"
+import sdk from "../../../.."
 
 describe("isAllowedSharePointNextLink", () => {
   it("accepts Graph v1.0 root and nested paths", () => {
@@ -48,12 +50,39 @@ describe("isAllowedSharePointNextLink", () => {
 
 describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
   const bearerToken = "Bearer token"
+  const datasourceId = "datasource_1"
+  const authConfigId = "auth_1"
+
+  const mockDatasource = () => {
+    const datasource = {
+      _id: datasourceId,
+      type: "datasource",
+      source: "REST",
+      config: {
+        authConfigs: [
+          {
+            _id: authConfigId,
+            type: RestAuthType.OAUTH2,
+            url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            clientId: "client-id",
+            clientSecret: "secret",
+            accessToken: "token",
+            tokenType: "Bearer",
+            expiresAt: Date.now() + 60_000,
+          },
+        ],
+      },
+    } as Datasource
+
+    jest.spyOn(sdk.datasources, "get").mockResolvedValue(datasource)
+  }
 
   afterEach(() => {
     jest.restoreAllMocks()
   })
 
   it("uses Graph search query and maps displayName with webUrl", async () => {
+    mockDatasource()
     const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -69,8 +98,8 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
     } as Response)
 
     const sites = await fetchSharePointSitesByDatasourceAuthConfig(
-      "datasource_1",
-      "auth_1"
+      datasourceId,
+      authConfigId
     )
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -92,6 +121,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
   })
 
   it("paginates and deduplicates by site id", async () => {
+    mockDatasource()
     const fetchMock = jest
       .spyOn(globalThis, "fetch")
       .mockResolvedValueOnce({
@@ -132,8 +162,8 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
       } as Response)
 
     const sites = await fetchSharePointSitesByDatasourceAuthConfig(
-      "datasource_1",
-      "auth_1"
+      datasourceId,
+      authConfigId
     )
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
@@ -171,6 +201,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
   })
 
   it("throws access denied error for 403", async () => {
+    mockDatasource()
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       status: 403,
@@ -178,17 +209,18 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig(datasourceId, authConfigId)
     ).rejects.toEqual(
       expect.objectContaining({
         message:
-          "Access denied by Microsoft Graph. Ensure delegated SharePoint permissions are granted.",
+          "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted.",
         status: 400,
       })
     )
   })
 
   it("throws authentication failed error for 401", async () => {
+    mockDatasource()
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       status: 401,
@@ -196,11 +228,11 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig(datasourceId, authConfigId)
     ).rejects.toEqual(
       expect.objectContaining({
         message:
-          "Authentication failed with Microsoft Graph. Reconnect SharePoint and try again.",
+          "Authentication failed with Microsoft Graph. Verify SharePoint application credentials and try again.",
         status: 400,
       })
     )
@@ -208,12 +240,40 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
 })
 
 describe("fetchSharePointSitesByDatasourceAuthConfig", () => {
+  const datasourceId = "datasource_1"
+  const authConfigId = "auth_1"
+
+  const mockDatasource = () => {
+    const datasource = {
+      _id: datasourceId,
+      type: "datasource",
+      source: "REST",
+      config: {
+        authConfigs: [
+          {
+            _id: authConfigId,
+            type: RestAuthType.OAUTH2,
+            url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            clientId: "client-id",
+            clientSecret: "secret",
+            accessToken: "token",
+            tokenType: "Bearer",
+            expiresAt: Date.now() + 60_000,
+          },
+        ],
+      },
+    } as Datasource
+
+    jest.spyOn(sdk.datasources, "get").mockResolvedValue(datasource)
+  }
+
   afterEach(() => {
     jest.restoreAllMocks()
     jest.clearAllMocks()
   })
 
   it("uses app-permission guidance for client credentials 403", async () => {
+    mockDatasource()
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       status: 403,
@@ -221,7 +281,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig(datasourceId, authConfigId)
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -231,6 +291,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig", () => {
   })
 
   it("uses credential guidance for client credentials 401", async () => {
+    mockDatasource()
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       status: 401,
@@ -238,7 +299,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig(datasourceId, authConfigId)
     ).rejects.toEqual(
       expect.objectContaining({
         message:
