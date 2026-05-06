@@ -51,6 +51,6 @@
   .action {
     min-width: 100%;
     display: flex;
-    justify-content: center;
+    justify-content: end;
   }
 </style>
