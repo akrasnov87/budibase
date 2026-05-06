@@ -4,6 +4,7 @@ import {
   KnowledgeSourceOption,
   OAuth2RestAuthConfig,
   RestAuthType,
+  isOAuth2ClientCredentialsAuthConfig,
 } from "@budibase/types"
 import sdk from "../../../.."
 
@@ -59,8 +60,11 @@ const readConnection = async (
   if (!authConfig) {
     throw new HTTPError("SharePoint auth config not found.", 400)
   }
-  if (authConfig.type !== RestAuthType.OAUTH2) {
-    throw new HTTPError("SharePoint requires an OAuth2 auth config.", 400)
+  if (!isOAuth2ClientCredentialsAuthConfig(authConfig)) {
+    throw new HTTPError(
+      "SharePoint requires an OAuth2 client credentials auth config.",
+      400
+    )
   }
   if (!authConfig.url || !authConfig.clientId) {
     throw new HTTPError(

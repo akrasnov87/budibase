@@ -1,4 +1,8 @@
-import { type Datasource, RestAuthType } from "@budibase/types"
+import {
+  type Datasource,
+  OAuth2GrantType,
+  RestAuthType,
+} from "@budibase/types"
 import { fetchSharePointSitesByDatasourceAuthConfig } from "./connection"
 import sdk from "../../../.."
 
@@ -24,6 +28,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () =
             url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
             clientId: "client-id",
             clientSecret: "secret",
+            grantType: OAuth2GrantType.CLIENT_CREDENTIALS,
             accessToken: "token",
             tokenType: "Bearer",
             expiresAt: Date.now() + 60_000,

@@ -1,5 +1,9 @@
 import { DerivedBudiStore } from "../BudiStore"
-import { Datasource, OAuth2RestAuthConfig, RestAuthType } from "@budibase/types"
+import {
+  Datasource,
+  OAuth2RestAuthConfig,
+  isOAuth2ClientCredentialsAuthConfig,
+} from "@budibase/types"
 import { derived, Writable } from "svelte/store"
 import { datasources } from "../builder/datasources"
 
@@ -29,7 +33,7 @@ class KnowledgeConnectionsStore extends DerivedBudiStore<
           const authConfigs = (datasource.config?.authConfigs ||
             []) as OAuth2RestAuthConfig[]
           return authConfigs
-            .filter(config => config.type === RestAuthType.OAUTH2)
+            .filter(config => isOAuth2ClientCredentialsAuthConfig(config))
             .map(config => ({
               _id: `${datasource._id}:${config._id}`,
               datasourceId: datasource._id!,
