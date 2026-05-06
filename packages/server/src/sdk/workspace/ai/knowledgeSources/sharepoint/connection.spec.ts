@@ -1,18 +1,7 @@
 import {
   fetchSharePointSitesByConnection,
-  fetchSharePointSitesByBearerToken,
   isAllowedSharePointNextLink,
 } from "./connection"
-
-const mockGetKnowledgeSourceConnection = jest.fn()
-const mockUpdateKnowledgeSourceConnection = jest.fn()
-
-jest.mock("..", () => ({
-  getKnowledgeSourceConnection: (...args: any[]) =>
-    mockGetKnowledgeSourceConnection(...args),
-  updateKnowledgeSourceConnection: (...args: any[]) =>
-    mockUpdateKnowledgeSourceConnection(...args),
-}))
 
 describe("isAllowedSharePointNextLink", () => {
   it("accepts Graph v1.0 root and nested paths", () => {
@@ -57,7 +46,7 @@ describe("isAllowedSharePointNextLink", () => {
   })
 })
 
-describe("fetchSharePointSitesByBearerToken", () => {
+describe("fetchSharePointSitesByConnection (token-backed)", () => {
   const bearerToken = "Bearer token"
 
   afterEach(() => {
@@ -79,7 +68,10 @@ describe("fetchSharePointSitesByBearerToken", () => {
       }),
     } as Response)
 
-    const sites = await fetchSharePointSitesByBearerToken(bearerToken)
+    const sites = await fetchSharePointSitesByConnection(
+      "datasource_1",
+      "auth_1"
+    )
 
     expect(fetchMock).toHaveBeenCalledWith(
       expect.stringContaining("https://graph.microsoft.com/v1.0/sites?"),
@@ -139,7 +131,10 @@ describe("fetchSharePointSitesByBearerToken", () => {
         }),
       } as Response)
 
-    const sites = await fetchSharePointSitesByBearerToken(bearerToken)
+    const sites = await fetchSharePointSitesByConnection(
+      "datasource_1",
+      "auth_1"
+    )
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock).toHaveBeenNthCalledWith(
@@ -183,7 +178,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByBearerToken(bearerToken)
+      fetchSharePointSitesByConnection("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -201,7 +196,7 @@ describe("fetchSharePointSitesByBearerToken", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByBearerToken(bearerToken)
+      fetchSharePointSitesByConnection("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -219,19 +214,6 @@ describe("fetchSharePointSitesByConnection", () => {
   })
 
   it("uses app-permission guidance for client credentials 403", async () => {
-    mockGetKnowledgeSourceConnection.mockResolvedValue({
-      _id: "agentknowledgeconn_1",
-      sourceType: "sharepoint",
-      authType: "client_credentials",
-      account: "acct",
-      tokenEndpoint:
-        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-      clientId: "client-id",
-      clientSecret: "secret",
-      tokenType: "Bearer",
-      accessToken: "token",
-      expiresAt: Date.now() + 60_000,
-    })
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       status: 403,
@@ -249,19 +231,6 @@ describe("fetchSharePointSitesByConnection", () => {
   })
 
   it("uses credential guidance for client credentials 401", async () => {
-    mockGetKnowledgeSourceConnection.mockResolvedValue({
-      _id: "agentknowledgeconn_1",
-      sourceType: "sharepoint",
-      authType: "client_credentials",
-      account: "acct",
-      tokenEndpoint:
-        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-      clientId: "client-id",
-      clientSecret: "secret",
-      tokenType: "Bearer",
-      accessToken: "token",
-      expiresAt: Date.now() + 60_000,
-    })
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: false,
       status: 401,

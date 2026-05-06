@@ -4,16 +4,13 @@ import { mocks, utils } from "@budibase/backend-core/tests"
 import type { MockAgent } from "undici"
 import {
   type Agent,
-  AgentKnowledgeSourceConnectionAuthType,
   AgentKnowledgeSourceType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
-  PASSWORD_REPLACEMENT,
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
 import * as knowledgeSourceSyncQueue from "../../../../sdk/workspace/ai/rag/sources/knowledgeSourceSyncQueue"
-import { createKnowledgeSourceConnection } from "../../../../sdk/workspace/ai/knowledgeSources"
 import { installHttpMocking, resetHttpMocking } from "../../../../tests/jestEnv"
 import TestConfiguration from "../../../../tests/utilities/TestConfiguration"
 
@@ -109,7 +106,8 @@ describe("agent files", () => {
   const setSharePointSourceInAgent = async (
     agentId: string,
     siteIds: string[],
-    connectionId = "connection_1"
+    datasourceId = "datasource_1",
+    authConfigId = "auth_1"
   ) => {
     await config.doInContext(config.getDevWorkspaceId(), async () => {
       const db = context.getWorkspaceDB()
@@ -120,7 +118,8 @@ describe("agent files", () => {
           id: `sharepoint_site_${siteId}`,
           type: AgentKnowledgeSourceType.SHAREPOINT,
           config: {
-            connectionId,
+            datasourceId,
+            authConfigId,
             site: { id: siteId },
           },
         })),
@@ -129,22 +128,7 @@ describe("agent files", () => {
   }
 
   const setSharePointConnection = async (_agentId: string) => {
-    return await config.doInContext(config.getDevWorkspaceId(), async () => {
-      const connection = await createKnowledgeSourceConnection({
-        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
-        account: "connected-sharepoint@budibase.com",
-        tokenEndpoint:
-          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        accessToken: "header.payload.signature",
-        refreshToken: "refresh-token",
-        tokenType: "Bearer",
-        expiresAt: Date.now() + 60_000,
-        clientId: "client-id",
-        clientSecret: "client-secret",
-      })
-      return connection._id!
-    })
+    return { datasourceId: "datasource_1", authConfigId: "auth_1" }
   }
 
   const mockSharePointSitesFetch = (
@@ -264,7 +248,11 @@ describe("agent files", () => {
 
       await config.api.agent.connectSharePointSite(
         created._id!,
-        { siteId: "site-1", datasourceId: "datasource-1", authConfigId: "auth-1" },
+        {
+          siteId: "site-1",
+          datasourceId: "datasource-1",
+          authConfigId: "auth-1",
+        },
         {
           status: 400,
           body: {
@@ -281,11 +269,13 @@ describe("agent files", () => {
         name: "SharePoint Sites Agent",
         aiconfig: "default",
       })
-      const connectionId = await setSharePointConnection(created._id!)
+      const connection = await setSharePointConnection(created._id!)
       mockSharePointSitesFetch([], 1)
 
-      const response =
-        await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
+      const response = await config.api.agent.fetchKnowledgeSourceOptions(
+        connection.datasourceId,
+        connection.authConfigId
+      )
 
       expect(response.options).toEqual([])
     })
@@ -297,11 +287,13 @@ describe("agent files", () => {
         name: "SharePoint Options Shape Agent",
         aiconfig: "default",
       })
-      const connectionId = await setSharePointConnection(created._id!)
+      const connection = await setSharePointConnection(created._id!)
       mockSharePointSitesFetch([], 1)
 
-      const response =
-        await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
+      const response = await config.api.agent.fetchKnowledgeSourceOptions(
+        connection.datasourceId,
+        connection.authConfigId
+      )
 
       expect(response).not.toHaveProperty("runs")
     })
@@ -419,7 +411,7 @@ describe("agent files", () => {
         aiconfig: "default",
       })
 
-      const connectionId = await setSharePointConnection(created._id!)
+      const connection = await setSharePointConnection(created._id!)
       mockSharePointSitesFetch(
         [
           {
@@ -432,8 +424,10 @@ describe("agent files", () => {
         1
       )
 
-      const response =
-        await config.api.agent.fetchKnowledgeSourceOptions(connectionId)
+      const response = await config.api.agent.fetchKnowledgeSourceOptions(
+        connection.datasourceId,
+        connection.authConfigId
+      )
 
       expect(response.options).toEqual([
         {
@@ -528,163 +522,6 @@ describe("agent files", () => {
       expect(response.sharePointSources).toHaveLength(1)
       expect(response.sharePointSources[0].sourceId).toBe(sourceId)
       expect(response.sharePointSources[0].lastRunAt).toBe(nowIso)
-    })
-  })
-
-  it("returns token endpoint, scope, client id and masked secret for knowledge source connections", async () => {
-    await withRagEnabled(async () => {
-      const created = await config.api.agent.create({
-        name: "SharePoint Connection Metadata Agent",
-        aiconfig: "default",
-      })
-      const connectionId = await setSharePointConnection(created._id!)
-
-      const response = await config.api.agent.fetchKnowledgeSourceConnections()
-      const connection = response.connections.find(c => c._id === connectionId)
-
-      expect(connection).toBeDefined()
-      expect(connection).toMatchObject({
-        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
-        tokenEndpoint:
-          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        clientId: "client-id",
-        clientSecret: PASSWORD_REPLACEMENT,
-      })
-    })
-  })
-
-  it("preserves stored clientSecret when updating with PASSWORD_REPLACEMENT", async () => {
-    await withRagEnabled(async () => {
-      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_token: "ok" }),
-      } as Response)
-
-      const connection = await config.doInContext(
-        config.getDevWorkspaceId(),
-        async () =>
-          await createKnowledgeSourceConnection({
-            sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-            authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-            account: "client-credentials-account",
-            tokenEndpoint:
-              "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-            clientId: "client-id",
-            clientSecret: "client-secret",
-            scope: "https://graph.microsoft.com/.default",
-          })
-      )
-      const connectionId = connection._id!
-
-      await config.api.agent.updateKnowledgeSourceConnection(connectionId, {
-        account: "client-credentials-account",
-        tokenEndpoint:
-          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        clientId: "client-id",
-        clientSecret: PASSWORD_REPLACEMENT,
-        scope: "https://graph.microsoft.com/.default",
-      })
-
-      expect(fetchSpy).toHaveBeenCalled()
-      const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
-        ?.body as URLSearchParams
-      expect(body.get("client_secret")).toBe("client-secret")
-    })
-  })
-
-  it("resolves env variables when validating a client credentials connection", async () => {
-    mocks.licenses.useEnvironmentVariables()
-    await withRagEnabled(async () => {
-      await config.api.environment.create({
-        name: "sp_client_id",
-        production: "prod-client-id",
-        development: "dev-client-id",
-      })
-      await config.api.environment.create({
-        name: "sp_client_secret",
-        production: "prod-client-secret",
-        development: "dev-client-secret",
-      })
-      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_token: "ok" }),
-      } as Response)
-
-      await config.api.agent.validateKnowledgeSourceConnection({
-        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-        tokenEndpoint:
-          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        clientId: "{{ env.sp_client_id }}",
-        clientSecret: "{{ env.sp_client_secret }}",
-        scope: "https://graph.microsoft.com/.default",
-      })
-
-      const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
-        ?.body as URLSearchParams
-      expect(body.get("client_id")).toBe("dev-client-id")
-      expect(body.get("client_secret")).toBe("dev-client-secret")
-    })
-  })
-
-  it("resolves env variables when creating a client credentials connection", async () => {
-    mocks.licenses.useEnvironmentVariables()
-    await withRagEnabled(async () => {
-      await config.api.environment.create({
-        name: "sp_create_client_id",
-        production: "prod-create-client-id",
-        development: "dev-create-client-id",
-      })
-      await config.api.environment.create({
-        name: "sp_create_client_secret",
-        production: "prod-create-client-secret",
-        development: "dev-create-client-secret",
-      })
-      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
-        ok: true,
-        status: 200,
-        json: async () => ({ access_token: "ok" }),
-      } as Response)
-
-      await config.api.agent.createKnowledgeSourceConnection({
-        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-        account: "create-with-env",
-        tokenEndpoint:
-          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-        clientId: "{{ env.sp_create_client_id }}",
-        clientSecret: "{{ env.sp_create_client_secret }}",
-        scope: "https://graph.microsoft.com/.default",
-      })
-
-      const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
-        ?.body as URLSearchParams
-      expect(body.get("client_id")).toBe("dev-create-client-id")
-      expect(body.get("client_secret")).toBe("dev-create-client-secret")
-    })
-  })
-
-  it("rejects non-https token endpoint during connection validation", async () => {
-    await withRagEnabled(async () => {
-      await config.api.agent.validateKnowledgeSourceConnection(
-        {
-          sourceType: AgentKnowledgeSourceType.SHAREPOINT,
-          authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-          tokenEndpoint: "http://localhost:4001/token",
-          clientId: "client-id",
-          clientSecret: "client-secret",
-          scope: "https://graph.microsoft.com/.default",
-        },
-        {
-          status: 400,
-          body: {
-            message: "tokenEndpoint must use HTTPS",
-          },
-        }
-      )
     })
   })
 })

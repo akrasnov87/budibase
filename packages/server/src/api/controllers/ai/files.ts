@@ -1,7 +1,6 @@
 import { readFile, unlink } from "node:fs/promises"
-import { encryption, HTTPError } from "@budibase/backend-core"
+import { HTTPError } from "@budibase/backend-core"
 import {
-  AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
   AgentFileUploadResponse,
   ConnectAgentSharePointSiteRequest,
@@ -13,37 +12,17 @@ import {
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
-  FetchAgentKnowledgeSourceConnectionsResponse,
-  CreateAgentKnowledgeSourceConnectionRequest,
-  CreateAgentKnowledgeSourceConnectionResponse,
-  AgentKnowledgeSourceConnectionAuthType,
-  ValidateAgentKnowledgeSourceConnectionRequest,
-  ValidateAgentKnowledgeSourceConnectionResponse,
-  UpdateAgentKnowledgeSourceConnectionRequest,
-  UpdateAgentKnowledgeSourceConnectionResponse,
   isKnowledgeFileSupported,
   SyncAgentKnowledgeSourcesRequest,
   SyncAgentKnowledgeSourcesResponse,
   UserCtx,
   KnowledgeBaseFileStatus,
-  PASSWORD_REPLACEMENT,
 } from "@budibase/types"
 import sdk from "../../../sdk"
-import { processEnvironmentVariable } from "../../../sdk/utils"
-
-import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
+import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepoint"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
 
 const GEMINI_UPSTREAM_EVENT = "ai.gemini.upstream_unavailable"
-
-const encryptSecret = (value: string) => encryption.encrypt(value)
-const decryptSecretOrPlaintext = (value: string) => {
-  try {
-    return encryption.decrypt(value)
-  } catch {
-    return value
-  }
-}
 
 const normalizeUpload = (fileInput: any) => {
   if (!fileInput) {
@@ -78,69 +57,6 @@ const fetchSharePointOptionsForConnection = async (
     authConfigId
   )
   return { options }
-}
-
-const ALLOWED_MICROSOFT_TOKEN_ENDPOINT_HOSTS = new Set([
-  "login.microsoftonline.com",
-  "login.microsoft.com",
-  "sts.windows.net",
-])
-
-const validateSharePointTokenEndpoint = (tokenEndpoint: string) => {
-  let parsed: URL
-  try {
-    parsed = new URL(tokenEndpoint)
-  } catch {
-    throw new HTTPError("Invalid tokenEndpoint URL", 400)
-  }
-
-  if (parsed.protocol !== "https:") {
-    throw new HTTPError("tokenEndpoint must use HTTPS", 400)
-  }
-  if (!ALLOWED_MICROSOFT_TOKEN_ENDPOINT_HOSTS.has(parsed.hostname)) {
-    throw new HTTPError("tokenEndpoint host is not allowed", 400)
-  }
-}
-
-const validateKnowledgeConnectionCredentials = async ({
-  tokenEndpoint,
-  clientId,
-  clientSecret,
-  scope,
-}: Pick<
-  ValidateAgentKnowledgeSourceConnectionRequest,
-  "tokenEndpoint" | "clientId" | "clientSecret" | "scope"
->) => {
-  const resolvedClientId = await processEnvironmentVariable(clientId)
-  const resolvedClientSecret = await processEnvironmentVariable(clientSecret)
-  const resolvedScope = await processEnvironmentVariable(scope)
-
-  validateSharePointTokenEndpoint(tokenEndpoint)
-  const response = await fetch(tokenEndpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: resolvedClientId,
-      client_secret: resolvedClientSecret,
-      grant_type: "client_credentials",
-      scope:
-        (typeof resolvedScope === "string" ? resolvedScope : scope)?.trim() ||
-        "https://graph.microsoft.com/.default",
-    }),
-  })
-  const payload = await response.json()
-  if (!response.ok) {
-    const description =
-      typeof payload?.error_description === "string"
-        ? payload.error_description
-        : ""
-    const message =
-      description ||
-      "Failed to validate SharePoint credentials against Microsoft token endpoint"
-    throw new HTTPError(message, 400)
-  }
 }
 
 export async function fetchAgentKnowledge(
@@ -192,178 +108,6 @@ export async function fetchAgentKnowledge(
     files,
     sharePointSources,
   }
-  ctx.status = 200
-}
-
-export async function fetchAgentKnowledgeSourceConnections(
-  ctx: UserCtx<void, FetchAgentKnowledgeSourceConnectionsResponse>
-) {
-  const connections =
-    await sdk.ai.knowledgeSources.listKnowledgeSourceConnections()
-  ctx.body = {
-    connections: connections.map(connection => ({
-      _id: connection._id,
-      _rev: connection._rev,
-      createdAt: connection.createdAt,
-      updatedAt: connection.updatedAt,
-      sourceType: connection.sourceType,
-      authType: connection.authType,
-      account: connection.account,
-      tokenEndpoint: connection.tokenEndpoint,
-      scope: connection.scope,
-      clientId: connection.clientId,
-      clientSecret: connection.clientSecret ? PASSWORD_REPLACEMENT : "",
-    })),
-  }
-  ctx.status = 200
-}
-
-export async function createAgentKnowledgeSourceConnection(
-  ctx: UserCtx<
-    CreateAgentKnowledgeSourceConnectionRequest,
-    CreateAgentKnowledgeSourceConnectionResponse
-  >
-) {
-  const {
-    sourceType,
-    authType,
-    account,
-    tokenEndpoint,
-    clientId,
-    clientSecret,
-    scope,
-  } = ctx.request.body
-  if (authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS) {
-    await validateKnowledgeConnectionCredentials({
-      tokenEndpoint,
-      clientId,
-      clientSecret,
-      scope,
-    })
-  } else {
-    throw new HTTPError(
-      "Delegated OAuth connections must be created via the SharePoint connect flow",
-      400
-    )
-  }
-  const connectionInput: Omit<
-    AgentKnowledgeSourceConnection,
-    "_id" | "_rev" | "createdAt" | "updatedAt"
-  > = {
-    sourceType,
-    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-    account,
-    tokenEndpoint,
-    clientId,
-    clientSecret: encryptSecret(clientSecret),
-    ...(scope?.trim() ? { scope: scope.trim() } : {}),
-  }
-
-  const connection =
-    await sdk.ai.knowledgeSources.createKnowledgeSourceConnection(
-      connectionInput
-    )
-
-  ctx.body = {
-    connection: {
-      _id: connection._id,
-      _rev: connection._rev,
-      authType: connection.authType,
-      createdAt: connection.createdAt,
-      updatedAt: connection.updatedAt,
-      sourceType: connection.sourceType,
-      account: connection.account,
-    },
-  }
-  ctx.status = 201
-}
-
-export async function updateAgentKnowledgeSourceConnection(
-  ctx: UserCtx<
-    UpdateAgentKnowledgeSourceConnectionRequest,
-    UpdateAgentKnowledgeSourceConnectionResponse,
-    { connectionId: string }
-  >
-) {
-  const { connectionId } = ctx.params
-  const { account, tokenEndpoint, clientId, clientSecret, scope } =
-    ctx.request.body
-  const existingConnection =
-    await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(connectionId)
-  if (!existingConnection?._id) {
-    throw new HTTPError("Knowledge connection not found", 404)
-  }
-  if (
-    existingConnection.authType ===
-    AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-  ) {
-    throw new HTTPError(
-      "OAuth delegated connections cannot be edited. Reconnect instead.",
-      400
-    )
-  }
-  const resolvedClientSecret =
-    clientSecret === PASSWORD_REPLACEMENT
-      ? decryptSecretOrPlaintext(existingConnection.clientSecret)
-      : clientSecret
-
-  await validateKnowledgeConnectionCredentials({
-    tokenEndpoint,
-    clientId,
-    clientSecret: resolvedClientSecret,
-    scope,
-  })
-  const connection =
-    await sdk.ai.knowledgeSources.updateKnowledgeSourceConnection(
-      connectionId,
-      {
-        account,
-        tokenEndpoint,
-        clientId,
-        clientSecret: encryptSecret(resolvedClientSecret),
-        scope: scope?.trim() || undefined,
-        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-        // Force token refresh after credential updates.
-        accessToken: undefined,
-        tokenType: undefined,
-        expiresAt: undefined,
-      }
-    )
-  if (!connection?._id) {
-    throw new HTTPError("Knowledge connection not found", 404)
-  }
-  ctx.body = {
-    connection: {
-      _id: connection._id,
-      _rev: connection._rev,
-      createdAt: connection.createdAt,
-      updatedAt: connection.updatedAt,
-      sourceType: connection.sourceType,
-      authType: connection.authType,
-      account: connection.account,
-    },
-  }
-  ctx.status = 200
-}
-
-export async function validateAgentKnowledgeSourceConnection(
-  ctx: UserCtx<
-    ValidateAgentKnowledgeSourceConnectionRequest,
-    ValidateAgentKnowledgeSourceConnectionResponse
-  >
-) {
-  const { authType, tokenEndpoint, clientId, clientSecret, scope } =
-    ctx.request.body
-  if (authType !== AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS) {
-    throw new HTTPError("Only client credentials can be validated", 400)
-  }
-  await validateKnowledgeConnectionCredentials({
-    tokenEndpoint,
-    clientId,
-    clientSecret,
-    scope,
-  })
-  ctx.body = { valid: true }
   ctx.status = 200
 }
 

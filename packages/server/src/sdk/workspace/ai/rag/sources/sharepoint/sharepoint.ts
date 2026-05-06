@@ -27,7 +27,7 @@ import {
   downloadSharePointFileBuffer,
   getSharePointBearerToken,
   listSharePointDrives,
-} from "../../../knowledgeSources/sharepointConnection"
+} from "../../../knowledgeSources/sharepoint"
 import {
   deleteFileForAgent,
   ensureKnowledgeBaseForAgent,

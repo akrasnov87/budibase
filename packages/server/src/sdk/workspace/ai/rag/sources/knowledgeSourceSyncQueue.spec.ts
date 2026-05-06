@@ -299,7 +299,7 @@ describe("knowledgeSourceSyncQueue", () => {
                 type: AgentKnowledgeSourceType.SHAREPOINT,
                 config: {
                   datasourceId: "datasource_1",
-            authConfigId: "auth_1",
+                  authConfigId: "auth_1",
                   site: { id: "site_1" },
                 },
               },

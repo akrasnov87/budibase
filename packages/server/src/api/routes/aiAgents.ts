@@ -8,7 +8,6 @@ import {
 } from "./endpointGroups"
 import {
   connectAgentSharePointSiteValidator,
-  createAgentKnowledgeSourceConnectionValidator,
   createAgentValidator,
   provisionAgentSlackChannelValidator,
   provisionAgentMSTeamsChannelValidator,
@@ -19,8 +18,6 @@ import {
   toggleAgentSlackDeploymentValidator,
   updateAgentSharePointSiteValidator,
   updateAgentValidator,
-  updateAgentKnowledgeSourceConnectionValidator,
-  validateAgentKnowledgeSourceConnectionValidator,
 } from "./utils/validators/agent"
 
 builderAdminRoutes
@@ -69,25 +66,6 @@ const aiRagBuilderAdminRoutes = endpointGroupList
   .addGroupMiddleware(aiRagEnabled)
 
 aiRagBuilderAdminRoutes
-  .get(
-    "/api/agent/knowledge-sources/connections",
-    ai.fetchAgentKnowledgeSourceConnections
-  )
-  .post(
-    "/api/agent/knowledge-sources/connections",
-    createAgentKnowledgeSourceConnectionValidator(),
-    ai.createAgentKnowledgeSourceConnection
-  )
-  .put(
-    "/api/agent/knowledge-sources/connections/:connectionId",
-    updateAgentKnowledgeSourceConnectionValidator(),
-    ai.updateAgentKnowledgeSourceConnection
-  )
-  .post(
-    "/api/agent/knowledge-sources/connections/validate",
-    validateAgentKnowledgeSourceConnectionValidator(),
-    ai.validateAgentKnowledgeSourceConnection
-  )
   .get(
     "/api/agent/knowledge-sources/sharepoint/connect",
     ai.startSharePointAuth

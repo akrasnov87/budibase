@@ -1,6 +1,5 @@
 import { encryption, HTTPError } from "@budibase/backend-core"
 import {
-  AgentKnowledgeSourceConnectionAuthType,
   Datasource,
   KnowledgeSourceOption,
   OAuth2RestAuthConfig,
@@ -8,15 +7,9 @@ import {
 } from "@budibase/types"
 import sdk from "../../../.."
 
-interface SharePointConnectionRecord {
-  authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
-  tokenEndpoint: string
-  scope?: string
-  accessToken?: string
-  tokenType?: string
-  expiresAt?: number
-  clientId: string
-  clientSecret: string
+enum SharePointConnectionAuthType {
+  DELEGATED_OAUTH = "delegated_oauth",
+  CLIENT_CREDENTIALS = "client_credentials",
 }
 type OAuth2RestAuthConfigWithTokenCache = OAuth2RestAuthConfig & {
   accessToken?: string
@@ -49,32 +42,21 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
   }
 }
 
-const mapAuthConfigToConnectionRecord = (
-  config: OAuth2RestAuthConfigWithTokenCache
-): SharePointConnectionRecord => {
-  return {
-    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-    tokenEndpoint: config.url,
-    scope: config.scope,
-    accessToken: config.accessToken,
-    tokenType: config.tokenType,
-    expiresAt: config.expiresAt,
-    clientId: config.clientId,
-    clientSecret: decryptSecretOrPlaintext(config.clientSecret),
-  }
-}
-
 const readConnection = async (
   datasourceId: string,
   authConfigId: string
-): Promise<SharePointConnectionRecord> => {
+): Promise<OAuth2RestAuthConfigWithTokenCache> => {
   const datasource = await sdk.datasources.get(datasourceId)
   const authConfigs = datasource.config?.authConfigs as
     | OAuth2RestAuthConfigWithTokenCache[]
     | undefined
   const authConfig = authConfigs?.find(config => config._id === authConfigId)
-  if (authConfig?.type === RestAuthType.OAUTH2 && authConfig.url && authConfig.clientId) {
-    return mapAuthConfigToConnectionRecord(authConfig)
+  if (
+    authConfig?.type === RestAuthType.OAUTH2 &&
+    authConfig.url &&
+    authConfig.clientId
+  ) {
+    return authConfig
   }
   throw new HTTPError(
     "SharePoint is not connected. Connect SharePoint and try again.",
@@ -85,16 +67,16 @@ const readConnection = async (
 const refreshConnection = async (
   datasourceId: string,
   authConfigId: string,
-  connection: SharePointConnectionRecord
-): Promise<SharePointConnectionRecord> => {
-  const response = await fetch(connection.tokenEndpoint, {
+  connection: OAuth2RestAuthConfigWithTokenCache
+): Promise<OAuth2RestAuthConfigWithTokenCache> => {
+  const response = await fetch(connection.url, {
     method: "POST",
     headers: {
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
       client_id: connection.clientId,
-      client_secret: connection.clientSecret,
+      client_secret: decryptSecretOrPlaintext(connection.clientSecret),
       grant_type: "client_credentials",
       ...(connection.scope ? { scope: connection.scope } : {}),
     }),
@@ -116,10 +98,9 @@ const refreshConnection = async (
     tokenType: payload?.token_type || connection.tokenType || "Bearer",
     expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
   }
-  const updated: SharePointConnectionRecord = {
+  const updated: OAuth2RestAuthConfigWithTokenCache = {
+    ...connection,
     ...baseUpdated,
-    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-    scope: connection.scope,
   }
   const datasource = await sdk.datasources.get(datasourceId)
   const authConfigs = (
@@ -135,7 +116,9 @@ const refreshConnection = async (
       accessToken: updated.accessToken,
       tokenType: updated.tokenType,
       expiresAt: updated.expiresAt,
-      clientSecret: encryption.encrypt(updated.clientSecret),
+      clientSecret: encryption.encrypt(
+        decryptSecretOrPlaintext(updated.clientSecret)
+      ),
     }
   })
   const updatedDatasource: Datasource = {
@@ -163,18 +146,9 @@ export const getSharePointBearerToken = async (
   return `${tokenType} ${connection.accessToken}`
 }
 
-export const fetchSharePointSitesByBearerToken = async (
-  bearerToken: string
-): Promise<KnowledgeSourceOption[]> => {
-  return fetchSharePointSitesByAppToken(
-    bearerToken,
-    AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-  )
-}
-
 const fetchSharePointSitesByAppToken = async (
   bearerToken: string,
-  authType: AgentKnowledgeSourceConnectionAuthType
+  authType: SharePointConnectionAuthType
 ): Promise<KnowledgeSourceOption[]> => {
   const sitesById = new Map<string, KnowledgeSourceOption>()
   let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
@@ -192,9 +166,7 @@ const fetchSharePointSitesByAppToken = async (
       })
       let errorMessage = `Failed to fetch SharePoint sites (${response.status})`
       if (response.status === 401) {
-        if (
-          authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-        ) {
+        if (authType === SharePointConnectionAuthType.DELEGATED_OAUTH) {
           errorMessage =
             "Authentication failed with Microsoft Graph. Reconnect SharePoint and try again."
         } else {
@@ -202,9 +174,7 @@ const fetchSharePointSitesByAppToken = async (
             "Authentication failed with Microsoft Graph. Verify SharePoint application credentials and try again."
         }
       } else if (response.status === 403) {
-        if (
-          authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-        ) {
+        if (authType === SharePointConnectionAuthType.DELEGATED_OAUTH) {
           errorMessage =
             "Access denied by Microsoft Graph. Ensure delegated SharePoint permissions are granted."
         } else {
@@ -269,7 +239,7 @@ export const fetchSharePointSitesByConnection = async (
   const bearerToken = await getSharePointBearerToken(datasourceId, authConfigId)
   return fetchSharePointSitesByAppToken(
     bearerToken,
-    AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+    SharePointConnectionAuthType.CLIENT_CREDENTIALS
   )
 }
 

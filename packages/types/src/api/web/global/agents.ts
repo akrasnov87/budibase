@@ -1,10 +1,7 @@
 import { Optional } from "../../../shared"
 import {
   Agent,
-  AgentKnowledgeSourceConnection,
-  AgentKnowledgeSourceConnectionAuthType,
   AgentKnowledgeSourceSyncRunStatus,
-  AgentKnowledgeSourceType,
   ChatApp,
   ChatConversation,
   ChatConversationRequest,
@@ -57,82 +54,6 @@ export interface SharePointKnowledgeSourceSnapshot {
 export interface FetchAgentKnowledgeResponse {
   files: KnowledgeBaseFile[]
   sharePointSources: SharePointKnowledgeSourceSnapshot[]
-}
-
-export interface FetchAgentKnowledgeSourceConnectionsResponse {
-  connections: Array<
-    Pick<
-      AgentKnowledgeSourceConnection,
-      | "_id"
-      | "_rev"
-      | "createdAt"
-      | "updatedAt"
-      | "sourceType"
-      | "authType"
-      | "account"
-      | "tokenEndpoint"
-      | "scope"
-      | "clientId"
-      | "clientSecret"
-    >
-  >
-}
-
-export interface CreateAgentKnowledgeSourceConnectionRequest {
-  sourceType: AgentKnowledgeSourceType
-  authType: AgentKnowledgeSourceConnectionAuthType
-  account: string
-  tokenEndpoint: string
-  clientId: string
-  clientSecret: string
-  scope?: string
-}
-
-export interface CreateAgentKnowledgeSourceConnectionResponse {
-  connection: Pick<
-    AgentKnowledgeSourceConnection,
-    | "_id"
-    | "_rev"
-    | "createdAt"
-    | "updatedAt"
-    | "sourceType"
-    | "account"
-    | "authType"
-  >
-}
-
-export interface UpdateAgentKnowledgeSourceConnectionRequest {
-  account: string
-  tokenEndpoint: string
-  clientId: string
-  clientSecret: string
-  scope?: string
-}
-
-export interface UpdateAgentKnowledgeSourceConnectionResponse {
-  connection: Pick<
-    AgentKnowledgeSourceConnection,
-    | "_id"
-    | "_rev"
-    | "createdAt"
-    | "updatedAt"
-    | "sourceType"
-    | "authType"
-    | "account"
-  >
-}
-
-export interface ValidateAgentKnowledgeSourceConnectionRequest {
-  sourceType: AgentKnowledgeSourceType
-  authType: AgentKnowledgeSourceConnectionAuthType
-  tokenEndpoint: string
-  clientId: string
-  clientSecret: string
-  scope?: string
-}
-
-export interface ValidateAgentKnowledgeSourceConnectionResponse {
-  valid: true
 }
 
 export interface KnowledgeSourceEntry {

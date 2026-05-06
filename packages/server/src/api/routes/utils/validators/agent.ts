@@ -1,8 +1,4 @@
 import { auth } from "@budibase/backend-core"
-import {
-  AgentKnowledgeSourceConnectionAuthType,
-  AgentKnowledgeSourceType,
-} from "@budibase/types"
 import Joi from "joi"
 
 const OPTIONAL_STRING = Joi.string().optional().allow(null).allow("")
@@ -164,53 +160,6 @@ export function updateAgentSharePointSiteValidator() {
       filters: Joi.object({
         patterns: Joi.array().items(NON_EMPTY_STRING).optional(),
       }).optional(),
-    }).required()
-  )
-}
-
-export function createAgentKnowledgeSourceConnectionValidator() {
-  return auth.joiValidator.body(
-    Joi.object({
-      sourceType: Joi.string()
-        .valid(...Object.values(AgentKnowledgeSourceType))
-        .required(),
-      authType: Joi.string()
-        .valid(...Object.values(AgentKnowledgeSourceConnectionAuthType))
-        .required(),
-      account: NON_EMPTY_STRING.required(),
-      tokenEndpoint: Joi.string().uri().required(),
-      clientId: NON_EMPTY_STRING.required(),
-      clientSecret: NON_EMPTY_STRING.required(),
-      scope: OPTIONAL_STRING,
-    }).required()
-  )
-}
-
-export function updateAgentKnowledgeSourceConnectionValidator() {
-  return auth.joiValidator.body(
-    Joi.object({
-      account: NON_EMPTY_STRING.required(),
-      tokenEndpoint: Joi.string().uri().required(),
-      clientId: NON_EMPTY_STRING.required(),
-      clientSecret: NON_EMPTY_STRING.required(),
-      scope: OPTIONAL_STRING,
-    }).required()
-  )
-}
-
-export function validateAgentKnowledgeSourceConnectionValidator() {
-  return auth.joiValidator.body(
-    Joi.object({
-      sourceType: Joi.string()
-        .valid(...Object.values(AgentKnowledgeSourceType))
-        .required(),
-      authType: Joi.string()
-        .valid(AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS)
-        .required(),
-      tokenEndpoint: Joi.string().uri().required(),
-      clientId: NON_EMPTY_STRING.required(),
-      clientSecret: NON_EMPTY_STRING.required(),
-      scope: OPTIONAL_STRING,
     }).required()
   )
 }
