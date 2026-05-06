@@ -1,6 +1,6 @@
 import nock from "nock"
 import { context, features } from "@budibase/backend-core"
-import { utils } from "@budibase/backend-core/tests"
+import { mocks, utils } from "@budibase/backend-core/tests"
 import type { MockAgent } from "undici"
 import {
   type Agent,
@@ -42,6 +42,7 @@ describe("agent files", () => {
   })
 
   beforeEach(async () => {
+    mocks.licenses.useCloudFree()
     await resetHttpMocking()
     mockAgent = installHttpMocking()
     await config.newTenant()
@@ -590,6 +591,79 @@ describe("agent files", () => {
       const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
         ?.body as URLSearchParams
       expect(body.get("client_secret")).toBe("client-secret")
+    })
+  })
+
+  it("resolves env variables when validating a client credentials connection", async () => {
+    mocks.licenses.useEnvironmentVariables()
+    await withRagEnabled(async () => {
+      await config.api.environment.create({
+        name: "sp_client_id",
+        production: "prod-client-id",
+        development: "dev-client-id",
+      })
+      await config.api.environment.create({
+        name: "sp_client_secret",
+        production: "prod-client-secret",
+        development: "dev-client-secret",
+      })
+      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_token: "ok" }),
+      } as Response)
+
+      await config.api.agent.validateKnowledgeSourceConnection({
+        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+        tokenEndpoint:
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        clientId: "{{ env.sp_client_id }}",
+        clientSecret: "{{ env.sp_client_secret }}",
+        scope: "https://graph.microsoft.com/.default",
+      })
+
+      const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
+        ?.body as URLSearchParams
+      expect(body.get("client_id")).toBe("dev-client-id")
+      expect(body.get("client_secret")).toBe("dev-client-secret")
+    })
+  })
+
+  it("resolves env variables when creating a client credentials connection", async () => {
+    mocks.licenses.useEnvironmentVariables()
+    await withRagEnabled(async () => {
+      await config.api.environment.create({
+        name: "sp_create_client_id",
+        production: "prod-create-client-id",
+        development: "dev-create-client-id",
+      })
+      await config.api.environment.create({
+        name: "sp_create_client_secret",
+        production: "prod-create-client-secret",
+        development: "dev-create-client-secret",
+      })
+      const fetchSpy = jest.spyOn(globalThis, "fetch").mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({ access_token: "ok" }),
+      } as Response)
+
+      await config.api.agent.createKnowledgeSourceConnection({
+        sourceType: AgentKnowledgeSourceType.SHAREPOINT,
+        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+        account: "create-with-env",
+        tokenEndpoint:
+          "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        clientId: "{{ env.sp_create_client_id }}",
+        clientSecret: "{{ env.sp_create_client_secret }}",
+        scope: "https://graph.microsoft.com/.default",
+      })
+
+      const body = (fetchSpy.mock.calls[0][1] as RequestInit | undefined)
+        ?.body as URLSearchParams
+      expect(body.get("client_id")).toBe("dev-create-client-id")
+      expect(body.get("client_secret")).toBe("dev-create-client-secret")
     })
   })
 

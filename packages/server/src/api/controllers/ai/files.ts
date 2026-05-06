@@ -29,6 +29,7 @@ import {
   PASSWORD_REPLACEMENT,
 } from "@budibase/types"
 import sdk from "../../../sdk"
+import { processEnvironmentVariable } from "../../../sdk/utils"
 
 import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepointConnection"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
@@ -106,6 +107,10 @@ const validateKnowledgeConnectionCredentials = async ({
   ValidateAgentKnowledgeSourceConnectionRequest,
   "tokenEndpoint" | "clientId" | "clientSecret" | "scope"
 >) => {
+  const resolvedClientId = await processEnvironmentVariable(clientId)
+  const resolvedClientSecret = await processEnvironmentVariable(clientSecret)
+  const resolvedScope = await processEnvironmentVariable(scope)
+
   validateSharePointTokenEndpoint(tokenEndpoint)
   const response = await fetch(tokenEndpoint, {
     method: "POST",
@@ -113,10 +118,12 @@ const validateKnowledgeConnectionCredentials = async ({
       "Content-Type": "application/x-www-form-urlencoded",
     },
     body: new URLSearchParams({
-      client_id: clientId,
-      client_secret: clientSecret,
+      client_id: resolvedClientId,
+      client_secret: resolvedClientSecret,
       grant_type: "client_credentials",
-      scope: scope?.trim() || "https://graph.microsoft.com/.default",
+      scope:
+        (typeof resolvedScope === "string" ? resolvedScope : scope)?.trim() ||
+        "https://graph.microsoft.com/.default",
     }),
   })
   const payload = await response.json()
