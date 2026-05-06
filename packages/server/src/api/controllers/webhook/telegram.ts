@@ -99,11 +99,13 @@ const createTelegramInputHandler = ({
   workspaceId,
   chatAppId,
   agentId,
+  channelEnabled,
   idleTimeoutMinutes,
 }: {
   workspaceId: string
   chatAppId: string
   agentId: string
+  channelEnabled: boolean
   idleTimeoutMinutes?: number
 }) => {
   return async ({
@@ -163,6 +165,7 @@ const createTelegramInputHandler = ({
         chatAppId,
         agentId,
         provider: AgentChannelProvider.TELEGRAM,
+        channelEnabled,
         command,
         content,
         user: { externalUserId, displayName },
@@ -232,13 +235,15 @@ export async function telegramWebhook(
     ctx,
     providerName: "Telegram",
     createWebhookHandler: async ({ workspaceId, chatAppId, agentId }) => {
-      const { integration, idleTimeoutMinutes } =
+      const { integration, idleTimeoutMinutes, channelEnabled } =
         await context.doInWorkspaceContext(workspaceId, async () => {
           const agent = await sdk.ai.agents.getOrThrow(agentId)
           return {
             integration:
               sdk.ai.deployments.telegram.validateTelegramIntegration(agent),
             idleTimeoutMinutes: agent.telegramIntegration?.idleTimeoutMinutes,
+            channelEnabled:
+              !!agent.telegramIntegration?.messagingEndpointUrl?.trim(),
           }
         })
 
@@ -265,6 +270,7 @@ export async function telegramWebhook(
         workspaceId,
         chatAppId,
         agentId,
+        channelEnabled,
         idleTimeoutMinutes,
       })
       const handler = createTelegramMessageHandler(handleTelegramInput)

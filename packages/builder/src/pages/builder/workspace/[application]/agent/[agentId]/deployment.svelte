@@ -16,6 +16,7 @@
     type DeploymentRow,
   } from "@budibase/types"
   import { selectedAgent, agentsStore, featureFlags } from "@/stores/portal"
+  import { deploymentStore } from "@/stores/builder"
   import AgentChatChannel from "./DeploymentChannels/AgentChatChannel.svelte"
   import DiscordConfig from "./DeploymentChannels/DiscordConfig.svelte"
   import MicrosoftTeamsConfig from "./DeploymentChannels/MicrosoftTeamsConfig.svelte"
@@ -177,12 +178,15 @@
     toggling = true
     try {
       const provider = DEPLOYMENT_ID_TO_PROVIDER[channel.id]
+      let channelUpdated = false
       if (provider === AgentChannelProvider.DISCORD) {
         if (isChannelEnabled) {
           await agentsStore.toggleDiscordDeployment(currentAgent._id, false)
+          channelUpdated = true
           notifications.success("Discord channel disabled")
         } else if (discordConfigured) {
           await agentsStore.toggleDiscordDeployment(currentAgent._id, true)
+          channelUpdated = true
           notifications.success("Discord channel enabled")
         } else {
           discordModal?.show()
@@ -190,9 +194,11 @@
       } else if (provider === AgentChannelProvider.MSTEAMS) {
         if (isChannelEnabled) {
           await agentsStore.toggleMSTeamsDeployment(currentAgent._id, false)
+          channelUpdated = true
           notifications.success("Microsoft Teams channel disabled")
         } else if (MSTeamsConfigured) {
           await agentsStore.toggleMSTeamsDeployment(currentAgent._id, true)
+          channelUpdated = true
           notifications.success("Microsoft Teams channel enabled")
         } else {
           MSTeamsModal?.show()
@@ -200,9 +206,11 @@
       } else if (provider === AgentChannelProvider.SLACK) {
         if (isChannelEnabled) {
           await agentsStore.toggleSlackDeployment(currentAgent._id, false)
+          channelUpdated = true
           notifications.success("Slack channel disabled")
         } else if (slackConfigured) {
           await agentsStore.toggleSlackDeployment(currentAgent._id, true)
+          channelUpdated = true
           notifications.success("Slack channel enabled")
         } else {
           slackModal?.show()
@@ -217,6 +225,10 @@
         } else {
           telegramModal?.show()
         }
+      }
+
+      if (channelUpdated && currentAgent.live) {
+        await deploymentStore.publishApp()
       }
     } catch (e) {
       notifications.error(
@@ -262,13 +274,6 @@
       >
     </div>
     <div class="integration-list">
-      {#if agentChatEnabled && currentAgent?._id}
-        <AgentChatChannel
-          agentId={currentAgent._id}
-          agentName={currentAgent.name || "Agent"}
-          agentLive={!!currentAgent.live}
-        />
-      {/if}
       {#each channels as channel (channel.id)}
         <div class="integration-row">
           <div class="channel-main">
@@ -302,6 +307,13 @@
           </div>
         </div>
       {/each}
+      {#if agentChatEnabled && currentAgent?._id}
+        <AgentChatChannel
+          agentId={currentAgent._id}
+          agentName={currentAgent.name || "Agent"}
+          agentLive={!!currentAgent.live}
+        />
+      {/if}
     </div>
   </section>
 </div>
@@ -448,7 +460,7 @@
     gap: var(--spacing-m);
     padding: var(--spacing-s) var(--spacing-s);
     border-bottom: 1px solid var(--spectrum-global-color-gray-200);
-    height: 40px;
+    min-height: 40px;
   }
 
   .integration-row:last-child {

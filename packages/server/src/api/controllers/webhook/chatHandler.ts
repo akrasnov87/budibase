@@ -4,6 +4,7 @@ import {
   context,
   docIds,
   HTTPError,
+  logging,
   redis,
 } from "@budibase/backend-core"
 import { ChatCommands, type SupportedChatCommand } from "@budibase/shared-core"
@@ -361,6 +362,7 @@ export interface HandleChatMessageParams {
   chatAppId: string
   agentId: string
   provider: AgentChannelProvider
+  channelEnabled: boolean
   command: SupportedChatCommand
   content: string
   user: {
@@ -397,6 +399,7 @@ export const handleChatMessage = async ({
   chatAppId,
   agentId,
   provider,
+  channelEnabled,
   command,
   content,
   user,
@@ -413,11 +416,15 @@ export const handleChatMessage = async ({
       return
     }
 
-    if (
-      !chatApp.agents?.some(
-        agent => agent.agentId === agentId && agent.isEnabled
-      )
-    ) {
+    if (!channelEnabled) {
+      await reply("Agent is not enabled for this chat app.")
+      return
+    }
+
+    const chatAgentConfig = chatApp.agents?.find(
+      agent => agent.agentId === agentId
+    )
+    if (!chatAgentConfig) {
       await reply("Agent is not enabled for this chat app.")
       return
     }
@@ -472,6 +479,26 @@ export const handleChatMessage = async ({
     }
 
     if (!existingLink) {
+      if (provider === AgentChannelProvider.MSTEAMS) {
+        const providerScopeKey = channel.tenantId || channel.teamId
+        const linkIdTried = `${DocumentType.CHAT_IDENTITY_LINK}_${encodeURIComponent(
+          context.getTenantId()
+        )}_${provider}${
+          providerScopeKey ? `_${encodeURIComponent(providerScopeKey)}` : ""
+        }_${encodeURIComponent(user.externalUserId)}`
+
+        logging.logWarn("chat_link_lookup_miss", {
+          workspaceId,
+          chatAppId,
+          agentId,
+          provider,
+          externalUserIdTried: user.externalUserId,
+          linkIdTried,
+          providerTenantId: channel.tenantId,
+          teamId: channel.teamId,
+        })
+      }
+
       const prompt = await createLinkPromptMessage({
         linkedAlready: false,
         prefix: `Your ${providerDisplayName(provider)} account is not linked yet.`,
@@ -500,14 +527,6 @@ export const handleChatMessage = async ({
           provider
         )} to reconnect it.`
       )
-      return
-    }
-
-    const chatAgentConfig = chatApp.agents?.find(
-      agent => agent.agentId === agentId
-    )
-    if (!chatAgentConfig) {
-      await reply("Agent is not enabled for this chat app.")
       return
     }
 
