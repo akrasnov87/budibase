@@ -149,6 +149,9 @@
       loadingNextStep = true
       try {
         await loadSharePointSites()
+        if (siteLoadError) {
+          return
+        }
         siteStepModal?.show()
       } finally {
         loadingNextStep = false
