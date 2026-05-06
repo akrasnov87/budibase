@@ -58,10 +58,7 @@ const readConnection = async (
   ) {
     return authConfig
   }
-  throw new HTTPError(
-    "SharePoint is not connected. Connect SharePoint and try again.",
-    400
-  )
+  throw new HTTPError("SharePoint is not configured.", 400)
 }
 
 const refreshConnection = async (

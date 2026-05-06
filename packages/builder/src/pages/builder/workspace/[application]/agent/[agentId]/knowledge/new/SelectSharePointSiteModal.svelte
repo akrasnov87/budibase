@@ -27,6 +27,7 @@
   let selectedConnectionId = $state("")
   let selectedDatasourceId = $state("")
   let selectedAuthConfigId = $state("")
+  let siteLoadError = $state("")
   let loadingNextStep = $state(false)
   let saving = $state(false)
   let skippedConnectionStep = $state(false)
@@ -72,10 +73,12 @@
     if (!selectedConnectionId) {
       sharePointSites = []
       selectedSiteId = ""
+      siteLoadError = ""
       return
     }
     sharePointSites = []
     selectedSiteId = ""
+    siteLoadError = ""
     try {
       const response = await agentsStore.fetchAgentKnowledgeSourceOptions(
         selectedDatasourceId,
@@ -85,9 +88,14 @@
       const excluded = new Set(existingSiteIds)
       selectedSiteId =
         sharePointSites.find(site => !excluded.has(site.id))?.id || ""
-    } catch (error) {
+    } catch (error: any) {
       console.error(error)
-      notifications.error("Failed to fetch SharePoint sites")
+      const message =
+        error?.cause?.message ||
+        error?.message ||
+        "Failed to fetch SharePoint sites for this auth config."
+      siteLoadError = message
+      notifications.error(message)
       sharePointSites = []
       selectedSiteId = ""
     }
@@ -100,6 +108,9 @@
     loadingNextStep = true
     try {
       await loadSharePointSites()
+      if (siteLoadError) {
+        return
+      }
       connectionStepModal?.hide()
       siteStepModal?.show()
     } finally {
