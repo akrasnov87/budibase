@@ -127,13 +127,13 @@
 
   {#snippet response()}
     <Body size="S">
-      Saving the channel automatically registers this endpoint with Telegram.
-      If you set a webhook secret token, use the same value here so requests
-      can be verified.
+      Saving the channel automatically registers this endpoint with Telegram. If
+      you set a webhook secret token, use the same value here so requests can be
+      verified.
     </Body>
     <Body size="S">
-      Use <code>/{TELEGRAM_LINK_COMMAND}</code> to link or refresh your
-      Budibase account.
+      Use <code>/{TELEGRAM_LINK_COMMAND}</code> to link or refresh your Budibase
+      account.
     </Body>
 
     {#if provisionResult?.warning}

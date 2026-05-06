@@ -436,8 +436,7 @@ export async function provisionAgentTelegramChannel(
         sdk.ai.deployments.telegram.validateTelegramIntegration,
       resolveChatAppForAgent:
         sdk.ai.deployments.telegram.resolveChatAppForAgent,
-      buildEndpointUrl:
-        sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
+      buildEndpointUrl: sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
       persistIntegration: async (chatAppId, messagingEndpointUrl) =>
         await persistTelegramDeployment({
           agent,
@@ -631,8 +630,7 @@ export async function toggleAgentTelegramDeployment(
         sdk.ai.deployments.telegram.validateTelegramIntegration,
       resolveChatAppForAgent:
         sdk.ai.deployments.telegram.resolveChatAppForAgent,
-      buildEndpointUrl:
-        sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
+      buildEndpointUrl: sdk.ai.deployments.telegram.buildTelegramWebhookUrl,
       persistIntegration: async (chatAppId, messagingEndpointUrl) =>
         await persistTelegramDeployment({
           agent,

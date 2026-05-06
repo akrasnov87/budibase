@@ -121,7 +121,9 @@
         [AgentChannelProvider.DISCORD]: discordEnabled ? "Enabled" : "Disabled",
         [AgentChannelProvider.MSTEAMS]: MSTeamsEnabled ? "Enabled" : "Disabled",
         [AgentChannelProvider.SLACK]: slackEnabled ? "Enabled" : "Disabled",
-        [AgentChannelProvider.TELEGRAM]: telegramEnabled ? "Enabled" : "Disabled",
+        [AgentChannelProvider.TELEGRAM]: telegramEnabled
+          ? "Enabled"
+          : "Disabled",
       }) as const
   )
 

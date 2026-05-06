@@ -239,7 +239,9 @@ describe("agent telegram integration provisioning", () => {
           webhookSecretToken: "tg-hook-secret",
         },
       })
-      const channel = await config.api.agent.provisionTelegramChannel(agent._id!)
+      const channel = await config.api.agent.provisionTelegramChannel(
+        agent._id!
+      )
       await config.publish()
       const linkExternalUser = async (externalUserId: string) => {
         await config.doInTenant(async () => {

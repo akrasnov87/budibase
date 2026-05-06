@@ -1,4 +1,7 @@
-import { buildPlainTextLinkPrompt, postLinkPromptPrivately } from "../linkPrompt"
+import {
+  buildPlainTextLinkPrompt,
+  postLinkPromptPrivately,
+} from "../linkPrompt"
 
 describe("link prompt helpers", () => {
   it("builds a plain text prompt with the handoff URL", () => {

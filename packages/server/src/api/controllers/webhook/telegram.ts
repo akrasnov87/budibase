@@ -116,8 +116,7 @@ const createTelegramInputHandler = ({
     externalUserId,
     threadId,
   }: TelegramInput) => {
-    const displayName =
-      author.fullName || author.userName || externalUserId
+    const displayName = author.fullName || author.userName || externalUserId
 
     const channel: ChatConversationChannel = {
       provider: AgentChannelProvider.TELEGRAM,
@@ -207,9 +206,7 @@ const createTelegramMessageHandler = (
     const channelId =
       raw?.chat?.id != null ? String(raw.chat.id) : thread.channelId || ""
     const threadId =
-      raw?.message_thread_id != null
-        ? String(raw.message_thread_id)
-        : undefined
+      raw?.message_thread_id != null ? String(raw.message_thread_id) : undefined
 
     await handleTelegramInput({
       target: thread as TelegramReplyTarget,

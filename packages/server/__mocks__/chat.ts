@@ -419,8 +419,7 @@ export class Chat {
         }
 
         const isMention = !!msg.entities?.some(
-          entity =>
-            entity.type === "mention" || entity.type === "text_mention"
+          entity => entity.type === "mention" || entity.type === "text_mention"
         )
 
         const message = {
