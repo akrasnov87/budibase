@@ -3384,14 +3384,6 @@
         "defaultValue": false
       },
       {
-        "type": "number",
-        "label": "Input debounce (ms)",
-        "key": "inputDebounceMs",
-        "defaultValue": 300,
-        "dependsOn": "runOnInput",
-        "dependsOnValue": true
-      },
-      {
         "type": "boolean",
         "label": "Disabled",
         "key": "disabled",
