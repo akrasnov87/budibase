@@ -1,6 +1,8 @@
 import {
+  collectSharePointFilesRecursive,
   fetchSharePointSitesByBearerToken,
   isAllowedSharePointNextLink,
+  listSharePointDrives,
 } from "./connection"
 
 describe("isAllowedSharePointNextLink", () => {
@@ -237,5 +239,127 @@ describe("fetchSharePointSitesByBearerToken", () => {
         status: 400,
       })
     )
+  })
+})
+
+describe("SharePoint listing retries", () => {
+  const bearerToken = "Bearer token"
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  it("retries listSharePointDrives on 429 then succeeds", async () => {
+    const fetchMock = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: () => null },
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({ value: [{ id: "drive-1" }] }),
+      } as Response)
+
+    const drives = await listSharePointDrives(bearerToken, "site-1")
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(drives).toEqual(["drive-1"])
+  })
+
+  it("does not retry listSharePointDrives on 403", async () => {
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue({
+      ok: false,
+      status: 403,
+      headers: { get: () => null },
+      json: async () => ({}),
+    } as Response)
+
+    await expect(listSharePointDrives(bearerToken, "site-1")).rejects.toEqual(
+      expect.objectContaining({
+        message:
+          "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted.",
+        status: 400,
+      })
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("uses Retry-After for listSharePointDrives delays", async () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation()
+    jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: (name: string) => (name === "Retry-After" ? "2" : null) },
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({ value: [{ id: "drive-1" }] }),
+      } as Response)
+
+    await listSharePointDrives(bearerToken, "site-1")
+
+    expect(logSpy).toHaveBeenCalledWith(
+      "Retrying SharePoint Graph request after failure",
+      expect.objectContaining({
+        operation: "listSharePointDrives",
+        status: 429,
+        delayMs: 2000,
+      })
+    )
+  })
+
+  it("retries paginated drive items requests and continues", async () => {
+    const fetchMock = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 503,
+        headers: { get: () => null },
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({
+          value: [
+            {
+              id: "item-1",
+              name: "doc-1.txt",
+              file: { mimeType: "text/plain" },
+            },
+          ],
+          "@odata.nextLink": "https://graph.microsoft.com/v1.0/drives/drive-1/root/children?$skiptoken=abc",
+        }),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({
+          value: [
+            {
+              id: "item-2",
+              name: "doc-2.txt",
+              file: { mimeType: "text/plain" },
+            },
+          ],
+        }),
+      } as Response)
+
+    const files = await collectSharePointFilesRecursive(bearerToken, "drive-1")
+
+    expect(fetchMock).toHaveBeenCalledTimes(3)
+    expect(files.map(file => file.path)).toEqual(["doc-1.txt", "doc-2.txt"])
   })
 })

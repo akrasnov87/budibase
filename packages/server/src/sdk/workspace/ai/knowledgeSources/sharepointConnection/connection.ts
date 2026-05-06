@@ -1,4 +1,5 @@
 import { HTTPError } from "@budibase/backend-core"
+import { helpers } from "@budibase/shared-core"
 import {
   AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceType,
@@ -23,6 +24,71 @@ type SharePointConnectionRecord = Pick<
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504])
+const RETRY_DELAYS_MS = [500, 1500, 3000]
+
+const parseRetryAfterMs = (value: string | null): number | undefined => {
+  if (!value) {
+    return
+  }
+
+  const seconds = Number(value)
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000
+  }
+
+  const dateMs = Date.parse(value)
+  if (Number.isNaN(dateMs)) {
+    return
+  }
+
+  return Math.max(0, dateMs - Date.now())
+}
+
+const requestWithRetries = async (
+  operation: string,
+  request: () => Promise<Response>
+): Promise<Response> => {
+  let attempt = 0
+
+  while (true) {
+    try {
+      const response = await request()
+      if (
+        response.ok ||
+        !RETRYABLE_STATUS_CODES.has(response.status) ||
+        attempt >= RETRY_DELAYS_MS.length
+      ) {
+        return response
+      }
+
+      const retryAfterMs = parseRetryAfterMs(response.headers.get("Retry-After"))
+      const delayMs = retryAfterMs ?? RETRY_DELAYS_MS[attempt]
+      console.log("Retrying SharePoint Graph request after failure", {
+        operation,
+        attempt: attempt + 1,
+        status: response.status,
+        delayMs,
+      })
+      await helpers.wait(delayMs)
+    } catch (error) {
+      if (!(error instanceof Error) || attempt >= RETRY_DELAYS_MS.length) {
+        throw error
+      }
+
+      const delayMs = RETRY_DELAYS_MS[attempt]
+      console.log("Retrying SharePoint Graph request after network error", {
+        operation,
+        attempt: attempt + 1,
+        delayMs,
+        errorName: error.name,
+      })
+      await helpers.wait(delayMs)
+    }
+
+    attempt++
+  }
+}
 
 export const isAllowedSharePointNextLink = (value: string): boolean => {
   try {
@@ -301,15 +367,17 @@ export const listSharePointDrives = async (
   bearerToken: string,
   siteId: string
 ): Promise<string[]> => {
-  const response = await fetch(
-    `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
-      siteId
-    )}/drives?$top=200&$select=id`,
-    {
-      headers: {
-        Authorization: bearerToken,
-      },
-    }
+  const response = await requestWithRetries("listSharePointDrives", () =>
+    fetch(
+      `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
+        siteId
+      )}/drives?$top=200&$select=id`,
+      {
+        headers: {
+          Authorization: bearerToken,
+        },
+      }
+    )
   )
   if (!response.ok) {
     console.error("Failed to list SharePoint drives", {
@@ -340,11 +408,13 @@ const listSharePointDriveItems = async (
   let nextLink = initialPath
 
   while (nextLink) {
-    const response = await fetch(nextLink, {
-      headers: {
-        Authorization: bearerToken,
-      },
-    })
+    const response = await requestWithRetries("listSharePointDriveItems", () =>
+      fetch(nextLink, {
+        headers: {
+          Authorization: bearerToken,
+        },
+      })
+    )
     if (!response.ok) {
       console.error("Failed to list SharePoint drive items", {
         status: response.status,
