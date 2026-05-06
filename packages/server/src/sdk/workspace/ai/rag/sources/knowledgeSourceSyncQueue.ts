@@ -5,8 +5,13 @@ import {
   DocumentType,
   type Agent,
 } from "@budibase/types"
-import env from "../../../../environment"
-import { syncSharePointSourcesForAgent } from "./sharepoint"
+import env from "../../../../../environment"
+import { deleteFileForAgent } from "../files"
+import {
+  deleteKnowledgeSourceSyncStateForAgent,
+  deleteSharePointFilesForAgentSite,
+  syncSharePointSourcesForAgent,
+} from "./sharepoint/sharepoint"
 
 const DEFAULT_CONCURRENCY = 2
 const DEFAULT_BACKOFF_MS = utils.Duration.fromSeconds(10).toMs()
@@ -15,12 +20,32 @@ const DEFAULT_TIMEOUT_MS = utils.Duration.fromMinutes(15).toMs()
 const getScheduleWorkspaceNamespace = (workspaceId: string) =>
   db.getProdWorkspaceID(workspaceId)
 
-export interface KnowledgeSourceSyncJob {
+interface BaseKnowledgeSourceJob {
   workspaceId: string
   agentId: string
+}
+
+export interface KnowledgeSourceSyncJob extends BaseKnowledgeSourceJob {
+  jobType: "sync"
   sourceType: AgentKnowledgeSourceType
   sourceId: string
 }
+
+interface KnowledgeBaseFileDeleteJob extends BaseKnowledgeSourceJob {
+  jobType: "delete_file"
+  fileId: string
+}
+
+interface SharePointSiteDisconnectJob extends BaseKnowledgeSourceJob {
+  jobType: "disconnect_sharepoint_site"
+  sourceId: string
+  siteId: string
+}
+
+export type KnowledgeSourceJob =
+  | KnowledgeSourceSyncJob
+  | KnowledgeBaseFileDeleteJob
+  | SharePointSiteDisconnectJob
 
 interface ReconcileAgentJobsSummary {
   clearedSchedules: number
@@ -28,7 +53,7 @@ interface ReconcileAgentJobsSummary {
 }
 
 let knowledgeSourceSyncQueue:
-  | queue.BudibaseQueue<KnowledgeSourceSyncJob>
+  | queue.BudibaseQueue<KnowledgeSourceJob>
   | undefined
 let knowledgeSourceSyncQueueInitialised = false
 
@@ -45,11 +70,14 @@ const getAgentSharePointSources = (agent: Agent) =>
 
 const hasSchedulableSharePointSource = (agent: Agent) => {
   return getAgentSharePointSources(agent).some(
-    source => !!source.id?.trim() && !!source.config.site?.id?.trim()
+    source => !!source.id?.trim() && !!source.config.site.id.trim()
   )
 }
 
-const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {
+const getDesiredJobsForAgent = (
+  workspaceId: string,
+  agent: Agent
+): KnowledgeSourceSyncJob[] => {
   if (!agent._id || !hasSchedulableSharePointSource(agent)) {
     return []
   }
@@ -63,6 +91,7 @@ const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {
   return sourceIds.map(sourceId => ({
     workspaceId,
     agentId: agent._id!,
+    jobType: "sync" as const,
     sourceType: AgentKnowledgeSourceType.SHAREPOINT,
     sourceId,
   }))
@@ -70,7 +99,7 @@ const getDesiredJobsForAgent = (workspaceId: string, agent: Agent) => {
 
 export function getQueue() {
   if (!knowledgeSourceSyncQueue) {
-    knowledgeSourceSyncQueue = new queue.BudibaseQueue<KnowledgeSourceSyncJob>(
+    knowledgeSourceSyncQueue = new queue.BudibaseQueue<KnowledgeSourceJob>(
       queue.JobQueue.KNOWLEDGE_SOURCE_SYNC,
       {
         maxStalledCount: 3,
@@ -87,8 +116,13 @@ export function getQueue() {
         jobTags: data => ({
           workspaceId: data.workspaceId,
           agentId: data.agentId,
-          sourceType: data.sourceType,
-          sourceId: data.sourceId,
+          sourceType: data.jobType === "sync" ? data.sourceType : data.jobType,
+          sourceId:
+            data.jobType === "sync"
+              ? data.sourceId
+              : data.jobType === "delete_file"
+                ? data.fileId
+                : data.siteId,
         }),
       }
     )
@@ -105,31 +139,53 @@ export function init(concurrency = DEFAULT_CONCURRENCY) {
     knowledgeSourceSyncQueueInitialised = true
     return getQueue().process(
       concurrency,
-      async (job: Job<KnowledgeSourceSyncJob>) => {
-        const { workspaceId, agentId, sourceType, sourceId } = job.data
+      async (job: Job<KnowledgeSourceJob>) => {
+        const { workspaceId, agentId } = job.data
         console.log("Processing knowledge source sync queue job", {
           workspaceId,
           agentId,
-          sourceType,
-          sourceId,
+          jobType: job.data.jobType,
+          sourceType:
+            "sourceType" in job.data ? job.data.sourceType : undefined,
+          sourceId: "sourceId" in job.data ? job.data.sourceId : undefined,
+          fileId: "fileId" in job.data ? job.data.fileId : undefined,
+          siteId: "siteId" in job.data ? job.data.siteId : undefined,
           jobId: job.id,
         })
         await context.doInWorkspaceContext(workspaceId, async () => {
-          switch (sourceType) {
-            case AgentKnowledgeSourceType.SHAREPOINT:
-              await syncSharePointSourcesForAgent(agentId, [sourceId])
+          switch (job.data.jobType) {
+            case "sync":
+              switch (job.data.sourceType) {
+                case AgentKnowledgeSourceType.SHAREPOINT:
+                  await syncSharePointSourcesForAgent(
+                    agentId,
+                    job.data.sourceId
+                  )
+                  break
+                default:
+                  throw new Error(
+                    `Unsupported knowledge source type for sync queue: ${job.data.sourceType}`
+                  )
+              }
+              break
+            case "delete_file":
+              await deleteFileForAgent(agentId, job.data.fileId)
+              break
+            case "disconnect_sharepoint_site":
+              await deleteSharePointFilesForAgentSite(agentId, job.data.siteId)
+              await deleteKnowledgeSourceSyncStateForAgent(
+                agentId,
+                job.data.sourceId
+              )
               break
             default:
-              throw new Error(
-                `Unsupported knowledge source type for sync queue: ${sourceType}`
-              )
+              throw new Error("Unsupported knowledge source queue job type")
           }
         })
         console.log("Completed knowledge source sync queue job", {
           workspaceId,
           agentId,
-          sourceType,
-          sourceId,
+          jobType: job.data.jobType,
           jobId: job.id,
         })
       }
@@ -150,6 +206,65 @@ export async function scheduleJob(job: KnowledgeSourceSyncJob) {
     },
     jobId,
   })
+}
+
+export async function enqueueJob(job: KnowledgeSourceJob) {
+  init()
+  return await getQueue().add(job)
+}
+
+export async function enqueueDeleteFileJob(agentId: string, fileId: string) {
+  const workspaceId = context.getWorkspaceId()
+  if (!workspaceId || !agentId || !fileId) {
+    return
+  }
+  await enqueueJob({
+    workspaceId,
+    agentId,
+    jobType: "delete_file",
+    fileId,
+  })
+}
+
+export async function enqueueDisconnectSharePointSiteJob(
+  agentId: string,
+  sourceId: string,
+  siteId: string
+) {
+  const workspaceId = context.getWorkspaceId()
+  if (!workspaceId || !agentId || !sourceId || !siteId) {
+    return
+  }
+  await enqueueJob({
+    workspaceId,
+    agentId,
+    jobType: "disconnect_sharepoint_site",
+    sourceId,
+    siteId,
+  })
+}
+
+export async function enqueueAgentJobs(
+  agentId: string,
+  sourceType: AgentKnowledgeSourceType,
+  sourceIds: string[]
+) {
+  const workspaceId = context.getWorkspaceId()
+  if (!workspaceId || !agentId || sourceIds.length === 0) {
+    return
+  }
+  await Promise.all(
+    sourceIds.map(sourceId => {
+      const job: KnowledgeSourceSyncJob = {
+        workspaceId,
+        agentId,
+        jobType: "sync",
+        sourceType,
+        sourceId,
+      }
+      return getQueue().add(job)
+    })
+  )
 }
 
 export async function removeJob(job: KnowledgeSourceSyncJob) {

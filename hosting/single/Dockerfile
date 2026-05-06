@@ -66,8 +66,8 @@ RUN apt-get update && \
 # Install litellm
 RUN python3 -m venv /opt/venv/litellm
 
-ARG LITELLM_PYPI_VERSION=1.81.14
-RUN /opt/venv/litellm/bin/pip install -i https://mirrors.aliyun.com/pypi/simple/ "litellm[proxy]==${LITELLM_PYPI_VERSION}"
+ARG LITELLM_PYPI_VERSION=1.83.10
+RUN /opt/venv/litellm/bin/pip install "litellm[proxy]==${LITELLM_PYPI_VERSION}"
 ENV PATH="/opt/venv/litellm/bin:${PATH}"
 RUN mkdir -p /litellm
 
