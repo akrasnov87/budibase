@@ -15,6 +15,9 @@
   export let align: "left" | "right" | "center" | undefined = undefined
   export let autofocus: boolean | null = false
   export let autocomplete: FullAutoFill | boolean | null | undefined = undefined
+  export let min: number | null | undefined = undefined
+  export let max: number | null | undefined = undefined
+  export let step: number | null | undefined = undefined
 
   const dispatch = createEventDispatcher<{ change: V | null }>()
 
@@ -28,6 +31,13 @@
     if (type === "number") {
       const float = parseFloat(newValue as string)
       newValue = isNaN(float) ? null : float
+      if (newValue != null) {
+        if (min != null && newValue < min) {
+          newValue = min
+        } else if (max != null && newValue > max) {
+          newValue = max
+        }
+      }
     }
     dispatch("change", newValue)
   }
@@ -115,6 +125,9 @@
     on:input={onInput}
     on:keyup={updateValueOnEnter}
     {type}
+    {min}
+    {max}
+    {step}
     class="spectrum-Textfield-input"
     style={align ? `text-align: ${align};` : ""}
     inputmode={getInputMode(type)}
