@@ -70,9 +70,13 @@ const sanitizeSharePointSourceId = (siteId: string) =>
   `sharepoint_site_${siteId.replace(/[^a-zA-Z0-9_-]/g, "_")}`
 
 const fetchSharePointOptionsForConnection = async (
-  connectionId: string
+  datasourceId: string,
+  authConfigId: string
 ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
-  const options = await fetchSharePointSitesByConnection(connectionId)
+  const options = await fetchSharePointSitesByConnection(
+    datasourceId,
+    authConfigId
+  )
   return { options }
 }
 
@@ -445,15 +449,15 @@ export async function fetchAgentKnowledgeSourceOptions(
   ctx: UserCtx<
     void,
     FetchAgentKnowledgeSourceOptionsResponse,
-    { connectionId: string }
+    { datasourceId: string; authConfigId: string }
   >
 ) {
-  const { connectionId } = ctx.params
-  if (!connectionId) {
-    throw new HTTPError("connectionId is required", 400)
+  const { datasourceId, authConfigId } = ctx.params
+  if (!datasourceId || !authConfigId) {
+    throw new HTTPError("datasourceId and authConfigId are required", 400)
   }
   ctx.body = {
-    options: await fetchSharePointSitesByConnection(connectionId),
+    options: await fetchSharePointSitesByConnection(datasourceId, authConfigId),
   }
   ctx.status = 200
 }
@@ -503,25 +507,25 @@ export async function connectAgentSharePointSite(
   >
 ) {
   const { agentId } = ctx.params
-  const { connectionId, siteId, filters } = ctx.request.body
+  const { datasourceId, authConfigId, siteId, filters } = ctx.request.body
   if (!siteId) {
     throw new HTTPError("siteId is required", 400)
   }
 
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
-  const connection =
-    await sdk.ai.knowledgeSources.getKnowledgeSourceConnection(connectionId)
-  if (!connection) {
-    throw new HTTPError("SharePoint is not connected for this agent", 400)
-  }
   const existingSites = getSharePointSiteIds(existingAgent)
   if (existingSites.has(siteId)) {
-    ctx.body = await fetchSharePointOptionsForConnection(connectionId)
+    ctx.body = await fetchSharePointOptionsForConnection(
+      datasourceId,
+      authConfigId
+    )
     ctx.status = 200
     return
   }
-  const availableOptions =
-    await fetchSharePointOptionsForConnection(connectionId)
+  const availableOptions = await fetchSharePointOptionsForConnection(
+    datasourceId,
+    authConfigId
+  )
   const selectedOption = availableOptions.options.find(
     option => option.id === siteId
   )
@@ -529,7 +533,8 @@ export async function connectAgentSharePointSite(
     id: sanitizeSharePointSourceId(siteId),
     type: AgentKnowledgeSourceType.SHAREPOINT,
     config: {
-      connectionId,
+      datasourceId,
+      authConfigId,
       site: {
         id: siteId,
         name: selectedOption?.name,
@@ -560,7 +565,10 @@ export async function connectAgentSharePointSite(
     AgentKnowledgeSourceType.SHAREPOINT,
     [nextSource.id]
   )
-  ctx.body = await fetchSharePointOptionsForConnection(connectionId)
+  ctx.body = await fetchSharePointOptionsForConnection(
+    datasourceId,
+    authConfigId
+  )
   ctx.status = 200
 }
 
@@ -607,7 +615,8 @@ export async function updateAgentSharePointSite(
     [source.id]
   )
   ctx.body = await fetchSharePointOptionsForConnection(
-    source.config.connectionId
+    source.config.datasourceId,
+    source.config.authConfigId
   )
   ctx.status = 200
 }

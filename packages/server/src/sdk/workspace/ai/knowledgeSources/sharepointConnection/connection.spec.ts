@@ -239,7 +239,7 @@ describe("fetchSharePointSitesByConnection", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByConnection("agentknowledgeconn_1")
+      fetchSharePointSitesByConnection("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -269,7 +269,7 @@ describe("fetchSharePointSitesByConnection", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByConnection("agentknowledgeconn_1")
+      fetchSharePointSitesByConnection("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:

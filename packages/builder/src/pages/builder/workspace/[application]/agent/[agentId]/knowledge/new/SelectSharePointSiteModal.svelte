@@ -25,6 +25,8 @@
   let sharePointConnectionOptions = $state<SharePointConnectionOption[]>([])
   let selectedSiteId = $state("")
   let selectedConnectionId = $state("")
+  let selectedDatasourceId = $state("")
+  let selectedAuthConfigId = $state("")
   let loadingNextStep = $state(false)
   let saving = $state(false)
   let skippedConnectionStep = $state(false)
@@ -46,7 +48,7 @@
       return
     }
     try {
-      const connections = await knowledgeConnectionsStore.fetch()
+      const connections = $knowledgeConnectionsStore.connections
       const sharePointConnections = connections.filter(
         connection => connection.sourceType === "sharepoint"
       )
@@ -56,6 +58,8 @@
         account: connection.account || "-",
       }))
       selectedConnectionId = sharePointConnections[0]?._id || ""
+      selectedDatasourceId = sharePointConnections[0]?.datasourceId || ""
+      selectedAuthConfigId = sharePointConnections[0]?.authConfigId || ""
     } catch (error) {
       console.error(error)
       notifications.error("Failed to fetch SharePoint connections")
@@ -73,8 +77,10 @@
     sharePointSites = []
     selectedSiteId = ""
     try {
-      const response =
-        await agentsStore.fetchAgentKnowledgeSourceOptions(selectedConnectionId)
+      const response = await agentsStore.fetchAgentKnowledgeSourceOptions(
+        selectedDatasourceId,
+        selectedAuthConfigId
+      )
       sharePointSites = response.options
       const excluded = new Set(existingSiteIds)
       selectedSiteId =
@@ -108,7 +114,8 @@
     saving = true
     try {
       await agentsStore.connectAgentSharePointSite(agentId, {
-        connectionId: selectedConnectionId,
+        datasourceId: selectedDatasourceId,
+        authConfigId: selectedAuthConfigId,
         siteId: selectedSiteId,
         filters: mode === "selective" ? [EXCLUDE_ALL_PATTERN] : undefined,
       })
@@ -154,6 +161,14 @@
   {loadingNextStep}
   onConnectionChange={connectionId => {
     selectedConnectionId = connectionId
+    const selected = sharePointConnectionOptions.find(
+      option => option.id === connectionId
+    )
+    const full = $knowledgeConnectionsStore.connections.find(
+      connection => connection._id === selected?.id
+    )
+    selectedDatasourceId = full?.datasourceId || ""
+    selectedAuthConfigId = full?.authConfigId || ""
   }}
   onNext={goToSitesStep}
 />

@@ -1,70 +1,49 @@
-import {
-  AgentKnowledgeSourceConnectionAuthType,
-  AgentKnowledgeSourceType,
-  FetchAgentKnowledgeSourceConnectionsResponse,
-} from "@budibase/types"
-import { API } from "@/api"
-import { BudiStore } from "../BudiStore"
+import { DerivedBudiStore } from "../BudiStore"
+import { Datasource, OAuth2RestAuthConfig } from "@budibase/types"
+import { derived, get, Writable } from "svelte/store"
+import { datasources } from "../builder/datasources"
 
-interface KnowledgeConnectionsState {
-  connections: FetchAgentKnowledgeSourceConnectionsResponse["connections"]
-  loaded: boolean
+interface KnowledgeConnection {
+  _id: string
+  datasourceId: string
+  authConfigId: string
+  sourceType: "sharepoint"
+  authType: "client_credentials"
+  account: string
 }
 
-class KnowledgeConnectionsStore extends BudiStore<KnowledgeConnectionsState> {
+interface KnowledgeConnectionsState {
+  connections: KnowledgeConnection[]
+}
+
+class KnowledgeConnectionsStore extends DerivedBudiStore<
+  KnowledgeConnectionsState,
+  KnowledgeConnectionsState
+> {
   constructor() {
-    super({
-      connections: [],
-      loaded: false,
-    })
+    const makeDerivedStore = (_store: Writable<KnowledgeConnectionsState>) =>
+      derived([datasources], ([$datasources]) => {
+        const list = $datasources.rawList as Datasource[]
+        const connections = list.flatMap(datasource => {
+          const authConfigs = (datasource.config?.authConfigs ||
+            []) as OAuth2RestAuthConfig[]
+          return authConfigs.map(config => ({
+            _id: `${datasource._id}:${config._id}`,
+            datasourceId: datasource._id!,
+            authConfigId: config._id,
+            sourceType: "sharepoint" as const,
+            authType: "client_credentials" as const,
+            account: config.name || datasource.name || "OAuth2 connection",
+          }))
+        })
+        return { connections }
+      })
+
+    super({ connections: [] }, makeDerivedStore)
   }
 
-  fetch = async () => {
-    const response = await API.fetchAgentKnowledgeSourceConnections()
-    this.update(state => {
-      state.connections = response.connections || []
-      state.loaded = true
-      return state
-    })
-    return response.connections || []
-  }
-
-  create = async (input: {
-    sourceType: AgentKnowledgeSourceType.SHAREPOINT
-    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
-    account: string
-    tokenEndpoint: string
-    clientId: string
-    clientSecret: string
-    scope?: string
-  }) => {
-    await API.createAgentKnowledgeSourceConnection(input)
-    await this.fetch()
-  }
-
-  updateConnection = async (
-    connectionId: string,
-    input: {
-      account: string
-      tokenEndpoint: string
-      clientId: string
-      clientSecret: string
-      scope?: string
-    }
-  ) => {
-    await API.updateAgentKnowledgeSourceConnection(connectionId, input)
-    await this.fetch()
-  }
-
-  validate = async (input: {
-    sourceType: AgentKnowledgeSourceType.SHAREPOINT
-    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
-    tokenEndpoint: string
-    clientId: string
-    clientSecret: string
-    scope?: string
-  }) => {
-    return await API.validateAgentKnowledgeSourceConnection(input)
+  get() {
+    return get(this.derivedStore)
   }
 }
 

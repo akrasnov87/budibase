@@ -329,25 +329,6 @@ export const workspaceRoutes = (
             },
           ],
         },
-        {
-          path: "knowledge",
-          title: "Knowledge",
-          component: Pages.get("knowledge_connections"),
-          routes: [
-            {
-              path: "new",
-              title: "New connection",
-              component: Pages.get("knowledge_connection_form"),
-              skipNav: true,
-            },
-            {
-              path: ":connectionId",
-              title: "Connection",
-              component: Pages.get("knowledge_connection_form"),
-              skipNav: true,
-            },
-          ],
-        },
       ],
     },
     {

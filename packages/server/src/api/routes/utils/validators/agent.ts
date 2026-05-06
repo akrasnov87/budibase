@@ -151,7 +151,8 @@ export function connectAgentSharePointSiteValidator() {
   return auth.joiValidator.body(
     Joi.object({
       siteId: NON_EMPTY_STRING.required(),
-      connectionId: NON_EMPTY_STRING.required(),
+      datasourceId: NON_EMPTY_STRING.required(),
+      authConfigId: NON_EMPTY_STRING.required(),
       filters: Joi.array().items(NON_EMPTY_STRING).optional(),
     }).required()
   )

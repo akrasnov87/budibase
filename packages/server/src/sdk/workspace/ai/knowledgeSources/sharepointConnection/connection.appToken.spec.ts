@@ -47,7 +47,7 @@ describe("fetchSharePointSitesByConnection app token pagination", () => {
         }) as Response
     )
 
-    const sites = await fetchSharePointSitesByConnection("agentknowledgeconn_1")
+    const sites = await fetchSharePointSitesByConnection("datasource_1", "auth_1")
 
     expect(fetchMock).toHaveBeenCalledTimes(50)
     expect(sites).toEqual([])

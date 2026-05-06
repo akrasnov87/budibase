@@ -2,15 +2,12 @@ import {
   AgentFileUploadResponse,
   ConnectAgentSharePointSiteRequest,
   ConnectAgentSharePointSiteResponse,
-  CreateAgentKnowledgeSourceConnectionRequest,
-  CreateAgentKnowledgeSourceConnectionResponse,
   CreateAgentRequest,
   CreateAgentResponse,
   DisconnectAgentSharePointSiteResponse,
   DuplicateAgentResponse,
   FetchAgentKnowledgeResponse,
   FetchAgentKnowledgeSourceEntriesResponse,
-  FetchAgentKnowledgeSourceConnectionsResponse,
   FetchAgentKnowledgeSourceOptionsResponse,
   FetchAgentsResponse,
   ProvisionAgentSlackChannelRequest,
@@ -26,10 +23,6 @@ import {
   ToolMetadata,
   UpdateAgentSharePointSiteRequest,
   UpdateAgentSharePointSiteResponse,
-  UpdateAgentKnowledgeSourceConnectionRequest,
-  UpdateAgentKnowledgeSourceConnectionResponse,
-  ValidateAgentKnowledgeSourceConnectionRequest,
-  ValidateAgentKnowledgeSourceConnectionResponse,
   UpdateAgentRequest,
   UpdateAgentResponse,
 } from "@budibase/types"
@@ -77,19 +70,9 @@ export interface AgentEndpoints {
     fileId: string
   ) => Promise<{ deleted: true }>
   fetchAgentKnowledgeSourceOptions: (
-    connectionId: string
+    datasourceId: string,
+    authConfigId: string
   ) => Promise<FetchAgentKnowledgeSourceOptionsResponse>
-  fetchAgentKnowledgeSourceConnections: () => Promise<FetchAgentKnowledgeSourceConnectionsResponse>
-  createAgentKnowledgeSourceConnection: (
-    body: CreateAgentKnowledgeSourceConnectionRequest
-  ) => Promise<CreateAgentKnowledgeSourceConnectionResponse>
-  updateAgentKnowledgeSourceConnection: (
-    connectionId: string,
-    body: UpdateAgentKnowledgeSourceConnectionRequest
-  ) => Promise<UpdateAgentKnowledgeSourceConnectionResponse>
-  validateAgentKnowledgeSourceConnection: (
-    body: ValidateAgentKnowledgeSourceConnectionRequest
-  ) => Promise<ValidateAgentKnowledgeSourceConnectionResponse>
   fetchAgentKnowledgeSourceAllEntries: (
     agentId: string,
     siteId: string
@@ -236,44 +219,12 @@ export const buildAgentEndpoints = (API: BaseAPIClient): AgentEndpoints => ({
     })
   },
 
-  fetchAgentKnowledgeSourceOptions: async (connectionId: string) => {
+  fetchAgentKnowledgeSourceOptions: async (
+    datasourceId: string,
+    authConfigId: string
+  ) => {
     return await API.get<FetchAgentKnowledgeSourceOptionsResponse>({
-      url: `/api/knowledge-sources/${encodeURIComponent(connectionId)}/options`,
-    })
-  },
-
-  fetchAgentKnowledgeSourceConnections: async () => {
-    return await API.get<FetchAgentKnowledgeSourceConnectionsResponse>({
-      url: "/api/agent/knowledge-sources/connections",
-    })
-  },
-
-  createAgentKnowledgeSourceConnection: async body => {
-    return await API.post<
-      CreateAgentKnowledgeSourceConnectionRequest,
-      CreateAgentKnowledgeSourceConnectionResponse
-    >({
-      url: "/api/agent/knowledge-sources/connections",
-      body,
-    })
-  },
-  updateAgentKnowledgeSourceConnection: async (connectionId, body) => {
-    return await API.put<
-      UpdateAgentKnowledgeSourceConnectionRequest,
-      UpdateAgentKnowledgeSourceConnectionResponse
-    >({
-      url: `/api/agent/knowledge-sources/connections/${encodeURIComponent(connectionId)}`,
-      body,
-    })
-  },
-
-  validateAgentKnowledgeSourceConnection: async body => {
-    return await API.post<
-      ValidateAgentKnowledgeSourceConnectionRequest,
-      ValidateAgentKnowledgeSourceConnectionResponse
-    >({
-      url: "/api/agent/knowledge-sources/connections/validate",
-      body,
+      url: `/api/knowledge-sources/${encodeURIComponent(datasourceId)}/${encodeURIComponent(authConfigId)}/options`,
     })
   },
 

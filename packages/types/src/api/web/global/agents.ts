@@ -171,7 +171,8 @@ export interface SyncAgentKnowledgeSourcesResponse {
 
 export interface ConnectAgentSharePointSiteRequest {
   siteId: string
-  connectionId: string
+  datasourceId: string
+  authConfigId: string
   filters?: string[]
 }
 

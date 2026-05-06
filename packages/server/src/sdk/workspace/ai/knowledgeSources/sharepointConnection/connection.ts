@@ -1,29 +1,28 @@
 import { encryption, HTTPError } from "@budibase/backend-core"
 import {
-  AgentKnowledgeSourceConnection,
   AgentKnowledgeSourceConnectionAuthType,
-  AgentKnowledgeSourceType,
+  Datasource,
   KnowledgeSourceOption,
+  OAuth2RestAuthConfig,
+  RestAuthType,
 } from "@budibase/types"
-import {
-  getKnowledgeSourceConnection,
-  updateKnowledgeSourceConnection,
-} from ".."
-import { utils } from "@budibase/shared-core"
+import sdk from "../../../.."
 
-type SharePointConnectionRecord = Pick<
-  AgentKnowledgeSourceConnection,
-  | "account"
-  | "authType"
-  | "tokenEndpoint"
-  | "scope"
-  | "accessToken"
-  | "refreshToken"
-  | "tokenType"
-  | "expiresAt"
-  | "clientId"
-  | "clientSecret"
->
+interface SharePointConnectionRecord {
+  authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+  tokenEndpoint: string
+  scope?: string
+  accessToken?: string
+  tokenType?: string
+  expiresAt?: number
+  clientId: string
+  clientSecret: string
+}
+type OAuth2RestAuthConfigWithTokenCache = OAuth2RestAuthConfig & {
+  accessToken?: string
+  tokenType?: string
+  expiresAt?: number
+}
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
@@ -50,57 +49,32 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
   }
 }
 
-type SharePointConnectionDoc = AgentKnowledgeSourceConnection & {
-  sourceType: AgentKnowledgeSourceType.SHAREPOINT
-}
-
-const mapPersistedToCacheRecord = (
-  doc: SharePointConnectionDoc
+const mapAuthConfigToConnectionRecord = (
+  config: OAuth2RestAuthConfigWithTokenCache
 ): SharePointConnectionRecord => {
-  const authType =
-    doc.authType || AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
   return {
-    account: doc.account || "unknown",
-    authType,
-    tokenEndpoint: doc.tokenEndpoint,
-    scope:
-      authType === AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
-        ? doc.scope
-        : undefined,
-    accessToken: doc.accessToken,
-    refreshToken:
-      authType === AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH
-        ? doc.refreshToken
-        : undefined,
-    tokenType: doc.tokenType,
-    expiresAt: doc.expiresAt,
-    clientId: doc.clientId,
-    clientSecret: decryptSecretOrPlaintext(doc.clientSecret),
+    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+    tokenEndpoint: config.url,
+    scope: config.scope,
+    accessToken: config.accessToken,
+    tokenType: config.tokenType,
+    expiresAt: config.expiresAt,
+    clientId: config.clientId,
+    clientSecret: decryptSecretOrPlaintext(config.clientSecret),
   }
-}
-
-const readPersistedConnection = async (
-  connectionId: string
-): Promise<SharePointConnectionDoc | undefined> => {
-  const doc =
-    await getKnowledgeSourceConnection<SharePointConnectionDoc>(connectionId)
-  if (doc?.sourceType !== AgentKnowledgeSourceType.SHAREPOINT) {
-    return
-  }
-  return doc
 }
 
 const readConnection = async (
-  connectionId: string
+  datasourceId: string,
+  authConfigId: string
 ): Promise<SharePointConnectionRecord> => {
-  const persistedConnection = await readPersistedConnection(connectionId)
-  if (
-    persistedConnection &&
-    (persistedConnection.authType ===
-      AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS ||
-      !!persistedConnection.refreshToken)
-  ) {
-    return mapPersistedToCacheRecord(persistedConnection)
+  const datasource = await sdk.datasources.get(datasourceId)
+  const authConfigs = datasource.config?.authConfigs as
+    | OAuth2RestAuthConfigWithTokenCache[]
+    | undefined
+  const authConfig = authConfigs?.find(config => config._id === authConfigId)
+  if (authConfig?.type === RestAuthType.OAUTH2 && authConfig.url && authConfig.clientId) {
+    return mapAuthConfigToConnectionRecord(authConfig)
   }
   throw new HTTPError(
     "SharePoint is not connected. Connect SharePoint and try again.",
@@ -109,12 +83,10 @@ const readConnection = async (
 }
 
 const refreshConnection = async (
-  connectionId: string,
+  datasourceId: string,
+  authConfigId: string,
   connection: SharePointConnectionRecord
 ): Promise<SharePointConnectionRecord> => {
-  const isClientCredentials =
-    connection.authType ===
-    AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
   const response = await fetch(connection.tokenEndpoint, {
     method: "POST",
     headers: {
@@ -123,10 +95,8 @@ const refreshConnection = async (
     body: new URLSearchParams({
       client_id: connection.clientId,
       client_secret: connection.clientSecret,
-      grant_type: isClientCredentials ? "client_credentials" : "refresh_token",
-      ...(isClientCredentials
-        ? { ...(connection.scope ? { scope: connection.scope } : {}) }
-        : { refresh_token: connection.refreshToken || "" }),
+      grant_type: "client_credentials",
+      ...(connection.scope ? { scope: connection.scope } : {}),
     }),
   })
   const payload = await response.json()
@@ -146,54 +116,48 @@ const refreshConnection = async (
     tokenType: payload?.token_type || connection.tokenType || "Bearer",
     expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
   }
-  const updated: SharePointConnectionRecord = isClientCredentials
-    ? {
-        ...baseUpdated,
-        authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
-        scope: connection.scope,
-      }
-    : {
-        ...baseUpdated,
-        authType: AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH,
-        refreshToken: payload?.refresh_token || connection.refreshToken || "",
-      }
-
-  const saved = await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
-    connectionId,
-    {
-      tokenEndpoint: updated.tokenEndpoint,
-      scope: updated.scope,
+  const updated: SharePointConnectionRecord = {
+    ...baseUpdated,
+    authType: AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS,
+    scope: connection.scope,
+  }
+  const datasource = await sdk.datasources.get(datasourceId)
+  const authConfigs = (
+    (datasource.config?.authConfigs as
+      | OAuth2RestAuthConfigWithTokenCache[]
+      | undefined) || []
+  ).map(config => {
+    if (config._id !== authConfigId || config.type !== RestAuthType.OAUTH2) {
+      return config
+    }
+    return {
+      ...config,
       accessToken: updated.accessToken,
-      refreshToken: updated.refreshToken,
       tokenType: updated.tokenType,
       expiresAt: updated.expiresAt,
-      clientId: updated.clientId,
       clientSecret: encryption.encrypt(updated.clientSecret),
-      authType: updated.authType,
-      account: updated.account,
     }
-  )
-
-  if (!saved?._id) {
-    throw new HTTPError("SharePoint connection is missing", 400)
+  })
+  const updatedDatasource: Datasource = {
+    ...datasource,
+    config: {
+      ...datasource.config,
+      authConfigs,
+    },
   }
-
+  await sdk.datasources.save(updatedDatasource)
   return updated
 }
 
 export const getSharePointBearerToken = async (
-  connectionId: string
+  datasourceId: string,
+  authConfigId: string
 ): Promise<string> => {
-  let connection = await readConnection(connectionId)
+  let connection = await readConnection(datasourceId, authConfigId)
   const expiresAt = Number(connection.expiresAt || 0)
-  const needsRefresh =
-    !connection.accessToken ||
-    expiresAt <= Date.now() ||
-    (connection.authType !==
-      AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS &&
-      !connection.refreshToken)
+  const needsRefresh = !connection.accessToken || expiresAt <= Date.now()
   if (needsRefresh) {
-    connection = await refreshConnection(connectionId, connection)
+    connection = await refreshConnection(datasourceId, authConfigId, connection)
   }
   const tokenType = connection.tokenType?.trim() || "Bearer"
   return `${tokenType} ${connection.accessToken}`
@@ -298,22 +262,15 @@ const fetchSharePointSitesByAppToken = async (
 }
 
 export const fetchSharePointSitesByConnection = async (
-  connectionId: string
+  datasourceId: string,
+  authConfigId: string
 ): Promise<KnowledgeSourceOption[]> => {
-  const connection = await readConnection(connectionId)
-  const bearerToken = await getSharePointBearerToken(connectionId)
-  switch (connection.authType) {
-    case AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS:
-      return fetchSharePointSitesByAppToken(
-        bearerToken,
-        AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
-      )
-    case AgentKnowledgeSourceConnectionAuthType.DELEGATED_OAUTH:
-      return fetchSharePointSitesByBearerToken(bearerToken)
-    default: {
-      throw utils.unreachable(connection.authType)
-    }
-  }
+  await readConnection(datasourceId, authConfigId)
+  const bearerToken = await getSharePointBearerToken(datasourceId, authConfigId)
+  return fetchSharePointSitesByAppToken(
+    bearerToken,
+    AgentKnowledgeSourceConnectionAuthType.CLIENT_CREDENTIALS
+  )
 }
 
 interface SharePointDrive {
