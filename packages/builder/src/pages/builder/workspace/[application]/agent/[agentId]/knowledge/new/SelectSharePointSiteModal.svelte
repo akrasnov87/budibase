@@ -161,14 +161,12 @@
   {loadingNextStep}
   onConnectionChange={connectionId => {
     selectedConnectionId = connectionId
-    const selected = sharePointConnectionOptions.find(
-      option => option.id === connectionId
-    )
     const full = $knowledgeConnectionsStore.connections.find(
-      connection => connection._id === selected?.id
+      connection => connection._id === connectionId
     )
-    selectedDatasourceId = full?.datasourceId || ""
-    selectedAuthConfigId = full?.authConfigId || ""
+    if (!full) return
+    selectedDatasourceId = full.datasourceId
+    selectedAuthConfigId = full.authConfigId
   }}
   onNext={goToSitesStep}
 />
