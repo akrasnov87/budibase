@@ -240,6 +240,93 @@ describe("fetchSharePointSitesByBearerToken", () => {
       })
     )
   })
+
+  it("retries site search on 429 then succeeds", async () => {
+    const fetchMock = jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: () => null },
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({
+          value: [
+            {
+              hitsContainers: [
+                {
+                  moreResultsAvailable: false,
+                  hits: [
+                    {
+                      resource: {
+                        id: "site-1",
+                        displayName: "Site One",
+                        webUrl: "https://contoso.sharepoint.com/sites/site-1",
+                      },
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        }),
+      } as Response)
+
+    const sites = await fetchSharePointSitesByBearerToken(bearerToken)
+
+    expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(sites).toEqual([
+      {
+        id: "site-1",
+        name: "Site One",
+        webUrl: "https://contoso.sharepoint.com/sites/site-1",
+      },
+    ])
+  })
+
+  it("uses Retry-After for site search delays", async () => {
+    const logSpy = jest.spyOn(console, "log").mockImplementation()
+    jest
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 429,
+        headers: { get: (name: string) => (name === "Retry-After" ? "2" : null) },
+        json: async () => ({}),
+      } as Response)
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        json: async () => ({
+          value: [
+            {
+              hitsContainers: [
+                {
+                  moreResultsAvailable: false,
+                  hits: [],
+                },
+              ],
+            },
+          ],
+        }),
+      } as Response)
+
+    await fetchSharePointSitesByBearerToken(bearerToken)
+
+    expect(logSpy).toHaveBeenCalledWith(
+      "Retrying SharePoint Graph request after failure",
+      expect.objectContaining({
+        operation: "fetchSharePointSites",
+        status: 429,
+        delayMs: 2000,
+      })
+    )
+  })
 })
 
 describe("SharePoint listing retries", () => {

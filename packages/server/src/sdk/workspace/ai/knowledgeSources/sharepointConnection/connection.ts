@@ -242,26 +242,28 @@ export const fetchSharePointSitesByBearerToken = async (
   }
 
   const fetchSearchPage = async (from: number) => {
-    const response = await fetch(`${SHAREPOINT_API_BASE}/search/query`, {
-      method: "POST",
-      headers: {
-        Authorization: bearerToken,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        requests: [
-          {
-            entityTypes: ["site"],
-            query: {
-              queryString: "*",
+    const response = await requestWithRetries("fetchSharePointSites", () =>
+      fetch(`${SHAREPOINT_API_BASE}/search/query`, {
+        method: "POST",
+        headers: {
+          Authorization: bearerToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              entityTypes: ["site"],
+              query: {
+                queryString: "*",
+              },
+              fields: ["id", "displayName", "name", "webUrl"],
+              from,
+              size: SEARCH_PAGE_SIZE,
             },
-            fields: ["id", "displayName", "name", "webUrl"],
-            from,
-            size: SEARCH_PAGE_SIZE,
-          },
-        ],
-      }),
-    })
+          ],
+        }),
+      })
+    )
     if (!response.ok) {
       console.error("Failed to fetch SharePoint sites", {
         status: response.status,
