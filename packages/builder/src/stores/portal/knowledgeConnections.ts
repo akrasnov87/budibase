@@ -9,7 +9,8 @@ interface KnowledgeConnection {
   authConfigId: string
   sourceType: "sharepoint"
   authType: "client_credentials"
-  account: string
+  datasourceName: string
+  authConfigName: string
 }
 
 interface KnowledgeConnectionsState {
@@ -33,7 +34,8 @@ class KnowledgeConnectionsStore extends DerivedBudiStore<
             authConfigId: config._id,
             sourceType: "sharepoint" as const,
             authType: "client_credentials" as const,
-            account: config.name || datasource.name || "OAuth2 connection",
+            datasourceName: datasource.name || "Datasource",
+            authConfigName: config.name || "OAuth2 config",
           }))
         })
         return { connections }

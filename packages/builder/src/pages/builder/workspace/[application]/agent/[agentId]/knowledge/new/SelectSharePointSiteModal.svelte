@@ -54,8 +54,8 @@
       )
       sharePointConnectionOptions = sharePointConnections.map(connection => ({
         id: connection._id!,
-        name: "Microsoft",
-        account: connection.account || "-",
+        name: connection.datasourceName,
+        account: connection.authConfigName,
       }))
       selectedConnectionId = sharePointConnections[0]?._id || ""
       selectedDatasourceId = sharePointConnections[0]?.datasourceId || ""
