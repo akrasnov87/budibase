@@ -1,8 +1,4 @@
-import {
-  type Datasource,
-  OAuth2GrantType,
-  RestAuthType,
-} from "@budibase/types"
+import { type Datasource, OAuth2GrantType, RestAuthType } from "@budibase/types"
 import { fetchSharePointSitesByDatasourceAuthConfig } from "./connection"
 import sdk from "../../../.."
 
