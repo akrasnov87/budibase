@@ -13,13 +13,13 @@
   import RouteActions from "@/settings/components/RouteActions.svelte"
   import TypeRenderer from "./_components/TypeRenderer.svelte"
   import KnowledgeConnectionIconRenderer from "./_components/KnowledgeConnectionIconRenderer.svelte"
-  import EditKnowledgeConnectionRenderer from "./_components/EditKnowledgeConnectionRenderer.svelte"
+  import ActionsRenderer from "./_components/ActionsRenderer.svelte"
   import { knowledgeConnectionsStore } from "@/stores/portal"
 
   const customRenderers = [
     {
-      column: "edit",
-      component: EditKnowledgeConnectionRenderer,
+      column: "actions",
+      component: ActionsRenderer,
     },
     {
       column: "icon",
@@ -35,7 +35,7 @@
     icon: { width: "40px", displayName: "" },
     account: { width: "1fr", displayName: "Account" },
     type: { width: "1fr", displayName: "Auth" },
-    edit: { width: "auto", displayName: "" },
+    actions: { width: "auto", displayName: "" },
   }
 
   let loading = $state(true)
@@ -44,7 +44,7 @@
     $knowledgeConnectionsStore.connections
       ?.map(connection => ({
         id: connection._id!,
-        edit: {
+        actions: {
           id: connection._id!,
           authType: connection.authType,
         },
