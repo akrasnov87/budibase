@@ -295,7 +295,9 @@ describe("fetchSharePointSitesByBearerToken", () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 429,
-        headers: { get: (name: string) => (name === "Retry-After" ? "2" : null) },
+        headers: {
+          get: (name: string) => (name === "Retry-After" ? "2" : null),
+        },
         json: async () => ({}),
       } as Response)
       .mockResolvedValueOnce({
@@ -383,7 +385,9 @@ describe("SharePoint listing retries", () => {
       .mockResolvedValueOnce({
         ok: false,
         status: 429,
-        headers: { get: (name: string) => (name === "Retry-After" ? "2" : null) },
+        headers: {
+          get: (name: string) => (name === "Retry-After" ? "2" : null),
+        },
         json: async () => ({}),
       } as Response)
       .mockResolvedValueOnce({
@@ -426,7 +430,8 @@ describe("SharePoint listing retries", () => {
               file: { mimeType: "text/plain" },
             },
           ],
-          "@odata.nextLink": "https://graph.microsoft.com/v1.0/drives/drive-1/root/children?$skiptoken=abc",
+          "@odata.nextLink":
+            "https://graph.microsoft.com/v1.0/drives/drive-1/root/children?$skiptoken=abc",
         }),
       } as Response)
       .mockResolvedValueOnce({

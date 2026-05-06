@@ -62,7 +62,9 @@ const requestWithRetries = async (
         return response
       }
 
-      const retryAfterMs = parseRetryAfterMs(response.headers.get("Retry-After"))
+      const retryAfterMs = parseRetryAfterMs(
+        response.headers.get("Retry-After")
+      )
       const delayMs = retryAfterMs ?? RETRY_DELAYS_MS[attempt]
       console.log("Retrying SharePoint Graph request after failure", {
         operation,
