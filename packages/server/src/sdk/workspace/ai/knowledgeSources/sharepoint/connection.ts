@@ -51,14 +51,19 @@ const readConnection = async (
     | OAuth2RestAuthConfigWithTokenCache[]
     | undefined
   const authConfig = authConfigs?.find(config => config._id === authConfigId)
-  if (
-    authConfig?.type === RestAuthType.OAUTH2 &&
-    authConfig.url &&
-    authConfig.clientId
-  ) {
-    return authConfig
+  if (!authConfig) {
+    throw new HTTPError("SharePoint auth config not found.", 400)
   }
-  throw new HTTPError("SharePoint is not configured.", 400)
+  if (authConfig.type !== RestAuthType.OAUTH2) {
+    throw new HTTPError("SharePoint requires an OAuth2 auth config.", 400)
+  }
+  if (!authConfig.url || !authConfig.clientId) {
+    throw new HTTPError(
+      "OAuth2 auth config is missing token URL or client ID.",
+      400
+    )
+  }
+  return authConfig
 }
 
 const refreshConnection = async (
@@ -228,7 +233,7 @@ const fetchSharePointSitesByAppToken = async (
   )
 }
 
-export const fetchSharePointSitesByConnection = async (
+export const fetchSharePointSitesByDatasourceAuthConfig = async (
   datasourceId: string,
   authConfigId: string
 ): Promise<KnowledgeSourceOption[]> => {

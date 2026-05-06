@@ -212,7 +212,7 @@
   const loadInitialKnowledge = async (agentId: string) => {
     loading = true
     try {
-      await Promise.all([agentsStore.fetchAgentKnowledge(agentId)])
+      await agentsStore.fetchAgentKnowledge(agentId)
       initialKnowledgeLoadedForAgent = agentId
     } finally {
       loading = false

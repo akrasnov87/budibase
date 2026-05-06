@@ -95,7 +95,7 @@
         error?.message ||
         "Failed to fetch SharePoint sites for this auth config."
       siteLoadError = message
-      notifications.error(message)
+      notifications.error(`Error fetching sites: ${message}`)
       sharePointSites = []
       selectedSiteId = ""
     }

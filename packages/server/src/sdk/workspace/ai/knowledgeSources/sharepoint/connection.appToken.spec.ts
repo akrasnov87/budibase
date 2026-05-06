@@ -1,6 +1,6 @@
-import { fetchSharePointSitesByConnection } from "./connection"
+import { fetchSharePointSitesByDatasourceAuthConfig } from "./connection"
 
-describe("fetchSharePointSitesByConnection app token pagination", () => {
+describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () => {
   beforeEach(() => {
     jest.clearAllMocks()
   })
@@ -22,7 +22,7 @@ describe("fetchSharePointSitesByConnection app token pagination", () => {
         }) as Response
     )
 
-    const sites = await fetchSharePointSitesByConnection(
+    const sites = await fetchSharePointSitesByDatasourceAuthConfig(
       "datasource_1",
       "auth_1"
     )

@@ -19,7 +19,7 @@ import {
   KnowledgeBaseFileStatus,
 } from "@budibase/types"
 import sdk from "../../../sdk"
-import { fetchSharePointSitesByConnection } from "../../../sdk/workspace/ai/knowledgeSources/sharepoint"
+import { fetchSharePointSitesByDatasourceAuthConfig } from "../../../sdk/workspace/ai/knowledgeSources/sharepoint"
 import { getSharePointSiteIds, getSharePointSources } from "./sharepoint"
 
 const GEMINI_UPSTREAM_EVENT = "ai.gemini.upstream_unavailable"
@@ -48,11 +48,11 @@ const unlinkSafe = async (path?: string) => {
 const sanitizeSharePointSourceId = (siteId: string) =>
   `sharepoint_site_${siteId.replace(/[^a-zA-Z0-9_-]/g, "_")}`
 
-const fetchSharePointOptionsForConnection = async (
+const fetchSharePointOptionsForDatasourceAuthConfig = async (
   datasourceId: string,
   authConfigId: string
 ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
-  const options = await fetchSharePointSitesByConnection(
+  const options = await fetchSharePointSitesByDatasourceAuthConfig(
     datasourceId,
     authConfigId
   )
@@ -201,7 +201,10 @@ export async function fetchAgentKnowledgeSourceOptions(
     throw new HTTPError("datasourceId and authConfigId are required", 400)
   }
   ctx.body = {
-    options: await fetchSharePointSitesByConnection(datasourceId, authConfigId),
+    options: await fetchSharePointSitesByDatasourceAuthConfig(
+      datasourceId,
+      authConfigId
+    ),
   }
   ctx.status = 200
 }
@@ -259,14 +262,14 @@ export async function connectAgentSharePointSite(
   const existingAgent = await sdk.ai.agents.getOrThrow(agentId)
   const existingSites = getSharePointSiteIds(existingAgent)
   if (existingSites.has(siteId)) {
-    ctx.body = await fetchSharePointOptionsForConnection(
+    ctx.body = await fetchSharePointOptionsForDatasourceAuthConfig(
       datasourceId,
       authConfigId
     )
     ctx.status = 200
     return
   }
-  const availableOptions = await fetchSharePointOptionsForConnection(
+  const availableOptions = await fetchSharePointOptionsForDatasourceAuthConfig(
     datasourceId,
     authConfigId
   )
@@ -309,7 +312,7 @@ export async function connectAgentSharePointSite(
     AgentKnowledgeSourceType.SHAREPOINT,
     [nextSource.id]
   )
-  ctx.body = await fetchSharePointOptionsForConnection(
+  ctx.body = await fetchSharePointOptionsForDatasourceAuthConfig(
     datasourceId,
     authConfigId
   )
@@ -358,7 +361,7 @@ export async function updateAgentSharePointSite(
     AgentKnowledgeSourceType.SHAREPOINT,
     [source.id]
   )
-  ctx.body = await fetchSharePointOptionsForConnection(
+  ctx.body = await fetchSharePointOptionsForDatasourceAuthConfig(
     source.config.datasourceId,
     source.config.authConfigId
   )

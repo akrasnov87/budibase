@@ -1,6 +1,6 @@
 import { DerivedBudiStore } from "../BudiStore"
 import { Datasource, OAuth2RestAuthConfig, RestAuthType } from "@budibase/types"
-import { derived, get, Writable } from "svelte/store"
+import { derived, Writable } from "svelte/store"
 import { datasources } from "../builder/datasources"
 
 interface KnowledgeConnection {
@@ -44,10 +44,6 @@ class KnowledgeConnectionsStore extends DerivedBudiStore<
       })
 
     super({ connections: [] }, makeDerivedStore)
-  }
-
-  get() {
-    return get(this.derivedStore)
   }
 }
 

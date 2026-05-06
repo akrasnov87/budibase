@@ -1,5 +1,5 @@
 import {
-  fetchSharePointSitesByConnection,
+  fetchSharePointSitesByDatasourceAuthConfig,
   isAllowedSharePointNextLink,
 } from "./connection"
 
@@ -46,7 +46,7 @@ describe("isAllowedSharePointNextLink", () => {
   })
 })
 
-describe("fetchSharePointSitesByConnection (token-backed)", () => {
+describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
   const bearerToken = "Bearer token"
 
   afterEach(() => {
@@ -68,7 +68,7 @@ describe("fetchSharePointSitesByConnection (token-backed)", () => {
       }),
     } as Response)
 
-    const sites = await fetchSharePointSitesByConnection(
+    const sites = await fetchSharePointSitesByDatasourceAuthConfig(
       "datasource_1",
       "auth_1"
     )
@@ -131,7 +131,7 @@ describe("fetchSharePointSitesByConnection (token-backed)", () => {
         }),
       } as Response)
 
-    const sites = await fetchSharePointSitesByConnection(
+    const sites = await fetchSharePointSitesByDatasourceAuthConfig(
       "datasource_1",
       "auth_1"
     )
@@ -178,7 +178,7 @@ describe("fetchSharePointSitesByConnection (token-backed)", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByConnection("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -196,7 +196,7 @@ describe("fetchSharePointSitesByConnection (token-backed)", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByConnection("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -207,7 +207,7 @@ describe("fetchSharePointSitesByConnection (token-backed)", () => {
   })
 })
 
-describe("fetchSharePointSitesByConnection", () => {
+describe("fetchSharePointSitesByDatasourceAuthConfig", () => {
   afterEach(() => {
     jest.restoreAllMocks()
     jest.clearAllMocks()
@@ -221,7 +221,7 @@ describe("fetchSharePointSitesByConnection", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByConnection("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
@@ -238,7 +238,7 @@ describe("fetchSharePointSitesByConnection", () => {
     } as Response)
 
     await expect(
-      fetchSharePointSitesByConnection("datasource_1", "auth_1")
+      fetchSharePointSitesByDatasourceAuthConfig("datasource_1", "auth_1")
     ).rejects.toEqual(
       expect.objectContaining({
         message:
