@@ -46,7 +46,12 @@ const readConnection = async (
   datasourceId: string,
   authConfigId: string
 ): Promise<OAuth2RestAuthConfigWithTokenCache> => {
-  const datasource = await sdk.datasources.get(datasourceId)
+  let datasource: Datasource
+  try {
+    datasource = await sdk.datasources.get(datasourceId)
+  } catch {
+    throw new HTTPError("SharePoint auth config not found.", 400)
+  }
   const authConfigs = datasource.config?.authConfigs as
     | OAuth2RestAuthConfigWithTokenCache[]
     | undefined

@@ -7,6 +7,7 @@ import {
   AgentKnowledgeSourceType,
   FeatureFlag,
   KnowledgeBaseFileStatus,
+  RestAuthType,
 } from "@budibase/types"
 import environment, { setEnv } from "../../../../environment"
 import { getQueue } from "../../../../sdk/workspace/ai/rag/ragQueue"
@@ -128,7 +129,40 @@ describe("agent files", () => {
   }
 
   const setSharePointConnection = async (_agentId: string) => {
-    return { datasourceId: "datasource_1", authConfigId: "auth_1" }
+    return await config.doInContext(config.getDevWorkspaceId(), async () => {
+      const db = context.getWorkspaceDB()
+      const datasourceId = `datasource_${new Date().getTime()}`
+      const authConfigId = `auth_${new Date().getTime()}`
+      await db.put({
+        _id: datasourceId,
+        type: "datasource",
+        source: "REST",
+        name: "SharePoint Test DS",
+        config: {
+          url: "https://graph.microsoft.com/v1.0",
+          authConfigs: [
+            {
+              _id: authConfigId,
+              type: RestAuthType.OAUTH2,
+              name: "SharePoint OAuth2",
+              url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+              clientId: "client-id",
+              clientSecret: "client-secret",
+              method: "BODY",
+              grantType: "client_credentials",
+              scope: "https://graph.microsoft.com/.default",
+              accessToken: "header.payload.signature",
+              tokenType: "Bearer",
+              expiresAt: Date.now() + 60_000,
+            },
+          ],
+        },
+      })
+      return {
+        datasourceId,
+        authConfigId,
+      }
+    })
   }
 
   const mockSharePointSitesFetch = (
@@ -256,7 +290,7 @@ describe("agent files", () => {
         {
           status: 400,
           body: {
-            message: "SharePoint is not connected for this agent",
+            message: "SharePoint auth config not found.",
           },
         }
       )
