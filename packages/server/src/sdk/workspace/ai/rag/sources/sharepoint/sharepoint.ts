@@ -533,7 +533,10 @@ const runSharePointSourcesForAgent = async (
             continue
           }
 
-          if (existingEntry?.fileId) {
+          const isOwnedByCurrentSource =
+            existingEntry?.knowledgeSourceId === sourceId
+
+          if (existingEntry?.fileId && isOwnedByCurrentSource) {
             try {
               await deleteFileForAgent(agentId, existingEntry.fileId)
               deleted++
@@ -552,6 +555,13 @@ const runSharePointSourcesForAgent = async (
               failed++
               continue
             }
+          }
+
+          if (!isOwnedByCurrentSource) {
+            skipped++
+            alreadySynced++
+
+            continue
           }
 
           existingExternalIds.delete(externalSourceId)
