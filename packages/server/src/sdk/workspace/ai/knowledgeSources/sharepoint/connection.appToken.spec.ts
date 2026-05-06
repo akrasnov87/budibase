@@ -1,4 +1,6 @@
+import { type Datasource, RestAuthType } from "@budibase/types"
 import { fetchSharePointSitesByDatasourceAuthConfig } from "./connection"
+import sdk from "../../../.."
 
 describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () => {
   beforeEach(() => {
@@ -10,6 +12,26 @@ describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () =
   })
 
   it("caps app-token pagination when @odata.nextLink keeps chaining", async () => {
+    jest.spyOn(sdk.datasources, "get").mockResolvedValue({
+      _id: "datasource_1",
+      type: "datasource",
+      source: "REST",
+      config: {
+        authConfigs: [
+          {
+            _id: "auth_1",
+            type: RestAuthType.OAUTH2,
+            url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            clientId: "client-id",
+            clientSecret: "secret",
+            accessToken: "token",
+            tokenType: "Bearer",
+            expiresAt: Date.now() + 60_000,
+          },
+        ],
+      },
+    } as Datasource)
+
     const fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(
       async input =>
         ({
