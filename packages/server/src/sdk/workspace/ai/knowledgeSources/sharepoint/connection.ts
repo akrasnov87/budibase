@@ -1,26 +1,18 @@
 import { HTTPError } from "@budibase/backend-core"
 import { helpers } from "@budibase/shared-core"
 import {
-  AgentKnowledgeSourceConnection,
-  AgentKnowledgeSourceType,
+  Datasource,
   KnowledgeSourceOption,
+  OAuth2RestAuthConfig,
+  isOAuth2ClientCredentialsAuthConfig,
 } from "@budibase/types"
-import {
-  getKnowledgeSourceConnection,
-  updateKnowledgeSourceConnection,
-} from ".."
+import sdk from "../../../.."
 
-type SharePointConnectionRecord = Pick<
-  AgentKnowledgeSourceConnection,
-  | "account"
-  | "tokenEndpoint"
-  | "accessToken"
-  | "refreshToken"
-  | "tokenType"
-  | "expiresAt"
-  | "clientId"
-  | "clientSecret"
->
+type OAuth2RestAuthConfigWithTokenCache = OAuth2RestAuthConfig & {
+  accessToken?: string
+  tokenType?: string
+  expiresAt?: number
+}
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
@@ -107,222 +99,138 @@ export const isAllowedSharePointNextLink = (value: string): boolean => {
   }
 }
 
-interface SharePointConnectionDoc extends AgentKnowledgeSourceConnection {
-  sourceType: AgentKnowledgeSourceType.SHAREPOINT
-}
-
-const mapPersistedToCacheRecord = (
-  doc: SharePointConnectionDoc
-): SharePointConnectionRecord => {
-  return {
-    account: doc.account || "unknown",
-    tokenEndpoint: doc.tokenEndpoint,
-    accessToken: doc.accessToken,
-    refreshToken: doc.refreshToken,
-    tokenType: doc.tokenType,
-    expiresAt: doc.expiresAt,
-    clientId: doc.clientId,
-    clientSecret: doc.clientSecret,
-  }
-}
-
-const readPersistedConnection = async (
-  connectionId: string
-): Promise<SharePointConnectionDoc | undefined> => {
-  const doc =
-    await getKnowledgeSourceConnection<SharePointConnectionDoc>(connectionId)
-  if (doc?.sourceType !== AgentKnowledgeSourceType.SHAREPOINT) {
-    return
-  }
-  if (!doc?.refreshToken) {
-    return
-  }
-  return doc
-}
-
 const readConnection = async (
-  connectionId: string
-): Promise<SharePointConnectionRecord> => {
-  const persistedConnection = await readPersistedConnection(connectionId)
-  if (persistedConnection?.refreshToken) {
-    return mapPersistedToCacheRecord(persistedConnection)
+  datasourceId: string,
+  authConfigId: string
+): Promise<OAuth2RestAuthConfigWithTokenCache> => {
+  let datasource: Datasource
+  try {
+    datasource = await sdk.datasources.get(datasourceId)
+  } catch {
+    throw new HTTPError("SharePoint auth config not found.", 400)
   }
-  throw new HTTPError(
-    "SharePoint is not connected. Connect SharePoint and try again.",
-    400
-  )
-}
-
-const refreshConnection = async (
-  connectionId: string,
-  connection: SharePointConnectionRecord
-): Promise<SharePointConnectionRecord> => {
-  const response = await fetch(connection.tokenEndpoint, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: connection.clientId,
-      client_secret: connection.clientSecret,
-      grant_type: "refresh_token",
-      refresh_token: connection.refreshToken,
-    }),
-  })
-  const payload = await response.json()
-  if (!response.ok) {
-    console.error("Failed to refresh SharePoint OAuth credentials", {
-      status: response.status,
-      error: payload?.error,
-      hasDescription: !!payload?.error_description,
-    })
-    throw new HTTPError("Failed to refresh SharePoint OAuth credentials", 400)
+  const authConfigs = datasource.config?.authConfigs as
+    | OAuth2RestAuthConfigWithTokenCache[]
+    | undefined
+  const authConfig = authConfigs?.find(config => config._id === authConfigId)
+  if (!authConfig) {
+    throw new HTTPError("SharePoint auth config not found.", 400)
   }
-
-  const expiresIn = Number(payload?.expires_in || 0)
-  const updated: SharePointConnectionRecord = {
-    ...connection,
-    accessToken: payload?.access_token || connection.accessToken,
-    refreshToken: payload?.refresh_token || connection.refreshToken,
-    tokenType: payload?.token_type || connection.tokenType || "Bearer",
-    expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
+  if (!isOAuth2ClientCredentialsAuthConfig(authConfig)) {
+    throw new HTTPError(
+      "SharePoint requires an OAuth2 client credentials auth config.",
+      400
+    )
   }
-
-  const saved = await updateKnowledgeSourceConnection<SharePointConnectionDoc>(
-    connectionId,
-    {
-      tokenEndpoint: updated.tokenEndpoint,
-      accessToken: updated.accessToken,
-      refreshToken: updated.refreshToken,
-      tokenType: updated.tokenType,
-      expiresAt: updated.expiresAt,
-      clientId: updated.clientId,
-      clientSecret: updated.clientSecret,
-    }
-  )
-
-  if (!saved?._id) {
-    throw new HTTPError("SharePoint connection is missing", 400)
+  if (!authConfig.url || !authConfig.clientId) {
+    throw new HTTPError(
+      "OAuth2 auth config is missing token URL or client ID.",
+      400
+    )
   }
-
-  return updated
+  return authConfig
 }
 
 export const getSharePointBearerToken = async (
-  connectionId: string
+  datasourceId: string,
+  authConfigId: string
 ): Promise<string> => {
-  let connection = await readConnection(connectionId)
-  const expiresAt = Number(connection.expiresAt || 0)
-  if (!connection.accessToken || expiresAt <= Date.now()) {
-    connection = await refreshConnection(connectionId, connection)
-  }
-  const tokenType = connection.tokenType?.trim() || "Bearer"
-  return `${tokenType} ${connection.accessToken}`
+  const connection = await readConnection(datasourceId, authConfigId)
+  return sdk.oauth2.getTokenFromConfig(`${datasourceId}:${authConfigId}`, {
+    url: connection.url,
+    clientId: connection.clientId,
+    clientSecret: connection.clientSecret,
+    method: connection.method,
+    grantType: connection.grantType,
+    scope: connection.scope,
+    audience: connection.audience,
+  })
 }
 
-export const fetchSharePointSitesByBearerToken = async (
+const fetchSharePointSitesByAppToken = async (
   bearerToken: string
 ): Promise<KnowledgeSourceOption[]> => {
   const sitesById = new Map<string, KnowledgeSourceOption>()
-  const SEARCH_PAGE_SIZE = 25
-  const MAX_SEARCH_PAGES = 50
+  let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
 
-  interface GraphSearchResponse {
-    value?: Array<{
-      hitsContainers?: Array<{
-        hits?: Array<{
-          resource?: {
-            id?: string
-            name?: string
-            displayName?: string
-            webUrl?: string
-          }
-        }>
-        moreResultsAvailable?: boolean
-      }>
-    }>
-  }
-
-  const fetchSearchPage = async (from: number) => {
+  const fetchSitesPage = async (url: string) => {
     const response = await requestWithRetries("fetchSharePointSites", () =>
-      fetch(`${SHAREPOINT_API_BASE}/search/query`, {
-        method: "POST",
+      fetch(url, {
         headers: {
           Authorization: bearerToken,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          requests: [
-            {
-              entityTypes: ["site"],
-              query: {
-                queryString: "*",
-              },
-              fields: ["id", "displayName", "name", "webUrl"],
-              from,
-              size: SEARCH_PAGE_SIZE,
-            },
-          ],
-        }),
       })
     )
     if (!response.ok) {
-      console.error("Failed to fetch SharePoint sites", {
-        status: response.status,
-      })
-      let message = `Failed to fetch SharePoint sites (${response.status})`
-      if (response.status === 401 || response.status === 403) {
-        message =
-          "Access denied by Microsoft Graph. Ensure delegated SharePoint read permissions are granted."
+      let errorCode = ""
+      let errorDescription = ""
+      try {
+        const payload = (await response.json()) as {
+          error?: { code?: string; message?: string }
+        }
+        errorCode = payload?.error?.code || ""
+        errorDescription = payload?.error?.message || ""
+      } catch {
+        // noop
       }
-      throw new HTTPError(message, 400)
+      console.error("Failed to fetch SharePoint sites (app token)", {
+        status: response.status,
+        errorCode,
+        hasErrorDescription: !!errorDescription,
+      })
+      let errorMessage = `Failed to fetch SharePoint sites (${response.status})`
+      if (response.status === 401) {
+        errorMessage =
+          "Authentication failed with Microsoft Graph. Verify SharePoint application credentials and try again."
+      } else if (response.status === 403) {
+        errorMessage =
+          "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
+      } else if (response.status === 400 && errorDescription) {
+        errorMessage = `Microsoft Graph rejected the SharePoint search request: ${errorDescription}`
+      }
+      throw new HTTPError(errorMessage, 400)
     }
-    const json: GraphSearchResponse = await response.json()
-    return json
+    return (await response.json()) as {
+      value?: Array<{
+        id?: string
+        displayName?: string
+        name?: string
+        webUrl?: string
+      }>
+      "@odata.nextLink"?: string
+    }
   }
 
-  let from = 0
-  for (let page = 0; page < MAX_SEARCH_PAGES; page++) {
-    const payload = await fetchSearchPage(from)
-    const requestResults = Array.isArray(payload?.value) ? payload.value : []
-
-    let hitsCount = 0
-    let hasMoreResults = false
-
-    for (const requestResult of requestResults) {
-      const containers = Array.isArray(requestResult?.hitsContainers)
-        ? requestResult.hitsContainers
-        : []
-      for (const container of containers) {
-        const hits = Array.isArray(container?.hits) ? container.hits : []
-        hitsCount += hits.length
-        if (container?.moreResultsAvailable) {
-          hasMoreResults = true
-        }
-        for (const hit of hits) {
-          const resource = hit?.resource
-          if (!resource) {
-            continue
-          }
-
-          const id = resource?.id
-          if (!id) {
-            continue
-          }
-          sitesById.set(id, {
-            id,
-            name: resource.displayName || resource.name,
-            webUrl: resource.webUrl,
-          })
-        }
+  for (let page = 0; nextLink && page < 50; page++) {
+    const payload = await fetchSitesPage(nextLink)
+    for (const site of payload.value || []) {
+      if (!site?.id) {
+        continue
       }
+      sitesById.set(site.id, {
+        id: site.id,
+        name: site.displayName || site.name,
+        webUrl: site.webUrl,
+      })
     }
 
-    if (!hasMoreResults || hitsCount === 0) {
-      break
+    const nextPageLink = payload?.["@odata.nextLink"]
+    if (!nextPageLink) {
+      nextLink = ""
+      continue
     }
-
-    from += SEARCH_PAGE_SIZE
+    if (!isAllowedSharePointNextLink(nextPageLink)) {
+      throw new HTTPError("Invalid SharePoint pagination URL", 400)
+    }
+    nextLink = nextPageLink
+  }
+  if (nextLink) {
+    console.warn(
+      "Stopped fetching SharePoint sites due to reaching maximum page limit",
+      {
+        lastNextLink: nextLink,
+      }
+    )
   }
 
   return Array.from(sitesById.values()).sort((a, b) =>
@@ -330,11 +238,13 @@ export const fetchSharePointSitesByBearerToken = async (
   )
 }
 
-export const fetchSharePointSitesByConnection = async (
-  connectionId: string
+export const fetchSharePointSitesByDatasourceAuthConfig = async (
+  datasourceId: string,
+  authConfigId: string
 ): Promise<KnowledgeSourceOption[]> => {
-  const bearerToken = await getSharePointBearerToken(connectionId)
-  return fetchSharePointSitesByBearerToken(bearerToken)
+  await readConnection(datasourceId, authConfigId)
+  const bearerToken = await getSharePointBearerToken(datasourceId, authConfigId)
+  return fetchSharePointSitesByAppToken(bearerToken)
 }
 
 interface SharePointDrive {
