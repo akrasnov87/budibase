@@ -173,10 +173,7 @@
 
       <div class="bar" role="img" aria-label="Context breakdown">
         {#each visibleSegments as segment (segment.name)}
-          {@const segPct = Math.max(
-            0.4,
-            (segment.tokens / maxTokens) * 100
-          )}
+          {@const segPct = Math.max(0.4, (segment.tokens / maxTokens) * 100)}
           <span
             class="bar-segment"
             style="width: {segPct}%; background: {segment.color};"
@@ -187,9 +184,7 @@
       <ul class="legend">
         {#each visibleSegments as segment (segment.name)}
           <li class="legend-row">
-            <span
-              class="legend-swatch"
-              style="background: {segment.color};"
+            <span class="legend-swatch" style="background: {segment.color};"
             ></span>
             <span class="legend-name">{segment.name}</span>
             <span class="legend-tokens">{formatTokens(segment.tokens)}</span>

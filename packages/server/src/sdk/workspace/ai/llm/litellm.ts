@@ -3,10 +3,7 @@ import { constants, env, HTTPError } from "@budibase/backend-core"
 import { licensing, quotas } from "@budibase/pro"
 import tracer from "dd-trace"
 import environment from "../../../../environment"
-import {
-  fetchModelMaxInputTokens,
-  getKeySettings,
-} from "../configs/litellm"
+import { fetchModelMaxInputTokens, getKeySettings } from "../configs/litellm"
 import {
   AIQuotaUsageResponse,
   BUDIBASE_AI_PROVIDER_ID,
