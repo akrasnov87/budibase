@@ -1,6 +1,8 @@
 <script lang="ts">
-  import { Helpers } from "@budibase/bbui"
-  import { KnowledgeBaseFileStatus } from "@budibase/types"
+  import {
+    getKnowledgeFileDisplayType,
+    KnowledgeBaseFileStatus,
+  } from "@budibase/types"
   import type { KnowledgeTableRow } from "./types"
 
   export interface Props {
@@ -9,27 +11,6 @@
 
   let { row }: Props = $props()
 
-  const mimeTypeLabels: Record<string, string> = {
-    "application/pdf": "PDF",
-    "text/plain": "Text",
-    "text/markdown": "Markdown",
-    "text/csv": "CSV",
-    "application/msword": "DOC",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
-      "DOCX",
-    "application/vnd.ms-excel": "XLS",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
-    "application/vnd.ms-powerpoint": "PPT",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation":
-      "PPTX",
-  }
-
-  const getDisplayMimeType = (mimetype?: string) => {
-    if (!mimetype) {
-      return "Text"
-    }
-    return mimeTypeLabels[mimetype] || Helpers.capitalise(mimetype)
-  }
 </script>
 
 <div class="file-name">
@@ -41,7 +22,10 @@
       : row.mimetype || "text/plain"}
     >{row.kind === "sharepoint_connection"
       ? row.subtitle || "SharePoint"
-      : getDisplayMimeType(row.mimetype)}</span
+      : getKnowledgeFileDisplayType({
+          filename: row.filename,
+          mimetype: row.mimetype,
+        })}</span
   >
   {#if row.kind !== "sharepoint_connection" && row.status === KnowledgeBaseFileStatus.FAILED && row.errorMessage}
     <span class="file-error">{row.errorMessage}</span>
