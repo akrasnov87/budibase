@@ -353,7 +353,6 @@ const getIdleTimeoutMs = (configMinutes?: number) => {
 export interface HandleChatMessageParams {
   reply: (text: string) => Promise<void>
   replyWithAssistantStream?: (stream: WebhookAssistantStream) => Promise<void>
-  /** Runs immediately before the agent webhook when all preflight checks passed. */
   beforeAssistantWebhook?: () => Promise<void>
   replyLinkPrompt: (message: LinkPromptMessage) => Promise<void>
   workspaceId: string
