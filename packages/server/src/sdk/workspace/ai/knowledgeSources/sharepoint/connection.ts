@@ -1,4 +1,5 @@
 import { encryption, HTTPError } from "@budibase/backend-core"
+import { helpers } from "@budibase/shared-core"
 import {
   Datasource,
   KnowledgeSourceOption,
@@ -20,11 +21,81 @@ type OAuth2RestAuthConfigWithTokenCache = OAuth2RestAuthConfig & {
 
 const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
+const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504])
+const RETRY_DELAYS_MS = [500, 1500, 3000]
+const SEARCH_PAGE_SIZE = 25
+const MAX_SEARCH_PAGES = 50
+
 const decryptSecretOrPlaintext = (value: string) => {
   try {
     return encryption.decrypt(value)
   } catch {
     return value
+  }
+}
+
+const parseRetryAfterMs = (value: string | null): number | undefined => {
+  if (!value) {
+    return
+  }
+
+  const seconds = Number(value)
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return seconds * 1000
+  }
+
+  const dateMs = Date.parse(value)
+  if (Number.isNaN(dateMs)) {
+    return
+  }
+
+  return Math.max(0, dateMs - Date.now())
+}
+
+const requestWithRetries = async (
+  operation: string,
+  request: () => Promise<Response>
+): Promise<Response> => {
+  let attempt = 0
+
+  while (true) {
+    try {
+      const response = await request()
+      if (
+        response.ok ||
+        !RETRYABLE_STATUS_CODES.has(response.status) ||
+        attempt >= RETRY_DELAYS_MS.length
+      ) {
+        return response
+      }
+
+      const retryAfterMs = parseRetryAfterMs(
+        response.headers.get("Retry-After")
+      )
+      const delayMs = retryAfterMs ?? RETRY_DELAYS_MS[attempt]
+      console.log("Retrying SharePoint Graph request after failure", {
+        operation,
+        attempt: attempt + 1,
+        status: response.status,
+        delayMs,
+      })
+      await helpers.wait(delayMs)
+    } catch (error) {
+      if (!(error instanceof Error) || attempt >= RETRY_DELAYS_MS.length) {
+        throw error
+      }
+
+      const delayMs = RETRY_DELAYS_MS[attempt]
+      console.log("Retrying SharePoint Graph request after network error", {
+        operation,
+        attempt: attempt + 1,
+        delayMs,
+        errorName: error.name,
+      })
+      await helpers.wait(delayMs)
+    }
+
+    attempt++
   }
 }
 
@@ -162,14 +233,46 @@ const fetchSharePointSitesByAppToken = async (
   authType: SharePointConnectionAuthType
 ): Promise<KnowledgeSourceOption[]> => {
   const sitesById = new Map<string, KnowledgeSourceOption>()
-  let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
 
-  for (let page = 0; nextLink && page < 50; page++) {
-    const response = await fetch(nextLink, {
-      headers: {
-        Authorization: bearerToken,
-      },
-    })
+  interface GraphSearchResponse {
+    value?: Array<{
+      hitsContainers?: Array<{
+        hits?: Array<{
+          resource?: {
+            id?: string
+            name?: string
+            displayName?: string
+            webUrl?: string
+          }
+        }>
+        moreResultsAvailable?: boolean
+      }>
+    }>
+  }
+
+  const fetchSearchPage = async (from: number) => {
+    const response = await requestWithRetries("fetchSharePointSites", () =>
+      fetch(`${SHAREPOINT_API_BASE}/search/query`, {
+        method: "POST",
+        headers: {
+          Authorization: bearerToken,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          requests: [
+            {
+              entityTypes: ["site"],
+              query: {
+                queryString: "*",
+              },
+              fields: ["id", "displayName", "name", "webUrl"],
+              from,
+              size: SEARCH_PAGE_SIZE,
+            },
+          ],
+        }),
+      })
+    )
     if (!response.ok) {
       console.error("Failed to fetch SharePoint sites (app token)", {
         status: response.status,
@@ -196,45 +299,46 @@ const fetchSharePointSitesByAppToken = async (
       throw new HTTPError(errorMessage, 400)
     }
 
-    const payload = (await response.json()) as {
-      value?: Array<{
-        id?: string
-        displayName?: string
-        name?: string
-        webUrl?: string
-      }>
-      "@odata.nextLink"?: string
-    }
-
-    for (const site of payload.value || []) {
-      if (!site?.id) {
-        continue
-      }
-      sitesById.set(site.id, {
-        id: site.id,
-        name: site.displayName || site.name,
-        webUrl: site.webUrl,
-      })
-    }
-
-    const nextPageLink = payload?.["@odata.nextLink"]
-    if (!nextPageLink) {
-      nextLink = ""
-      continue
-    }
-    if (!isAllowedSharePointNextLink(nextPageLink)) {
-      throw new HTTPError("Invalid SharePoint pagination URL", 400)
-    }
-    nextLink = nextPageLink
+    return (await response.json()) as GraphSearchResponse
   }
 
-  if (nextLink) {
-    console.warn(
-      "Stopped fetching SharePoint sites due to reaching maximum page limit",
-      {
-        lastNextLink: nextLink,
+  let from = 0
+  for (let page = 0; page < MAX_SEARCH_PAGES; page++) {
+    const payload = await fetchSearchPage(from)
+    const requestResults = Array.isArray(payload?.value) ? payload.value : []
+
+    let hitsCount = 0
+    let hasMoreResults = false
+
+    for (const requestResult of requestResults) {
+      const containers = Array.isArray(requestResult?.hitsContainers)
+        ? requestResult.hitsContainers
+        : []
+      for (const container of containers) {
+        const hits = Array.isArray(container?.hits) ? container.hits : []
+        hitsCount += hits.length
+        if (container?.moreResultsAvailable) {
+          hasMoreResults = true
+        }
+        for (const hit of hits) {
+          const resource = hit?.resource
+          if (!resource?.id) {
+            continue
+          }
+          sitesById.set(resource.id, {
+            id: resource.id,
+            name: resource.displayName || resource.name,
+            webUrl: resource.webUrl,
+          })
+        }
       }
-    )
+    }
+
+    if (!hasMoreResults || hitsCount === 0) {
+      break
+    }
+
+    from += SEARCH_PAGE_SIZE
   }
 
   return Array.from(sitesById.values()).sort((a, b) =>
@@ -288,15 +392,17 @@ export const listSharePointDrives = async (
   bearerToken: string,
   siteId: string
 ): Promise<string[]> => {
-  const response = await fetch(
-    `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
-      siteId
-    )}/drives?$top=200&$select=id`,
-    {
-      headers: {
-        Authorization: bearerToken,
-      },
-    }
+  const response = await requestWithRetries("listSharePointDrives", () =>
+    fetch(
+      `${SHAREPOINT_API_BASE}/sites/${encodeURIComponent(
+        siteId
+      )}/drives?$top=200&$select=id`,
+      {
+        headers: {
+          Authorization: bearerToken,
+        },
+      }
+    )
   )
   if (!response.ok) {
     console.error("Failed to list SharePoint drives", {
@@ -327,11 +433,13 @@ const listSharePointDriveItems = async (
   let nextLink = initialPath
 
   while (nextLink) {
-    const response = await fetch(nextLink, {
-      headers: {
-        Authorization: bearerToken,
-      },
-    })
+    const response = await requestWithRetries("listSharePointDriveItems", () =>
+      fetch(nextLink, {
+        headers: {
+          Authorization: bearerToken,
+        },
+      })
+    )
     if (!response.ok) {
       console.error("Failed to list SharePoint drive items", {
         status: response.status,

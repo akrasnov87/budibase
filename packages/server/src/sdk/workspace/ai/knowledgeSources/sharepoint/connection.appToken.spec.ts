@@ -11,7 +11,7 @@ describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () =
     jest.restoreAllMocks()
   })
 
-  it("caps app-token pagination when @odata.nextLink keeps chaining", async () => {
+  it("caps app-token pagination when search results keep chaining", async () => {
     jest.spyOn(sdk.datasources, "get").mockResolvedValue({
       _id: "datasource_1",
       type: "datasource",
@@ -34,13 +34,29 @@ describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () =
     } as Datasource)
 
     const fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(
-      async input =>
+      async () =>
         ({
           ok: true,
           status: 200,
           json: async () => ({
-            value: [],
-            "@odata.nextLink": input.toString(),
+            value: [
+              {
+                hitsContainers: [
+                  {
+                    moreResultsAvailable: true,
+                    hits: [
+                      {
+                        resource: {
+                          id: "site-1",
+                          displayName: "Site One",
+                          webUrl: "https://contoso.sharepoint.com/sites/site-1",
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           }),
         }) as Response
     )
@@ -51,6 +67,12 @@ describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () =
     )
 
     expect(fetchMock).toHaveBeenCalledTimes(50)
-    expect(sites).toEqual([])
+    expect(sites).toEqual([
+      {
+        id: "site-1",
+        name: "Site One",
+        webUrl: "https://contoso.sharepoint.com/sites/site-1",
+      },
+    ])
   })
 })
