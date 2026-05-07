@@ -54,11 +54,7 @@
   const RING_CIRC = 2 * Math.PI * RING_RADIUS
   const dashOffset = $derived(RING_CIRC - (percentage / 100) * RING_CIRC)
 
-  const formatTokens = (n: number) => {
-    if (n >= 10000) return `${(n / 1000).toFixed(0)}K`
-    if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
-    return `${n}`
-  }
+  const formatTokens = (n: number) => `${(n / 1000).toFixed(1)}K`
 
   const formatTotal = (n: number) => {
     if (n >= 1_000_000) {
@@ -173,7 +169,7 @@
 
       <div class="bar" role="img" aria-label="Context breakdown">
         {#each visibleSegments as segment (segment.name)}
-          {@const segPct = Math.max(0.4, (segment.tokens / maxTokens) * 100)}
+          {@const segPct = (segment.tokens / maxTokens) * 100}
           <span
             class="bar-segment"
             style="width: {segPct}%; background: {segment.color};"
