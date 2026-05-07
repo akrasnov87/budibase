@@ -3,6 +3,7 @@ import { helpers } from "@budibase/shared-core"
 import {
   Datasource,
   KnowledgeSourceOption,
+  OAuth2GrantType,
   OAuth2RestAuthConfig,
   RestAuthType,
   isOAuth2ClientCredentialsAuthConfig,
@@ -274,9 +275,22 @@ const fetchSharePointSitesByAppToken = async (
       })
     )
     if (!response.ok) {
+      let errorCode = ""
+      let errorDescription = ""
+      try {
+        const payload = (await response.json()) as {
+          error?: { code?: string; message?: string }
+        }
+        errorCode = payload?.error?.code || ""
+        errorDescription = payload?.error?.message || ""
+      } catch {
+        // noop
+      }
       console.error("Failed to fetch SharePoint sites (app token)", {
         status: response.status,
         authType,
+        errorCode,
+        hasErrorDescription: !!errorDescription,
       })
       let errorMessage = `Failed to fetch SharePoint sites (${response.status})`
       if (response.status === 401) {
@@ -295,6 +309,8 @@ const fetchSharePointSitesByAppToken = async (
           errorMessage =
             "Access denied by Microsoft Graph. Ensure SharePoint application permissions are granted."
         }
+      } else if (response.status === 400 && errorDescription) {
+        errorMessage = `Microsoft Graph rejected the SharePoint search request: ${errorDescription}`
       }
       throw new HTTPError(errorMessage, 400)
     }
@@ -350,11 +366,13 @@ export const fetchSharePointSitesByDatasourceAuthConfig = async (
   datasourceId: string,
   authConfigId: string
 ): Promise<KnowledgeSourceOption[]> => {
-  await readConnection(datasourceId, authConfigId)
+  const connection = await readConnection(datasourceId, authConfigId)
   const bearerToken = await getSharePointBearerToken(datasourceId, authConfigId)
   return fetchSharePointSitesByAppToken(
     bearerToken,
-    SharePointConnectionAuthType.CLIENT_CREDENTIALS
+    connection.grantType === OAuth2GrantType.AUTHORIZATION_CODE
+      ? SharePointConnectionAuthType.DELEGATED_OAUTH
+      : SharePointConnectionAuthType.CLIENT_CREDENTIALS
   )
 }
 
