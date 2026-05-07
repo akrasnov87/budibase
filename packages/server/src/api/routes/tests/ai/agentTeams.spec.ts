@@ -395,7 +395,7 @@ describe("agent teams integration provisioning", () => {
       expect(conversations[0]?.messages).toHaveLength(2)
     })
 
-    it("posts a channel working indicator before the assistant reply in team channels", async () => {
+    it("replaces the channel working indicator with the assistant reply in team channels", async () => {
       const { agent, chatAppId, linkExternalUser } =
         await setupProvisionedTeamsAgent()
       const path = `/api/webhooks/ms-teams/${config.getProdWorkspaceId()}/${chatAppId}/${agent._id}`
@@ -420,10 +420,7 @@ describe("agent teams integration provisioning", () => {
         },
       })
 
-      expect(response.body.messages).toEqual([
-        "Thinking...",
-        "Mock assistant response",
-      ])
+      expect(response.body.messages).toEqual(["Mock assistant response"])
       expect(mockedWebhookChat).toHaveBeenCalledTimes(1)
     })
 

@@ -7,7 +7,7 @@ import {
   type MSTeamsActivity,
   type MSTeamsConversationScope,
 } from "@budibase/types"
-import { Chat, type Thread, type Message } from "chat"
+import { Chat, type Thread, type Message, type SentMessage } from "chat"
 import { createTeamsAdapter } from "@chat-adapter/teams"
 import sdk from "../../../sdk"
 import { handleChatMessage } from "./chatHandler"
@@ -212,11 +212,32 @@ const createTeamsMessageHandler = ({
     const shouldPostChannelWorkingIndicator =
       shouldShowProgress && !isTeamsPersonalConversation(conversationType)
 
-    const postTextReply = async (text: string) => {
+    let progressMessage: SentMessage | undefined
+    let hasUsedProgressMessage = false
+
+    const editProgressMessage = async (text: string) => {
+      if (!progressMessage || hasUsedProgressMessage) {
+        return false
+      }
+
+      hasUsedProgressMessage = true
+
+      try {
+        progressMessage = await progressMessage.edit(text)
+        return true
+      } catch (error) {
+        console.error("Teams progress final update failed", error)
+        return false
+      }
+    }
+
+    const editOrPostTextReply = async (text: string) => {
       const chunks = splitTeamsMessage(text)
       const firstChunk = chunks[0] || "No response generated."
       const remainingChunks = chunks.slice(1)
-      await thread.post(firstChunk)
+      if (!(await editProgressMessage(firstChunk))) {
+        await thread.post(firstChunk)
+      }
       for (const chunk of remainingChunks) {
         await thread.post(chunk)
       }
@@ -237,13 +258,15 @@ const createTeamsMessageHandler = ({
       }
 
       await handleChatMessage({
-        reply: postTextReply,
-        replyWithAssistantStream: async stream => {
-          await thread.post(stream)
-        },
+        reply: editOrPostTextReply,
+        replyWithAssistantStream: shouldPostChannelWorkingIndicator
+          ? undefined
+          : async stream => {
+              await thread.post(stream)
+            },
         beforeAssistantWebhook: shouldPostChannelWorkingIndicator
           ? async () => {
-              await thread.post(TEAMS_PROCESSING_MESSAGE)
+              progressMessage = await thread.post(TEAMS_PROCESSING_MESSAGE)
             }
           : undefined,
         replyLinkPrompt: async prompt => {
@@ -254,16 +277,16 @@ const createTeamsMessageHandler = ({
             linkUrl: prompt.linkUrl,
           })
           if (delivery.usedDirectMessageFallback) {
-            await postTextReply("I sent you a DM with your Budibase link.")
+            await editOrPostTextReply("I sent you a DM with your Budibase link.")
             return
           }
           if (!delivery.delivered) {
-            await postTextReply(
+            await editOrPostTextReply(
               "I couldn't send a private Budibase link. Please try again in a direct message."
             )
             return
           }
-          await postTextReply("I sent you a private Budibase link.")
+          await editOrPostTextReply("I sent you a private Budibase link.")
         },
         workspaceId,
         chatAppId,
@@ -286,7 +309,7 @@ const createTeamsMessageHandler = ({
         error instanceof HTTPError
           ? error.message
           : TEAMS_FALLBACK_ERROR_MESSAGE
-      await postTextReply(msg)
+      await editOrPostTextReply(msg)
     }
   }
 }
