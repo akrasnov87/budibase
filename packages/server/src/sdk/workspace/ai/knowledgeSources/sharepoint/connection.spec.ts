@@ -1,3 +1,11 @@
+jest.mock("../../../oauth2", () => {
+  const actual = jest.requireActual("../../../oauth2")
+  return {
+    ...actual,
+    getTokenFromConfig: jest.fn(),
+  }
+})
+
 import {
   collectSharePointFilesRecursive,
   fetchSharePointSitesByDatasourceAuthConfig,
@@ -6,6 +14,10 @@ import {
 } from "./connection"
 import { type Datasource, OAuth2GrantType, RestAuthType } from "@budibase/types"
 import sdk from "../../../.."
+
+const getTokenFromConfigMock = jest.mocked(sdk.oauth2.getTokenFromConfig)
+const mockOAuthBearerToken = () =>
+  getTokenFromConfigMock.mockResolvedValue("Bearer token")
 
 describe("isAllowedSharePointNextLink", () => {
   it("accepts Graph v1.0 root and nested paths", () => {
@@ -84,28 +96,20 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
     jest.restoreAllMocks()
   })
 
-  it("uses Graph search query and maps displayName with webUrl", async () => {
+  beforeEach(() => {
+    mockOAuthBearerToken()
+  })
+  it("uses sites search query and maps displayName with webUrl", async () => {
     mockDatasource()
     const fetchMock = jest.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       json: async () => ({
         value: [
           {
-            hitsContainers: [
-              {
-                moreResultsAvailable: false,
-                hits: [
-                  {
-                    resource: {
-                      id: "site-1",
-                      displayName: "Site One",
-                      name: "Ignored Name",
-                      webUrl: "https://contoso.sharepoint.com/sites/site-1",
-                    },
-                  },
-                ],
-              },
-            ],
+            id: "site-1",
+            displayName: "Site One",
+            name: "Ignored Name",
+            webUrl: "https://contoso.sharepoint.com/sites/site-1",
           },
         ],
       }),
@@ -117,12 +121,10 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
     )
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "https://graph.microsoft.com/v1.0/search/query",
+      expect.stringContaining("https://graph.microsoft.com/v1.0/sites?"),
       expect.objectContaining({
-        method: "POST",
         headers: expect.objectContaining({
           Authorization: bearerToken,
-          "Content-Type": "application/json",
         }),
       })
     )
@@ -145,29 +147,18 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
         json: async () => ({
           value: [
             {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: true,
-                  hits: [
-                    {
-                      resource: {
-                        id: "site-1",
-                        displayName: "Site One",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-1",
-                      },
-                    },
-                    {
-                      resource: {
-                        id: "site-2",
-                        displayName: "Site Two",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-2",
-                      },
-                    },
-                  ],
-                },
-              ],
+              id: "site-1",
+              displayName: "Site One",
+              webUrl: "https://contoso.sharepoint.com/sites/site-1",
+            },
+            {
+              id: "site-2",
+              displayName: "Site Two",
+              webUrl: "https://contoso.sharepoint.com/sites/site-2",
             },
           ],
+          "@odata.nextLink":
+            "https://graph.microsoft.com/v1.0/sites?$skiptoken=abc",
         }),
       } as Response)
       .mockResolvedValueOnce({
@@ -175,27 +166,14 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
         json: async () => ({
           value: [
             {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: false,
-                  hits: [
-                    {
-                      resource: {
-                        id: "site-2",
-                        displayName: "Site Two Updated",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-2",
-                      },
-                    },
-                    {
-                      resource: {
-                        id: "site-3",
-                        displayName: "Site Three",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-3",
-                      },
-                    },
-                  ],
-                },
-              ],
+              id: "site-2",
+              displayName: "Site Two Updated",
+              webUrl: "https://contoso.sharepoint.com/sites/site-2",
+            },
+            {
+              id: "site-3",
+              displayName: "Site Three",
+              webUrl: "https://contoso.sharepoint.com/sites/site-3",
             },
           ],
         }),
@@ -209,37 +187,17 @@ describe("fetchSharePointSitesByDatasourceAuthConfig (token-backed)", () => {
     expect(fetchMock).toHaveBeenCalledTimes(2)
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "https://graph.microsoft.com/v1.0/search/query",
-      expect.objectContaining({
-        body: JSON.stringify({
-          requests: [
-            {
-              entityTypes: ["site"],
-              query: { queryString: "*" },
-              fields: ["id", "displayName", "name", "webUrl"],
-              from: 0,
-              size: 25,
-            },
-          ],
-        }),
-      })
+      expect.stringContaining(
+        "https://graph.microsoft.com/v1.0/sites?search=*&$top=200&$select=id,displayName,name,webUrl"
+      ),
+      expect.any(Object)
     )
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "https://graph.microsoft.com/v1.0/search/query",
-      expect.objectContaining({
-        body: JSON.stringify({
-          requests: [
-            {
-              entityTypes: ["site"],
-              query: { queryString: "*" },
-              fields: ["id", "displayName", "name", "webUrl"],
-              from: 25,
-              size: 25,
-            },
-          ],
-        }),
-      })
+      expect.stringContaining(
+        "https://graph.microsoft.com/v1.0/sites?$skiptoken=abc"
+      ),
+      expect.any(Object)
     )
     expect(sites).toEqual([
       {
@@ -333,6 +291,10 @@ describe("fetchSharePointSitesByDatasourceAuthConfig", () => {
     jest.clearAllMocks()
   })
 
+  beforeEach(() => {
+    mockOAuthBearerToken()
+  })
+
   it("uses app-permission guidance for client credentials 403", async () => {
     mockDatasource()
     jest.spyOn(globalThis, "fetch").mockResolvedValue({
@@ -402,6 +364,10 @@ describe("SharePoint Graph retries", () => {
     jest.restoreAllMocks()
   })
 
+  beforeEach(() => {
+    mockOAuthBearerToken()
+  })
+
   it("retries site search on 429 then succeeds", async () => {
     mockDatasource()
     const fetchMock = jest
@@ -419,20 +385,9 @@ describe("SharePoint Graph retries", () => {
         json: async () => ({
           value: [
             {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: false,
-                  hits: [
-                    {
-                      resource: {
-                        id: "site-1",
-                        displayName: "Site One",
-                        webUrl: "https://contoso.sharepoint.com/sites/site-1",
-                      },
-                    },
-                  ],
-                },
-              ],
+              id: "site-1",
+              displayName: "Site One",
+              webUrl: "https://contoso.sharepoint.com/sites/site-1",
             },
           ],
         }),
@@ -471,16 +426,7 @@ describe("SharePoint Graph retries", () => {
         status: 200,
         headers: { get: () => null },
         json: async () => ({
-          value: [
-            {
-              hitsContainers: [
-                {
-                  moreResultsAvailable: false,
-                  hits: [],
-                },
-              ],
-            },
-          ],
+          value: [],
         }),
       } as unknown as Response)
 
@@ -580,5 +526,59 @@ describe("SharePoint Graph retries", () => {
 
     expect(fetchMock).toHaveBeenCalledTimes(3)
     expect(files.map(file => file.path)).toEqual(["doc-1.txt", "doc-2.txt"])
+  })
+})
+
+describe("fetchSharePointSitesByDatasourceAuthConfig app token pagination", () => {
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  beforeEach(() => {
+    mockOAuthBearerToken()
+  })
+
+  it("caps app-token pagination when nextLink keeps chaining", async () => {
+    jest.spyOn(sdk.datasources, "get").mockResolvedValue({
+      _id: "datasource_1",
+      type: "datasource",
+      source: "REST",
+      config: {
+        authConfigs: [
+          {
+            _id: "auth_1",
+            type: RestAuthType.OAUTH2,
+            url: "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+            clientId: "client-id",
+            clientSecret: "secret",
+            grantType: OAuth2GrantType.CLIENT_CREDENTIALS,
+            accessToken: "token",
+            tokenType: "Bearer",
+            expiresAt: Date.now() + 60_000,
+          },
+        ],
+      },
+    } as Datasource)
+
+    const fetchMock = jest.spyOn(globalThis, "fetch").mockImplementation(
+      async () =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            value: [],
+            "@odata.nextLink":
+              "https://graph.microsoft.com/v1.0/sites?$skiptoken=abc",
+          }),
+        }) as Response
+    )
+
+    const sites = await fetchSharePointSitesByDatasourceAuthConfig(
+      "datasource_1",
+      "auth_1"
+    )
+
+    expect(fetchMock).toHaveBeenCalledTimes(50)
+    expect(sites).toEqual([])
   })
 })
