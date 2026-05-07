@@ -72,4 +72,30 @@ describe("BBStore pending settings", () => {
     expect(get(store).settings.route?.entry.path).toBe("/connections/apis")
     expect(get(store).settings.pendingPath).toBeUndefined()
   })
+
+  it("merges params into resolvable settings routes", () => {
+    setSettingsRouteResolver(path => {
+      if (path !== "/connections/completions/new") {
+        return null
+      }
+      return {
+        entry: {
+          path: "/connections/:type/:configId",
+        },
+        params: {
+          configId: "new",
+        },
+      }
+    })
+
+    store.settings("/connections/completions/new", {
+      provider: "Budibase",
+    })
+
+    expect(get(store).settings.open).toBe(true)
+    expect(get(store).settings.route?.params).toEqual({
+      configId: "new",
+      provider: "Budibase",
+    })
+  })
 })
