@@ -40,9 +40,11 @@ const expectedByMimeType: Record<string, string> = {
   "text/xml": "XML",
   "text/html": "HTML",
   "application/msword": "DOC",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "DOCX",
   "application/vnd.ms-powerpoint": "PPT",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PPTX",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    "PPTX",
   "application/vnd.ms-excel": "XLS",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
   "application/rtf": "RTF",
@@ -52,7 +54,9 @@ const expectedByMimeType: Record<string, string> = {
 describe("getKnowledgeFileDisplayType", () => {
   it("covers all supported knowledge file extensions", () => {
     for (const extension of KNOWLEDGE_FILE_EXTENSIONS) {
-      const label = getKnowledgeFileDisplayType({ filename: `file${extension}` })
+      const label = getKnowledgeFileDisplayType({
+        filename: `file${extension}`,
+      })
       expect(label).toBe(expectedByExtension[extension])
     }
   })

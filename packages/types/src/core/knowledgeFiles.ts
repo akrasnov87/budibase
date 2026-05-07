@@ -51,7 +51,9 @@ const KNOWLEDGE_FILE_MIME_TYPE_SET = new Set<string>(KNOWLEDGE_FILE_MIME_TYPES)
 const trimString = (value?: string) =>
   typeof value === "string" ? value.trim() : ""
 
-const DISPLAY_LABEL_BY_EXTENSION: Partial<Record<(typeof KNOWLEDGE_FILE_EXTENSIONS)[number], string>> = {
+const DISPLAY_LABEL_BY_EXTENSION: Partial<
+  Record<(typeof KNOWLEDGE_FILE_EXTENSIONS)[number], string>
+> = {
   ".txt": "Text",
   ".md": "Markdown",
   ".markdown": "Markdown",
@@ -73,7 +75,9 @@ const DISPLAY_LABEL_BY_EXTENSION: Partial<Record<(typeof KNOWLEDGE_FILE_EXTENSIO
   ".rtf": "RTF",
 }
 
-const DISPLAY_LABEL_BY_MIME_TYPE: Partial<Record<(typeof KNOWLEDGE_FILE_MIME_TYPES)[number], string>> = {
+const DISPLAY_LABEL_BY_MIME_TYPE: Partial<
+  Record<(typeof KNOWLEDGE_FILE_MIME_TYPES)[number], string>
+> = {
   "text/plain": "Text",
   "text/markdown": "Markdown",
   "text/csv": "CSV",
@@ -86,9 +90,11 @@ const DISPLAY_LABEL_BY_MIME_TYPE: Partial<Record<(typeof KNOWLEDGE_FILE_MIME_TYP
   "text/xml": "XML",
   "text/html": "HTML",
   "application/msword": "DOC",
-  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "DOCX",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+    "DOCX",
   "application/vnd.ms-powerpoint": "PPT",
-  "application/vnd.openxmlformats-officedocument.presentationml.presentation": "PPTX",
+  "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+    "PPTX",
   "application/vnd.ms-excel": "XLS",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "XLSX",
   "application/rtf": "RTF",

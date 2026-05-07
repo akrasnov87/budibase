@@ -10,7 +10,6 @@
   }
 
   let { row }: Props = $props()
-
 </script>
 
 <div class="file-name">
