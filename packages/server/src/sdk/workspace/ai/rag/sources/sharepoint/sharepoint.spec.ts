@@ -668,7 +668,7 @@ describe("rag/sharepoint sync deduplication", () => {
     })
   })
 
-  it("does not re-ingest legacy files without metadata", async () => {
+  it("re-ingests legacy files when remote metadata becomes available", async () => {
     const sourceId = "sharepoint_source_1"
     const siteId = "site-1"
 
@@ -709,6 +709,64 @@ describe("rag/sharepoint sync deduplication", () => {
                 eTag: "new-etag",
                 size: 150,
                 lastModifiedDateTime: "2026-01-02T00:00:00.000Z",
+                file: { mimeType: "text/plain" },
+              },
+            ],
+          }),
+        } as Response,
+      },
+    ])
+
+    const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
+
+    expect(fetchMock).toHaveBeenCalled()
+    expect(mockDeleteFileForAgent).toHaveBeenCalledWith("agent_1", "existing_legacy")
+    expect(mockKnowledgeBaseUploadFile).toHaveBeenCalledTimes(1)
+    expect(result).toMatchObject({
+      synced: 1,
+      alreadySynced: 0,
+      deleted: 1,
+    })
+  })
+
+  it("does not re-ingest legacy files when remote metadata is unavailable", async () => {
+    const sourceId = "sharepoint_source_1"
+    const siteId = "site-1"
+
+    mockAgentsGetOrThrow.mockResolvedValue(
+      makeSharePointAgent(sourceId, siteId)
+    )
+
+    mockKnowledgeBaseListFiles.mockResolvedValue([
+      makeSharePointFile({
+        id: "existing_legacy",
+        sourceId,
+        siteId,
+        driveId: "drive-a",
+        itemId: "item-1",
+        path: "legacy.txt",
+      }),
+    ])
+
+    const fetchMock = createFetchMock([
+      {
+        match: `/sites/${encodeURIComponent(siteId)}/drives`,
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({ value: [{ id: "drive-a" }] }),
+        } as Response,
+      },
+      {
+        match: "/drives/drive-a/root/children",
+        response: {
+          ok: true,
+          status: 200,
+          json: async () => ({
+            value: [
+              {
+                id: "item-1",
+                name: "legacy.txt",
                 file: { mimeType: "text/plain" },
               },
             ],

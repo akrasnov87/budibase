@@ -187,6 +187,18 @@ const hasSharePointFileMetadataChanged = ({
     return localEtag !== remoteEtag
   }
 
+  const hasLocalMetadata =
+    localEtag !== undefined ||
+    localLastModifiedAt !== undefined ||
+    localRemoteSize !== undefined
+  const hasRemoteMetadata =
+    remoteEtag !== undefined ||
+    remoteLastModifiedAt !== undefined ||
+    remoteSize !== undefined
+  if (!hasLocalMetadata) {
+    return hasRemoteMetadata
+  }
+
   const hasLocalFallbackMetadata =
     localLastModifiedAt !== undefined || localRemoteSize !== undefined
   if (!hasLocalFallbackMetadata) {
