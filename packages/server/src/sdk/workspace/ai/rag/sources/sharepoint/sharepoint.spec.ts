@@ -720,7 +720,10 @@ describe("rag/sharepoint sync deduplication", () => {
     const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
 
     expect(fetchMock).toHaveBeenCalled()
-    expect(mockDeleteFileForAgent).toHaveBeenCalledWith("agent_1", "existing_legacy")
+    expect(mockDeleteFileForAgent).toHaveBeenCalledWith(
+      "agent_1",
+      "existing_legacy"
+    )
     expect(mockKnowledgeBaseUploadFile).toHaveBeenCalledTimes(1)
     expect(result).toMatchObject({
       synced: 1,
