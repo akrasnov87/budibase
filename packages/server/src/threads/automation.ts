@@ -11,6 +11,7 @@ import {
   processStringSync,
 } from "@budibase/string-templates"
 import {
+  ActionFailureReason,
   Automation,
   AutomationActionStepId,
   AutomationData,
@@ -697,6 +698,10 @@ class Orchestrator {
             status: AutomationStepStatus.INCORRECT_TYPE,
             iterations,
           })
+          events.action.automationStepFailed({
+            stepId: step.stepId,
+            reason: ActionFailureReason.INCORRECT_TYPE,
+          })
           return stepFailure(step, {
             status: AutomationStepStatus.INCORRECT_TYPE,
           })
@@ -723,6 +728,10 @@ class Orchestrator {
               status: AutomationStepStatus.MAX_ITERATIONS,
               iterations,
             })
+            events.action.automationStepFailed({
+              stepId: step.stepId,
+              reason: ActionFailureReason.MAX_ITERATIONS,
+            })
             return stepFailure(
               step,
               automationUtils.buildLoopOutput(
@@ -737,6 +746,10 @@ class Orchestrator {
             span.addTags({
               status: AutomationStepStatus.FAILURE_CONDITION,
               iterations,
+            })
+            events.action.automationStepFailed({
+              stepId: step.stepId,
+              reason: ActionFailureReason.FAILURE_CONDITION,
             })
             return stepFailure(
               step,
@@ -862,6 +875,10 @@ class Orchestrator {
       }
 
       span.addTags({ status: AutomationStatus.NO_CONDITION_MET })
+      events.action.automationStepFailed({
+        stepId: step.stepId,
+        reason: ActionFailureReason.NO_CONDITION_MET,
+      })
       return [stepFailure(step, { status: AutomationStatus.NO_CONDITION_MET })]
     })
   }
@@ -924,9 +941,15 @@ class Orchestrator {
           })
         )
       } catch (err: any) {
+        const errorMessage = automationUtils.getError(err)
+        events.action.automationStepFailed({
+          stepId: step.stepId,
+          reason: ActionFailureReason.ERROR,
+          errorMessage,
+        })
         return stepFailure(step, {
           status: AutomationStatus.ERROR,
-          error: automationUtils.getError(err),
+          error: errorMessage,
         })
       }
 
