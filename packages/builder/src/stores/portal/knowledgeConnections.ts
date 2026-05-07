@@ -5,7 +5,7 @@ import {
   isOAuth2ClientCredentialsAuthConfig,
 } from "@budibase/types"
 import { derived, Writable } from "svelte/store"
-import { datasources } from "../builder/datasources"
+import { datasources, getRestTemplateIdentifier } from "../builder/datasources"
 
 interface KnowledgeConnection {
   _id: string
@@ -30,6 +30,11 @@ class KnowledgeConnectionsStore extends DerivedBudiStore<
       derived([datasources], ([$datasources]) => {
         const list = $datasources.rawList as Datasource[]
         const connections = list.flatMap(datasource => {
+          if (
+            getRestTemplateIdentifier(datasource) !== "microsoft-sharepoint"
+          ) {
+            return []
+          }
           const authConfigs = (datasource.config?.authConfigs ||
             []) as OAuth2RestAuthConfig[]
           return authConfigs
