@@ -277,7 +277,9 @@ const createTeamsMessageHandler = ({
             linkUrl: prompt.linkUrl,
           })
           if (delivery.usedDirectMessageFallback) {
-            await editOrPostTextReply("I sent you a DM with your Budibase link.")
+            await editOrPostTextReply(
+              "I sent you a DM with your Budibase link."
+            )
             return
           }
           if (!delivery.delivered) {
