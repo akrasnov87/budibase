@@ -21,7 +21,6 @@
   let focus = false
   let holdTimeout
   let holdInterval
-  let suppressClick = false
 
   // We need to keep the field value bound to a different variable in order
   // to properly handle erroneous values. If we don't do this then it is
@@ -119,16 +118,14 @@
     if (readonly || disabled) {
       return
     }
-    suppressClick = true
     stepFn()
     holdTimeout = setTimeout(() => {
       holdInterval = setInterval(stepFn, 75)
     }, 300)
   }
 
-  const onStepButtonClick = stepFn => {
-    if (suppressClick) {
-      suppressClick = false
+  const onStepButtonClick = (event, stepFn) => {
+    if (event.detail !== 0) {
       return
     }
     stepFn()
@@ -181,7 +178,7 @@
         on:touchstart|preventDefault={() => startHold(stepUp)}
         on:touchend={stopHold}
         on:touchcancel={stopHold}
-        on:click={() => onStepButtonClick(stepUp)}
+        on:click={event => onStepButtonClick(event, stepUp)}
       >
         <Icon name="caret-up" size="XS" />
       </button>
@@ -196,7 +193,7 @@
         on:touchstart|preventDefault={() => startHold(stepDown)}
         on:touchend={stopHold}
         on:touchcancel={stopHold}
-        on:click={() => onStepButtonClick(stepDown)}
+        on:click={event => onStepButtonClick(event, stepDown)}
       >
         <Icon name="caret-down" size="XS" />
       </button>
