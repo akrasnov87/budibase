@@ -1,11 +1,9 @@
-import { encryption, HTTPError } from "@budibase/backend-core"
+import { HTTPError } from "@budibase/backend-core"
 import { helpers } from "@budibase/shared-core"
 import {
   Datasource,
   KnowledgeSourceOption,
-  OAuth2GrantType,
   OAuth2RestAuthConfig,
-  RestAuthType,
   isOAuth2ClientCredentialsAuthConfig,
 } from "@budibase/types"
 import sdk from "../../../.."
@@ -24,16 +22,6 @@ const SHAREPOINT_API_BASE = "https://graph.microsoft.com/v1.0"
 const SHAREPOINT_API_BASE_URL = new URL(SHAREPOINT_API_BASE)
 const RETRYABLE_STATUS_CODES = new Set([429, 500, 502, 503, 504])
 const RETRY_DELAYS_MS = [500, 1500, 3000]
-const SEARCH_PAGE_SIZE = 25
-const MAX_SEARCH_PAGES = 50
-
-const decryptSecretOrPlaintext = (value: string) => {
-  try {
-    return encryption.decrypt(value)
-  } catch {
-    return value
-  }
-}
 
 const parseRetryAfterMs = (value: string | null): number | undefined => {
   if (!value) {
@@ -147,86 +135,20 @@ const readConnection = async (
   return authConfig
 }
 
-const refreshConnection = async (
-  datasourceId: string,
-  authConfigId: string,
-  connection: OAuth2RestAuthConfigWithTokenCache
-): Promise<OAuth2RestAuthConfigWithTokenCache> => {
-  const response = await fetch(connection.url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: new URLSearchParams({
-      client_id: connection.clientId,
-      client_secret: decryptSecretOrPlaintext(connection.clientSecret),
-      grant_type: "client_credentials",
-      ...(connection.scope ? { scope: connection.scope } : {}),
-    }),
-  })
-  const payload = await response.json()
-  if (!response.ok) {
-    console.error("Failed to refresh SharePoint OAuth credentials", {
-      status: response.status,
-      error: payload?.error,
-      hasDescription: !!payload?.error_description,
-    })
-    throw new HTTPError("Failed to refresh SharePoint OAuth credentials", 400)
-  }
-
-  const expiresIn = Number(payload?.expires_in || 0)
-  const baseUpdated = {
-    ...connection,
-    accessToken: payload?.access_token || connection.accessToken,
-    tokenType: payload?.token_type || connection.tokenType || "Bearer",
-    expiresAt: Date.now() + Math.max(expiresIn - 60, 0) * 1000,
-  }
-  const updated: OAuth2RestAuthConfigWithTokenCache = {
-    ...connection,
-    ...baseUpdated,
-  }
-  const datasource = await sdk.datasources.get(datasourceId)
-  const authConfigs = (
-    (datasource.config?.authConfigs as
-      | OAuth2RestAuthConfigWithTokenCache[]
-      | undefined) || []
-  ).map(config => {
-    if (config._id !== authConfigId || config.type !== RestAuthType.OAUTH2) {
-      return config
-    }
-    return {
-      ...config,
-      accessToken: updated.accessToken,
-      tokenType: updated.tokenType,
-      expiresAt: updated.expiresAt,
-      clientSecret: encryption.encrypt(
-        decryptSecretOrPlaintext(updated.clientSecret)
-      ),
-    }
-  })
-  const updatedDatasource: Datasource = {
-    ...datasource,
-    config: {
-      ...datasource.config,
-      authConfigs,
-    },
-  }
-  await sdk.datasources.save(updatedDatasource)
-  return updated
-}
-
 export const getSharePointBearerToken = async (
   datasourceId: string,
   authConfigId: string
 ): Promise<string> => {
-  let connection = await readConnection(datasourceId, authConfigId)
-  const expiresAt = Number(connection.expiresAt || 0)
-  const needsRefresh = !connection.accessToken || expiresAt <= Date.now()
-  if (needsRefresh) {
-    connection = await refreshConnection(datasourceId, authConfigId, connection)
-  }
-  const tokenType = connection.tokenType?.trim() || "Bearer"
-  return `${tokenType} ${connection.accessToken}`
+  const connection = await readConnection(datasourceId, authConfigId)
+  return sdk.oauth2.getTokenFromConfig(`${datasourceId}:${authConfigId}`, {
+    url: connection.url,
+    clientId: connection.clientId,
+    clientSecret: connection.clientSecret,
+    method: connection.method,
+    grantType: connection.grantType,
+    scope: connection.scope,
+    audience: connection.audience,
+  })
 }
 
 const fetchSharePointSitesByAppToken = async (
@@ -234,44 +156,14 @@ const fetchSharePointSitesByAppToken = async (
   authType: SharePointConnectionAuthType
 ): Promise<KnowledgeSourceOption[]> => {
   const sitesById = new Map<string, KnowledgeSourceOption>()
+  let nextLink = `${SHAREPOINT_API_BASE}/sites?search=*&$top=200&$select=id,displayName,name,webUrl`
 
-  interface GraphSearchResponse {
-    value?: Array<{
-      hitsContainers?: Array<{
-        hits?: Array<{
-          resource?: {
-            id?: string
-            name?: string
-            displayName?: string
-            webUrl?: string
-          }
-        }>
-        moreResultsAvailable?: boolean
-      }>
-    }>
-  }
-
-  const fetchSearchPage = async (from: number) => {
+  const fetchSitesPage = async (url: string) => {
     const response = await requestWithRetries("fetchSharePointSites", () =>
-      fetch(`${SHAREPOINT_API_BASE}/search/query`, {
-        method: "POST",
+      fetch(url, {
         headers: {
           Authorization: bearerToken,
-          "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          requests: [
-            {
-              entityTypes: ["site"],
-              query: {
-                queryString: "*",
-              },
-              fields: ["id", "displayName", "name", "webUrl"],
-              from,
-              size: SEARCH_PAGE_SIZE,
-            },
-          ],
-        }),
       })
     )
     if (!response.ok) {
@@ -314,47 +206,47 @@ const fetchSharePointSitesByAppToken = async (
       }
       throw new HTTPError(errorMessage, 400)
     }
-
-    return (await response.json()) as GraphSearchResponse
+    return (await response.json()) as {
+      value?: Array<{
+        id?: string
+        displayName?: string
+        name?: string
+        webUrl?: string
+      }>
+      "@odata.nextLink"?: string
+    }
   }
 
-  let from = 0
-  for (let page = 0; page < MAX_SEARCH_PAGES; page++) {
-    const payload = await fetchSearchPage(from)
-    const requestResults = Array.isArray(payload?.value) ? payload.value : []
-
-    let hitsCount = 0
-    let hasMoreResults = false
-
-    for (const requestResult of requestResults) {
-      const containers = Array.isArray(requestResult?.hitsContainers)
-        ? requestResult.hitsContainers
-        : []
-      for (const container of containers) {
-        const hits = Array.isArray(container?.hits) ? container.hits : []
-        hitsCount += hits.length
-        if (container?.moreResultsAvailable) {
-          hasMoreResults = true
-        }
-        for (const hit of hits) {
-          const resource = hit?.resource
-          if (!resource?.id) {
-            continue
-          }
-          sitesById.set(resource.id, {
-            id: resource.id,
-            name: resource.displayName || resource.name,
-            webUrl: resource.webUrl,
-          })
-        }
+  for (let page = 0; nextLink && page < 50; page++) {
+    const payload = await fetchSitesPage(nextLink)
+    for (const site of payload.value || []) {
+      if (!site?.id) {
+        continue
       }
+      sitesById.set(site.id, {
+        id: site.id,
+        name: site.displayName || site.name,
+        webUrl: site.webUrl,
+      })
     }
 
-    if (!hasMoreResults || hitsCount === 0) {
-      break
+    const nextPageLink = payload?.["@odata.nextLink"]
+    if (!nextPageLink) {
+      nextLink = ""
+      continue
     }
-
-    from += SEARCH_PAGE_SIZE
+    if (!isAllowedSharePointNextLink(nextPageLink)) {
+      throw new HTTPError("Invalid SharePoint pagination URL", 400)
+    }
+    nextLink = nextPageLink
+  }
+  if (nextLink) {
+    console.warn(
+      "Stopped fetching SharePoint sites due to reaching maximum page limit",
+      {
+        lastNextLink: nextLink,
+      }
+    )
   }
 
   return Array.from(sitesById.values()).sort((a, b) =>
@@ -366,13 +258,11 @@ export const fetchSharePointSitesByDatasourceAuthConfig = async (
   datasourceId: string,
   authConfigId: string
 ): Promise<KnowledgeSourceOption[]> => {
-  const connection = await readConnection(datasourceId, authConfigId)
+  await readConnection(datasourceId, authConfigId)
   const bearerToken = await getSharePointBearerToken(datasourceId, authConfigId)
   return fetchSharePointSitesByAppToken(
     bearerToken,
-    connection.grantType === OAuth2GrantType.AUTHORIZATION_CODE
-      ? SharePointConnectionAuthType.DELEGATED_OAUTH
-      : SharePointConnectionAuthType.CLIENT_CREDENTIALS
+    SharePointConnectionAuthType.CLIENT_CREDENTIALS
   )
 }
 
