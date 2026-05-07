@@ -36,11 +36,9 @@
   <span class="file-title">{row.filename}</span>
   <span
     class="file-meta"
-    title={
-      row.kind === "sharepoint_connection"
-        ? row.subtitle || "SharePoint"
-        : row.mimetype || "text/plain"
-    }
+    title={row.kind === "sharepoint_connection"
+      ? row.subtitle || "SharePoint"
+      : row.mimetype || "text/plain"}
     >{row.kind === "sharepoint_connection"
       ? row.subtitle || "SharePoint"
       : getDisplayMimeType(row.mimetype)}</span
