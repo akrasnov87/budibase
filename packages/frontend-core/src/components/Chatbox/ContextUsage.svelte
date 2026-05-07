@@ -54,7 +54,10 @@
   const RING_CIRC = 2 * Math.PI * RING_RADIUS
   const dashOffset = $derived(RING_CIRC - (percentage / 100) * RING_CIRC)
 
-  const formatTokens = (n: number) => `${(n / 1000).toFixed(1)}K`
+  const formatTokens = (n: number) => {
+    if (n >= 1000) return `${(n / 1000).toFixed(1)}K`
+    return `${n}`
+  }
 
   const formatTotal = (n: number) => {
     if (n >= 1_000_000) {
