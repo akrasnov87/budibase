@@ -39,6 +39,9 @@ export interface AgentChatRun {
     options?: AgentChatStreamOptions
   ) => Promise<StreamTextResult<ToolSet, never>>
   toolDisplayNames: Record<string, string>
+  systemPromptTokens: number
+  toolsTokens: number
+  contextWindowTokens?: number
 }
 
 export interface AgentChatStreamOptions {
@@ -114,12 +117,27 @@ export const prepareAgentChatRun = async ({
     providerOptions: llm.providerOptions?.(hasTools),
   })
 
+  const systemPromptTokens = Math.ceil(
+    (promptAndTools.systemPrompt?.length || 0) / 4
+  )
+
+  const toolEntries = Object.entries(tools)
+  const toolsDescriptionChars = toolEntries.reduce((sum, [name, tool]) => {
+    const description = tool.description || ""
+    return sum + name.length + description.length
+  }, 0)
+  const toolsTokens =
+    Math.ceil(toolsDescriptionChars / 4) + toolEntries.length * 80
+
   return {
     latestQuestion,
     sessionLogIndexer,
     getUsedKnowledgeSourcesMetadata: () =>
       Array.from(usedKnowledgeSourceById.values()),
     toolDisplayNames: promptAndTools.toolDisplayNames,
+    systemPromptTokens,
+    toolsTokens,
+    contextWindowTokens: llm.contextWindowTokens,
     stream: async ({ onFinish, pendingToolCalls } = {}) =>
       await agentRunner.stream({
         messages: modelMessages,

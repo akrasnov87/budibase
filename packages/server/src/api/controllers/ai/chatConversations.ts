@@ -423,6 +423,8 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
           const toolCallsIncomplete =
             pendingToolCalls.size > 0 || finishReason === "tool-calls"
 
+          const usage = part.totalUsage
+
           return {
             ...sharedMetadata,
             ...(usedKnowledgeSources?.length
@@ -430,6 +432,16 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
               : {}),
             createdAt: streamStartTime,
             completedAt: Date.now(),
+            usage: {
+              inputTokens: usage?.inputTokens,
+              outputTokens: usage?.outputTokens,
+              totalTokens: usage?.totalTokens,
+              cachedInputTokens: usage?.inputTokenDetails?.cacheReadTokens,
+              reasoningTokens: usage?.outputTokenDetails?.reasoningTokens,
+              systemPromptTokens: run.systemPromptTokens,
+              toolsTokens: run.toolsTokens,
+              contextWindowTokens: run.contextWindowTokens,
+            },
             ...(toolCallsIncomplete && {
               error: formatIncompleteToolCallError([]),
             }),

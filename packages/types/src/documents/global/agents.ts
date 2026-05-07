@@ -95,12 +95,24 @@ export interface AgentMessageRagSource {
   filename?: string
 }
 
+export interface AgentMessageUsage {
+  inputTokens?: number
+  outputTokens?: number
+  totalTokens?: number
+  cachedInputTokens?: number
+  reasoningTokens?: number
+  systemPromptTokens?: number
+  toolsTokens?: number
+  contextWindowTokens?: number
+}
+
 export interface AgentMessageMetadata {
   ragSources?: AgentMessageRagSource[]
   toolDisplayNames?: Record<string, string>
   createdAt?: number
   completedAt?: number
   error?: string
+  usage?: AgentMessageUsage
 }
 
 export interface AgentChat extends Document {
