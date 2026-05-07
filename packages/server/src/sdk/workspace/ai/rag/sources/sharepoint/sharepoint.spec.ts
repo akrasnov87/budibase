@@ -500,6 +500,14 @@ describe("rag/sharepoint sync deduplication", () => {
           }),
         } as Response,
       },
+      {
+        match: "/drives/drive-a/items/item-1/content",
+        response: {
+          ok: true,
+          status: 200,
+          arrayBuffer: async () => toArrayBuffer("legacy content"),
+        } as Response,
+      },
     ])
 
     const result = await syncSharePointSourcesForAgent("agent_1", sourceId)
