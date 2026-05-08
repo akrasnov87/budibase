@@ -126,6 +126,8 @@ export const prepareAgentChatRun = async ({
     const description = tool.description || ""
     return sum + name.length + description.length
   }, 0)
+
+  // 80 is a rough estimate of the number of tokens per tool.
   const toolsTokens =
     Math.ceil(toolsDescriptionChars / 4) + toolEntries.length * 80
 
