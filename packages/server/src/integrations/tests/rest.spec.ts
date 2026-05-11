@@ -221,6 +221,44 @@ describe("REST Integration", () => {
     expect(data).toEqual({ foo: "bar" })
   })
 
+  it("validates redirect targets against the outbound blacklist", async () => {
+    queueResponse(async (url, options) => {
+      expect(url).toEqual("https://example.com/redirect")
+      expect(options?.redirect).toEqual("manual")
+      return new Response("", {
+        status: 302,
+        headers: { location: "http://127.0.0.1/private" },
+      })
+    })
+
+    await expect(integration.read({ path: "redirect" })).rejects.toThrow(
+      "URL is blocked or could not be resolved safely."
+    )
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+  })
+
+  it("follows validated redirects", async () => {
+    queueResponse(async (url, options) => {
+      expect(url).toEqual("https://example.com/redirect")
+      expect(options?.redirect).toEqual("manual")
+      return new Response("", {
+        status: 302,
+        headers: { location: "/next" },
+      })
+    })
+    queueJsonResponse(
+      (url, options) => {
+        expect(url).toEqual("https://example.com/next")
+        expect(options?.method).toEqual("GET")
+        expect(options?.redirect).toEqual("manual")
+      },
+      { foo: "bar" }
+    )
+
+    const { data } = await integration.read({ path: "redirect" })
+    expect(data).toEqual({ foo: "bar" })
+  })
+
   it("calls the update method with the correct params", async () => {
     queueResponse(async (url, options) => {
       expect(url).toEqual("https://example.com/api?test=1")

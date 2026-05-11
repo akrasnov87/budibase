@@ -53,6 +53,74 @@ type ResolvedAuthConfig =
   | { type: "auth"; auth: AuthConfig }
   | { type: "oauth2"; sourceId: string }
 
+const MAX_REDIRECTS = 5
+const SENSITIVE_REDIRECT_HEADERS = [
+  "authorization",
+  "cookie",
+  "cookie2",
+  "proxy-authorization",
+]
+
+interface RedirectSafeRequest extends RequestInit {
+  redirect: "manual"
+}
+
+function isRedirect(status: number) {
+  return [301, 302, 303, 307, 308].includes(status)
+}
+
+function shouldChangeRedirectToGet(
+  request: RedirectSafeRequest,
+  status: number
+) {
+  const method = request.method?.toUpperCase() || "GET"
+  return (
+    status === 303 || ((status === 301 || status === 302) && method === "POST")
+  )
+}
+
+function shouldStripSensitiveHeaders(currentUrl: string, redirectUrl: string) {
+  return new URL(currentUrl).origin !== new URL(redirectUrl).origin
+}
+
+function stripSensitiveHeaders(request: RedirectSafeRequest) {
+  if (!request.headers) {
+    return request
+  }
+
+  const headers = new Headers(request.headers)
+  SENSITIVE_REDIRECT_HEADERS.forEach(header => {
+    headers.delete(header)
+  })
+  return {
+    ...request,
+    headers,
+  }
+}
+
+function getRedirectRequest(
+  request: RedirectSafeRequest,
+  status: number,
+  currentUrl: string,
+  redirectUrl: string
+): RedirectSafeRequest {
+  let nextRequest = request
+  if (shouldChangeRedirectToGet(request, status)) {
+    nextRequest = {
+      ...nextRequest,
+      body: undefined,
+      method: "GET",
+      redirect: "manual",
+    }
+  }
+
+  if (shouldStripSensitiveHeaders(currentUrl, redirectUrl)) {
+    return stripSensitiveHeaders(nextRequest)
+  }
+
+  return nextRequest
+}
+
 const coreFields = {
   path: {
     type: DatasourceFieldType.STRING,
@@ -247,6 +315,49 @@ export class RestIntegration implements IntegrationBase {
 
   constructor(config: RestConfig) {
     this.config = config
+  }
+
+  async fetchWithBlacklist(
+    url: string,
+    input: RequestInit,
+    setDispatcher: (input: RequestInit, url: string) => RequestInit
+  ) {
+    let nextUrl = url
+    let nextInput: RedirectSafeRequest = {
+      ...input,
+      redirect: "manual",
+    }
+
+    for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
+      if (await blacklist.isBlacklisted(nextUrl)) {
+        throw new Error("URL is blocked or could not be resolved safely.")
+      }
+
+      const response = await fetch(nextUrl, setDispatcher(nextInput, nextUrl))
+      if (!isRedirect(response.status)) {
+        return response
+      }
+
+      if (redirects === MAX_REDIRECTS) {
+        break
+      }
+
+      const location = response.headers.get("location")
+      if (!location) {
+        return response
+      }
+
+      const redirectUrl = new URL(location, nextUrl).toString()
+      nextInput = getRedirectRequest(
+        nextInput,
+        response.status,
+        nextUrl,
+        redirectUrl
+      )
+      nextUrl = redirectUrl
+    }
+
+    throw new Error("Maximum redirect reached.")
   }
 
   async parseResponse(
@@ -751,9 +862,6 @@ export class RestIntegration implements IntegrationBase {
       pagination,
       paginationValues
     )
-    if (await blacklist.isBlacklisted(url)) {
-      throw new Error("URL is blocked or could not be resolved safely.")
-    }
 
     // Configure dispatcher for proxy and/or TLS settings
     // Use datasource config if set, otherwise fall back to environment variable
@@ -765,17 +873,24 @@ export class RestIntegration implements IntegrationBase {
     const globalDispatcher = getGlobalDispatcher()
     const isHttpMockingActive = globalDispatcher instanceof MockAgent
 
-    if (!isHttpMockingActive) {
-      // Cast needed due to undici version differences between packages
-      input.dispatcher = getDispatcher({
-        rejectUnauthorized,
-        url,
-      }) as unknown as typeof input.dispatcher
+    const setDispatcher = (requestInput: RequestInit, requestUrl: string) => {
+      if (isHttpMockingActive) {
+        return requestInput
+      }
+
+      return {
+        ...requestInput,
+        // Cast needed due to undici version differences between packages
+        dispatcher: getDispatcher({
+          rejectUnauthorized,
+          url: requestUrl,
+        }) as unknown as typeof requestInput.dispatcher,
+      }
     }
 
     let response: Response
     try {
-      response = await fetch(url, input)
+      response = await this.fetchWithBlacklist(url, input, setDispatcher)
     } catch (err) {
       const error = err as Error & {
         cause?: {
