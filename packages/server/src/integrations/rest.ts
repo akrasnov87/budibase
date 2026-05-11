@@ -17,7 +17,7 @@ import get from "lodash/get"
 import qs from "querystring"
 import { performance } from "perf_hooks"
 import { URLSearchParams } from "url"
-import { blacklist } from "@budibase/backend-core"
+import { utils as coreUtils } from "@budibase/backend-core"
 import { handleFileResponse, handleXml } from "./utils"
 import { parse } from "content-disposition"
 import path from "path"
@@ -53,76 +53,8 @@ type ResolvedAuthConfig =
   | { type: "auth"; auth: AuthConfig }
   | { type: "oauth2"; sourceId: string }
 
-const MAX_REDIRECTS = 5
-const SENSITIVE_REDIRECT_HEADERS = [
-  "authorization",
-  "cookie",
-  "cookie2",
-  "proxy-authorization",
-]
-
-interface RedirectSafeRequest extends RequestInit {
-  redirect: "manual"
-}
-
-function isRedirect(status: number) {
-  return [301, 302, 303, 307, 308].includes(status)
-}
-
-function shouldChangeRedirectToGet(
-  request: RedirectSafeRequest,
-  status: number
-) {
-  const method = request.method?.toUpperCase() || "GET"
-  return (
-    status === 303 || ((status === 301 || status === 302) && method === "POST")
-  )
-}
-
 function isProxyDispatcher(dispatcher: RequestInit["dispatcher"]) {
   return dispatcher?.constructor.name === "ProxyAgent"
-}
-
-function shouldStripSensitiveHeaders(currentUrl: string, redirectUrl: string) {
-  return new URL(currentUrl).origin !== new URL(redirectUrl).origin
-}
-
-function stripSensitiveHeaders(request: RedirectSafeRequest) {
-  if (!request.headers) {
-    return request
-  }
-
-  const headers = new Headers(request.headers)
-  SENSITIVE_REDIRECT_HEADERS.forEach(header => {
-    headers.delete(header)
-  })
-  return {
-    ...request,
-    headers,
-  }
-}
-
-function getRedirectRequest(
-  request: RedirectSafeRequest,
-  status: number,
-  currentUrl: string,
-  redirectUrl: string
-): RedirectSafeRequest {
-  let nextRequest = request
-  if (shouldChangeRedirectToGet(request, status)) {
-    nextRequest = {
-      ...nextRequest,
-      body: undefined,
-      method: "GET",
-      redirect: "manual",
-    }
-  }
-
-  if (shouldStripSensitiveHeaders(currentUrl, redirectUrl)) {
-    return stripSensitiveHeaders(nextRequest)
-  }
-
-  return nextRequest
 }
 
 const coreFields = {
@@ -319,49 +251,6 @@ export class RestIntegration implements IntegrationBase {
 
   constructor(config: RestConfig) {
     this.config = config
-  }
-
-  async fetchWithBlacklist(
-    url: string,
-    input: RequestInit,
-    setDispatcher: (input: RequestInit, url: string) => RequestInit
-  ) {
-    let nextUrl = url
-    let nextInput: RedirectSafeRequest = {
-      ...input,
-      redirect: "manual",
-    }
-
-    for (let redirects = 0; redirects <= MAX_REDIRECTS; redirects++) {
-      if (await blacklist.isBlacklisted(nextUrl)) {
-        throw new Error("URL is blocked or could not be resolved safely.")
-      }
-
-      const response = await fetch(nextUrl, setDispatcher(nextInput, nextUrl))
-      if (!isRedirect(response.status)) {
-        return response
-      }
-
-      if (redirects === MAX_REDIRECTS) {
-        break
-      }
-
-      const location = response.headers.get("location")
-      if (!location) {
-        return response
-      }
-
-      const redirectUrl = new URL(location, nextUrl).toString()
-      nextInput = getRedirectRequest(
-        nextInput,
-        response.status,
-        nextUrl,
-        redirectUrl
-      )
-      nextUrl = redirectUrl
-    }
-
-    throw new Error("Maximum redirect reached.")
   }
 
   async parseResponse(
@@ -901,7 +790,14 @@ export class RestIntegration implements IntegrationBase {
 
     let response: Response
     try {
-      response = await this.fetchWithBlacklist(url, input, setDispatcher)
+      response = await coreUtils.fetchWithBlacklist<RequestInit, Response>(
+        url,
+        input,
+        {
+          fetchFn: async (requestUrl: string, requestInput: RequestInit) =>
+            fetch(requestUrl, setDispatcher(requestInput, requestUrl)),
+        }
+      )
     } catch (err) {
       const error = err as Error & {
         cause?: {
