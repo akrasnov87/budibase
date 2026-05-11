@@ -639,6 +639,13 @@ class Orchestrator {
                 }
 
                 events.action.automationStepExecuted({ stepId: step.stepId })
+                if (response.outputs.success === false) {
+                  events.action.automationStepFailed({
+                    stepId: step.stepId,
+                    reason: ActionFailureReason.ERROR,
+                    errorMessage: response.outputs.error as string | undefined,
+                  })
+                }
                 return response
               })
             )

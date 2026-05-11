@@ -5,6 +5,7 @@ jest.mock("@budibase/backend-core", () => {
     events: {
       ...actual.events,
       action: {
+        ...actual.events.action,
         automationStepExecuted: jest.fn(),
         automationStepFailed: jest.fn(),
       },
@@ -378,6 +379,19 @@ describe("Branching automations", () => {
 
     expect(events.action.automationStepFailed).toHaveBeenCalledWith(
       expect.objectContaining({ reason: ActionFailureReason.NO_CONDITION_MET })
+    )
+  })
+
+  it("emits automationStepFailed with ERROR when a step returns success false", async () => {
+    jest.clearAllMocks()
+
+    await createAutomationBuilder(config)
+      .onAppAction()
+      .createRow({ row: {} }) // no tableId → step returns success: false without throwing
+      .test({ fields: {} })
+
+    expect(events.action.automationStepFailed).toHaveBeenCalledWith(
+      expect.objectContaining({ reason: ActionFailureReason.ERROR })
     )
   })
 })
