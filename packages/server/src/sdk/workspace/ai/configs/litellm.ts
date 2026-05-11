@@ -617,20 +617,16 @@ type LiteLLMModelCostMap = Record<
 
 const modelMaxInputCache = new Map<
   string,
-  { value: number | undefined; expires: number }
+  { value?: number; expires: number }
 >()
 const MODEL_INFO_TTL_MS = 5 * 60 * 1000
 
 export async function fetchModelMaxInputTokens(
   liteLLMModelId: string
 ): Promise<number | undefined> {
-  if (!liteLLMModelId || !env.LITELLM_MASTER_KEY) {
-    return undefined
-  }
+  if (!liteLLMModelId || !env.LITELLM_MASTER_KEY) return undefined
   const cached = modelMaxInputCache.get(liteLLMModelId)
-  if (cached && cached.expires > Date.now()) {
-    return cached.value
-  }
+  if (cached && cached.expires > Date.now()) return cached.value
   let value: number | undefined
   try {
     const res = await fetch(`${liteLLMUrl}/model/info`, {
@@ -638,15 +634,13 @@ export async function fetchModelMaxInputTokens(
     })
     if (res.ok) {
       const json = (await res.json()) as {
-        data?: Array<{
-          model_info?: { id?: string; max_input_tokens?: number }
-        }>
+        data?: { model_info?: { id?: string; max_input_tokens?: number } }[]
       }
-      const entry = json.data?.find(d => d.model_info?.id === liteLLMModelId)
-      value = entry?.model_info?.max_input_tokens
+      value = json.data?.find(d => d.model_info?.id === liteLLMModelId)
+        ?.model_info?.max_input_tokens
     }
   } catch {
-    value = undefined
+    // fall through and cache undefined
   }
   modelMaxInputCache.set(liteLLMModelId, {
     value,

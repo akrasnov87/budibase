@@ -117,19 +117,19 @@ export const prepareAgentChatRun = async ({
     providerOptions: llm.providerOptions?.(hasTools),
   })
 
-  const systemPromptTokens = Math.ceil(
-    (promptAndTools.systemPrompt?.length || 0) / 4
-  )
+  const estimateTokens = (s: string) => Math.ceil(s.length / 4)
+
+  const systemPromptTokens = estimateTokens(promptAndTools.systemPrompt || "")
 
   const toolEntries = Object.entries(tools)
-  const toolsDescriptionChars = toolEntries.reduce((sum, [name, tool]) => {
-    const description = tool.description || ""
-    return sum + name.length + description.length
-  }, 0)
-
-  // 80 is a rough estimate of the number of tokens per tool.
+  // 80 is a rough estimate of the number of tokens of schema overhead per tool.
   const toolsTokens =
-    Math.ceil(toolsDescriptionChars / 4) + toolEntries.length * 80
+    toolEntries.reduce(
+      (sum, [name, tool]) =>
+        sum + estimateTokens(name + (tool.description || "")),
+      0
+    ) +
+    toolEntries.length * 80
 
   return {
     latestQuestion,
