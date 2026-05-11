@@ -176,8 +176,8 @@
     search = ""
   }
 
-  const stopSearching = (e: Event) => {
-    e.stopPropagation()
+  const stopSearching = (e?: Event) => {
+    e?.stopPropagation()
     searching = false
     search = ""
   }
@@ -272,9 +272,30 @@
           name="arrow-left"
           hoverable
           size="S"
-          on:click={() => (selectedCategory = null)}
+          on:click={() => {
+            selectedCategory = null
+            stopSearching()
+          }}
         />
-        {selectedCategory}
+        {#if searching}
+          <div class="search-input">
+            <Input
+              placeholder="Search for bindings"
+              autocomplete={false}
+              bind:value={search}
+              autofocus
+            />
+          </div>
+          <Icon size="S" name="x" hoverable on:click={stopSearching} />
+        {:else}
+          <div class="title">{selectedCategory}</div>
+          <Icon
+            size="S"
+            name="magnifying-glass"
+            hoverable
+            on:click={startSearching}
+          />
+        {/if}
         {#if selectedCategory === "Snippets"}
           {#if enableSnippets}
             <div class="add-snippet-button">
@@ -382,7 +403,7 @@
         {/if}
       {/each}
 
-      {#if selectedCategory === "Helpers" || search}
+      {#if selectedCategory === "Helpers" || (!selectedCategory && search)}
         {#if filteredHelpers?.length}
           <div class="sub-section">
             <ul class="helpers">
@@ -405,7 +426,7 @@
         {/if}
       {/if}
 
-      {#if selectedCategory === "Snippets" || search}
+      {#if selectedCategory === "Snippets" || (!selectedCategory && search)}
         <div class="snippet-list">
           {#if enableSnippets && filteredSnippets.length}
             {#each filteredSnippets as snippet}
