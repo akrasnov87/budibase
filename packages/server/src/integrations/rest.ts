@@ -53,10 +53,6 @@ type ResolvedAuthConfig =
   | { type: "auth"; auth: AuthConfig }
   | { type: "oauth2"; sourceId: string }
 
-function isProxyDispatcher(dispatcher: RequestInit["dispatcher"]) {
-  return dispatcher?.constructor.name === "ProxyAgent"
-}
-
 const coreFields = {
   path: {
     type: DatasourceFieldType.STRING,
@@ -779,11 +775,10 @@ export class RestIntegration implements IntegrationBase {
       }) as unknown as typeof requestInput.dispatcher
 
       hasDispatcher = true
-      usedProxyDispatcher = isProxyDispatcher(dispatcher)
+      usedProxyDispatcher = dispatcher?.constructor.name === "ProxyAgent"
 
       return {
         ...requestInput,
-        // Cast needed due to undici version differences between packages
         dispatcher,
       }
     }

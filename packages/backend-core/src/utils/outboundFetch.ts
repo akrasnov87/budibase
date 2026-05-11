@@ -94,9 +94,7 @@ interface FetchResponse {
   headers: {
     get(name: string): string | null
   }
-  body?: {
-    resume?: () => void
-  } | null
+  body?: unknown
 }
 
 interface FetchWithBlacklistOptions<
@@ -115,7 +113,15 @@ type RedirectSafeRequest<TRequest extends FetchRequest> = TRequest & {
 }
 
 function releaseResponseBody(response: FetchResponse) {
-  response.body?.resume?.()
+  const body = response.body
+  if (
+    body &&
+    typeof body === "object" &&
+    "resume" in body &&
+    typeof body.resume === "function"
+  ) {
+    body.resume()
+  }
 }
 
 export async function fetchWithBlacklist<
