@@ -9,22 +9,30 @@ import {
   ActionAiAgentFailed,
 } from "@budibase/types"
 
-async function automationStepExecuted(
+function automationStepExecuted(
   action: ActionAutomationStepExecuted,
   timestamp?: string | number
 ) {
-  await publishEvent(Event.ACTION_AUTOMATION_STEP_EXECUTED, action, timestamp)
+  publishEvent(Event.ACTION_AUTOMATION_STEP_EXECUTED, action, timestamp).catch(
+    err => {
+      console.error("automationStepExecuted telemetry failed", { action, err })
+    }
+  )
 }
 
-async function automationStepFailed(action: ActionAutomationStepFailed) {
-  await publishEvent(Event.ACTION_AUTOMATION_STEP_FAILED, action)
+function automationStepFailed(action: ActionAutomationStepFailed) {
+  publishEvent(Event.ACTION_AUTOMATION_STEP_FAILED, action).catch(err => {
+    console.error("automationStepFailed telemetry failed", { action, err })
+  })
 }
 
-async function crudExecuted(
+function crudExecuted(
   action: ActionCrudExecuted,
   timestamp?: string | number
 ) {
-  await publishEvent(Event.ACTION_CRUD_EXECUTED, action, timestamp)
+  publishEvent(Event.ACTION_CRUD_EXECUTED, action, timestamp).catch(err => {
+    console.error("crudExecuted telemetry failed", { action, err })
+  })
 }
 
 function crudFailed(action: ActionCrudFailed) {
