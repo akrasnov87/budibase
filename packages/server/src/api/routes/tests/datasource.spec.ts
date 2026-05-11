@@ -756,6 +756,15 @@ describe("/datasources", () => {
         url: `/api/datasources/${datasource._id}/${datasource._rev}`,
       })
     })
+
+    it("should apply authorization to update endpoint", async () => {
+      await checkBuilderEndpoint({
+        config,
+        method: "PUT",
+        url: `/api/datasources/${datasource._id}`,
+        body: datasource,
+      })
+    })
   })
 })
 
