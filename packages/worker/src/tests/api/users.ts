@@ -4,7 +4,6 @@ import {
   BulkUserResponse,
   CreateAdminUserRequest,
   InviteUsersRequest,
-  InviteUsersResponse,
   SearchUsersRequest,
   User,
 } from "@budibase/types"
