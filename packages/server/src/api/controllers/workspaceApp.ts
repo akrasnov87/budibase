@@ -98,22 +98,7 @@ export async function edit(
     ctx.throw(400, "Path and body ids do not match")
   }
 
-  const toUpdate: Parameters<typeof sdk.workspaceApps.update>[0] = {
-    _id: body._id,
-    _rev: body._rev,
-    name: body.name,
-    url: body.url,
-    navigation: body.navigation,
-    disabled: body.disabled,
-  }
-  if ("theme" in body) {
-    toUpdate.theme = body.theme
-  }
-  if ("customTheme" in body) {
-    toUpdate.customTheme = body.customTheme
-  }
-
-  const workspaceApp = await sdk.workspaceApps.update(toUpdate)
+  const workspaceApp = await sdk.workspaceApps.update(body)
   ctx.body = {
     workspaceApp: toWorkspaceAppResponse(workspaceApp),
   }

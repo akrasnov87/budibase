@@ -3,6 +3,7 @@ import { DerivedBudiStore } from "@/stores/BudiStore"
 import {
   InsertWorkspaceAppRequest,
   PublishResourceState,
+  RequiredKeys,
   UIWorkspaceApp,
   UpdateWorkspaceAppRequest,
   WorkspaceApp,
@@ -125,7 +126,7 @@ export class WorkspaceAppStore extends DerivedBudiStore<
   }
 
   async edit(workspaceApp: WorkspaceApp) {
-    const safeWorkspaceApp: UpdateWorkspaceAppRequest = {
+    const safeWorkspaceApp: RequiredKeys<UpdateWorkspaceAppRequest> = {
       _id: workspaceApp._id!,
       _rev: workspaceApp._rev!,
       name: workspaceApp.name,
