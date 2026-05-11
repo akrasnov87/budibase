@@ -5,6 +5,7 @@ jest.mock("@budibase/backend-core", () => {
     events: {
       ...actual.events,
       action: {
+        ...actual.events.action,
         automationStepExecuted: jest.fn(),
         automationStepFailed: jest.fn(),
       },
