@@ -115,11 +115,6 @@ builderOrAdminRoutes
 adminRoutes
   .post("/api/global/users/invite", buildInviteValidation(), controller.invite)
   .post(
-    "/api/global/users/onboard",
-    buildInviteMultipleValidation(),
-    controller.onboardUsers
-  )
-  .post(
     "/api/global/users/multi/invite",
     buildInviteMultipleValidation(),
     controller.inviteMultiple
