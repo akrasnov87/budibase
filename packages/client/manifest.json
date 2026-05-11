@@ -3560,12 +3560,9 @@
       },
       {
         "type": "number",
-        "label": "Input debounce (ms)",
-        "key": "inputDebounceMs",
-        "defaultValue": 300,
-        "hideButtons": true,
-        "dependsOn": "runOnInput",
-        "dependsOnValue": true
+        "label": "Debounce (ms)",
+        "key": "debounceMs",
+        "defaultValue": 500
       },
       {
         "type": "boolean",

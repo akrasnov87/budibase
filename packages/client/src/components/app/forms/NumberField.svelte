@@ -16,7 +16,7 @@
   export let enableStepper = false
   export let onChange
   export let runOnInput = false
-  export let inputDebounceMs = 300
+  export let debounceMs = 500
   export let span
   export let helpText = null
 
@@ -42,23 +42,27 @@
     const clamped = clampValue(e.detail)
     const changed = fieldApi.setValue(clamped)
     if (changed) {
-      onChange?.({ value: clamped })
+      scheduleOnChange(clamped)
     }
+  }
+
+  const scheduleOnChange = value => {
+    if (debounceTimeout) {
+      clearTimeout(debounceTimeout)
+    }
+    debounceTimeout = setTimeout(
+      () => {
+        onChange?.({ value })
+      },
+      Number(debounceMs) || 0
+    )
   }
 
   const handleInput = e => {
     if (!runOnInput) {
       return
     }
-    if (debounceTimeout) {
-      clearTimeout(debounceTimeout)
-    }
-    debounceTimeout = setTimeout(
-      () => {
-        onChange?.({ value: e.target.value })
-      },
-      Number(inputDebounceMs) || 0
-    )
+    scheduleOnChange(e.target.value)
   }
 
   onDestroy(() => {
