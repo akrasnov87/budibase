@@ -949,11 +949,6 @@ class Orchestrator {
         )
       } catch (err: any) {
         const errorMessage = automationUtils.getError(err)
-        events.action.automationStepFailed({
-          stepId: step.stepId,
-          reason: ActionFailureReason.ERROR,
-          errorMessage,
-        })
         return stepFailure(step, {
           status: AutomationStatus.ERROR,
           error: errorMessage,

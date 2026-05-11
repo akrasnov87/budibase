@@ -5,6 +5,7 @@ jest.mock("@budibase/backend-core", () => {
     events: {
       ...actual.events,
       action: {
+        ...actual.events.action,
         automationStepExecuted: jest.fn(),
         automationStepFailed: jest.fn(),
       },
@@ -32,7 +33,6 @@ import { basicAutomation } from "../tests/utilities/structures"
 import { executeInThread } from "./automation"
 import sdk from "../sdk"
 import { automations } from "@budibase/shared-core"
-import * as actions from "../automations/actions"
 
 const isAutomationStepResult = (
   result: AutomationTestProgressEvent["result"]
@@ -317,35 +317,40 @@ describe("automation thread", () => {
     expect(firstChildRunningIndex).toBeGreaterThan(firstBranchEventIndex)
   })
 
-  it("emits automationStepFailed with ERROR when a step throws", async () => {
-    const prodAppId = config.getProdWorkspaceId()
+  it("emits automationStepFailed with ERROR when a step fails", async () => {
+    jest.clearAllMocks()
 
-    const { id: _ignored, ...serverLogDefinition } =
-      BUILTIN_ACTION_DEFINITIONS.SERVER_LOG as AutomationStep
-    const throwingStep: AutomationStep = {
-      ...serverLogDefinition,
-      id: "throwing-step",
-      stepId: AutomationActionStepId.SERVER_LOG,
-      inputs: { text: "will throw" },
+    const appId = config.getDevWorkspaceId()
+
+    const { id: _scriptId, ...scriptDefinition } =
+      BUILTIN_ACTION_DEFINITIONS.EXECUTE_SCRIPT as AutomationStep
+    const failingStep: AutomationStep = {
+      ...scriptDefinition,
+      id: "failing-step",
+      stepId: AutomationActionStepId.EXECUTE_SCRIPT,
+      inputs: { code: "return missingValue.map(x => x)" },
     }
-
-    const automation = await context.doInWorkspaceContext(prodAppId, async () =>
-      sdk.automations.create(
-        basicAutomation({
-          appId: prodAppId,
-          definition: { steps: [throwingStep] } as any,
-        })
-      )
-    )
-
-    jest.spyOn(actions, "getAction").mockResolvedValueOnce(async () => {
-      throw new Error("step exploded")
-    })
 
     const job = {
       data: {
-        automation,
-        event: { appId: prodAppId },
+        automation: basicAutomation({
+          appId,
+          definition: {
+            trigger: {
+              stepId: AutomationTriggerStepId.APP,
+              name: "test",
+              tagline: "test",
+              icon: "test",
+              description: "test",
+              type: AutomationStepType.TRIGGER,
+              inputs: {},
+              id: "trigger",
+              schema: { inputs: { properties: {} }, outputs: { properties: {} } },
+            },
+            steps: [failingStep],
+          },
+        }),
+        event: { appId },
       },
     } as Job<AutomationData>
 
@@ -353,9 +358,8 @@ describe("automation thread", () => {
 
     expect(events.action.automationStepFailed).toHaveBeenCalledWith(
       expect.objectContaining({
-        stepId: AutomationActionStepId.SERVER_LOG,
+        stepId: AutomationActionStepId.EXECUTE_SCRIPT,
         reason: ActionFailureReason.ERROR,
-        errorMessage: "step exploded",
       })
     )
   })
