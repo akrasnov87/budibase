@@ -1,5 +1,20 @@
-import { context } from "@budibase/backend-core"
+jest.mock("@budibase/backend-core", () => {
+  const actual = jest.requireActual("@budibase/backend-core")
+  return {
+    ...actual,
+    events: {
+      ...actual.events,
+      action: {
+        automationStepExecuted: jest.fn(),
+        automationStepFailed: jest.fn(),
+      },
+    },
+  }
+})
+
+import { context, events } from "@budibase/backend-core"
 import {
+  ActionFailureReason,
   AutomationActionStepId,
   AutomationData,
   AutomationStep,
@@ -17,6 +32,7 @@ import { basicAutomation } from "../tests/utilities/structures"
 import { executeInThread } from "./automation"
 import sdk from "../sdk"
 import { automations } from "@budibase/shared-core"
+import * as actions from "../automations/actions"
 
 const isAutomationStepResult = (
   result: AutomationTestProgressEvent["result"]
@@ -299,5 +315,48 @@ describe("automation thread", () => {
       e => e.blockId === childStepId && e.status === "running"
     )
     expect(firstChildRunningIndex).toBeGreaterThan(firstBranchEventIndex)
+  })
+
+  it("emits automationStepFailed with ERROR when a step throws", async () => {
+    const prodAppId = config.getProdWorkspaceId()
+
+    const { id: _ignored, ...serverLogDefinition } =
+      BUILTIN_ACTION_DEFINITIONS.SERVER_LOG as AutomationStep
+    const throwingStep: AutomationStep = {
+      ...serverLogDefinition,
+      id: "throwing-step",
+      stepId: AutomationActionStepId.SERVER_LOG,
+      inputs: { text: "will throw" },
+    }
+
+    const automation = await context.doInWorkspaceContext(prodAppId, async () =>
+      sdk.automations.create(
+        basicAutomation({
+          appId: prodAppId,
+          definition: { steps: [throwingStep] } as any,
+        })
+      )
+    )
+
+    jest.spyOn(actions, "getAction").mockResolvedValueOnce(async () => {
+      throw new Error("step exploded")
+    })
+
+    const job = {
+      data: {
+        automation,
+        event: { appId: prodAppId },
+      },
+    } as Job<AutomationData>
+
+    await executeInThread(job)
+
+    expect(events.action.automationStepFailed).toHaveBeenCalledWith(
+      expect.objectContaining({
+        stepId: AutomationActionStepId.SERVER_LOG,
+        reason: ActionFailureReason.ERROR,
+        errorMessage: "step exploded",
+      })
+    )
   })
 })
