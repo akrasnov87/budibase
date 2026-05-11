@@ -79,6 +79,10 @@ function shouldChangeRedirectToGet(
   )
 }
 
+function isProxyDispatcher(dispatcher: RequestInit["dispatcher"]) {
+  return dispatcher?.constructor.name === "ProxyAgent"
+}
+
 function shouldStripSensitiveHeaders(currentUrl: string, redirectUrl: string) {
   return new URL(currentUrl).origin !== new URL(redirectUrl).origin
 }
@@ -872,19 +876,26 @@ export class RestIntegration implements IntegrationBase {
 
     const globalDispatcher = getGlobalDispatcher()
     const isHttpMockingActive = globalDispatcher instanceof MockAgent
+    let hasDispatcher = false
+    let usedProxyDispatcher = false
 
     const setDispatcher = (requestInput: RequestInit, requestUrl: string) => {
       if (isHttpMockingActive) {
         return requestInput
       }
 
+      const dispatcher = getDispatcher({
+        rejectUnauthorized,
+        url: requestUrl,
+      }) as unknown as typeof requestInput.dispatcher
+
+      hasDispatcher = true
+      usedProxyDispatcher = isProxyDispatcher(dispatcher)
+
       return {
         ...requestInput,
         // Cast needed due to undici version differences between packages
-        dispatcher: getDispatcher({
-          rejectUnauthorized,
-          url: requestUrl,
-        }) as unknown as typeof requestInput.dispatcher,
+        dispatcher,
       }
     }
 
@@ -903,7 +914,8 @@ export class RestIntegration implements IntegrationBase {
         error: error.message,
         cause: error.cause?.message,
         code: error.cause?.code,
-        hasDispatcher: !!input.dispatcher,
+        hasDispatcher,
+        usedProxyDispatcher,
         isHttpsUrl: url.startsWith("https://"),
         rejectUnauthorized,
       })
@@ -917,7 +929,7 @@ export class RestIntegration implements IntegrationBase {
         )
       }
 
-      if (error.cause?.code === "ECONNREFUSED" && input.dispatcher) {
+      if (error.cause?.code === "ECONNREFUSED" && usedProxyDispatcher) {
         throw new Error(
           `Connection refused when using proxy. Check proxy configuration and ensure the proxy server is accessible. Original error: ${error.message}`
         )
