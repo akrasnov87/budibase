@@ -112,16 +112,25 @@ type RedirectSafeRequest<TRequest extends FetchRequest> = TRequest & {
   redirect: "manual"
 }
 
+function isResumableBody(body: unknown): body is { resume: () => void } {
+  if (!body || typeof body !== "object") {
+    return false
+  }
+
+  if (!("resume" in body)) {
+    return false
+  }
+
+  return typeof body.resume === "function"
+}
+
 function releaseResponseBody(response: FetchResponse) {
   const body = response.body
-  if (
-    body &&
-    typeof body === "object" &&
-    "resume" in body &&
-    typeof body.resume === "function"
-  ) {
-    body.resume()
+  if (!isResumableBody(body)) {
+    return
   }
+
+  body.resume()
 }
 
 export async function fetchWithBlacklist<

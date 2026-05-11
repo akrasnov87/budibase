@@ -145,6 +145,14 @@ describe("REST Integration", () => {
       })
     })
   }
+
+  const replaceProcessEnv = (env: NodeJS.ProcessEnv) => {
+    jest.replaceProperty(process, "env", {
+      ...process.env,
+      ...env,
+    })
+  }
+
   const config = new TestConfiguration()
 
   beforeAll(async () => {
@@ -174,6 +182,7 @@ describe("REST Integration", () => {
   })
 
   afterEach(() => {
+    jest.restoreAllMocks()
     fetchMock.mockReset()
   })
 
@@ -237,7 +246,7 @@ describe("REST Integration", () => {
     expect(fetchMock).toHaveBeenCalledTimes(1)
   })
 
-  it("follows validated redirects", async () => {
+  it("follows valid redirects", async () => {
     queueResponse(async (url, options) => {
       expect(url).toEqual("https://example.com/redirect")
       expect(options?.redirect).toEqual("manual")
@@ -1087,55 +1096,36 @@ describe("REST Integration", () => {
     })
 
     it("returns a proxy-specific message when the proxy connection is refused", async () => {
-      const envKeys = [
-        "GLOBAL_AGENT_HTTP_PROXY",
-        "GLOBAL_AGENT_HTTPS_PROXY",
-        "GLOBAL_AGENT_NO_PROXY",
-        "HTTP_PROXY",
-        "HTTPS_PROXY",
-        "NO_PROXY",
-      ]
-      const previousEnv = new Map(envKeys.map(key => [key, process.env[key]]))
-      const consoleSpy = jest.spyOn(console, "log").mockImplementation(() => {})
+      replaceProcessEnv({
+        GLOBAL_AGENT_HTTP_PROXY: "http://proxy.example.com:8080",
+        GLOBAL_AGENT_HTTPS_PROXY: "",
+        GLOBAL_AGENT_NO_PROXY: "",
+        HTTP_PROXY: "",
+        HTTPS_PROXY: "",
+        NO_PROXY: "",
+      })
+      jest.spyOn(console, "log").mockImplementation(() => {})
 
-      try {
-        process.env.GLOBAL_AGENT_HTTP_PROXY = "http://proxy.example.com:8080"
-        process.env.GLOBAL_AGENT_HTTPS_PROXY = ""
-        process.env.GLOBAL_AGENT_NO_PROXY = ""
-        process.env.HTTP_PROXY = ""
-        process.env.HTTPS_PROXY = ""
-        process.env.NO_PROXY = ""
+      queueResponse(async (_url, options) => {
+        expect(options?.dispatcher?.constructor.name).toBe("ProxyAgent")
 
-        queueResponse(async (_url, options) => {
-          expect(options?.dispatcher?.constructor.name).toBe("ProxyAgent")
-
-          const error = new Error("fetch failed") as Error & {
-            cause: { code: string; message: string }
-          }
-          error.cause = {
-            code: "ECONNREFUSED",
-            message: "connect ECONNREFUSED",
-          }
-          throw error
-        })
-
-        const integration = new RestIntegration({
-          url: "https://example.com",
-        })
-
-        await expect(integration.read({})).rejects.toThrow(
-          "Connection refused when using proxy"
-        )
-      } finally {
-        for (const [key, value] of previousEnv) {
-          if (value === undefined) {
-            delete process.env[key]
-          } else {
-            process.env[key] = value
-          }
+        const error = new Error("fetch failed") as Error & {
+          cause: { code: string; message: string }
         }
-        consoleSpy.mockRestore()
-      }
+        error.cause = {
+          code: "ECONNREFUSED",
+          message: "connect ECONNREFUSED",
+        }
+        throw error
+      })
+
+      const integration = new RestIntegration({
+        url: "https://example.com",
+      })
+
+      await expect(integration.read({})).rejects.toThrow(
+        "Connection refused when using proxy"
+      )
     })
 
     it("falls back to environment variable when config rejectUnauthorized is undefined", async () => {
