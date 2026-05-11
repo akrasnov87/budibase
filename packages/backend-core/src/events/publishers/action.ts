@@ -26,10 +26,7 @@ function automationStepFailed(action: ActionAutomationStepFailed) {
   })
 }
 
-function crudExecuted(
-  action: ActionCrudExecuted,
-  timestamp?: string | number
-) {
+function crudExecuted(action: ActionCrudExecuted, timestamp?: string | number) {
   publishEvent(Event.ACTION_CRUD_EXECUTED, action, timestamp).catch(err => {
     console.error("crudExecuted telemetry failed", { action, err })
   })
