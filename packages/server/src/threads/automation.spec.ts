@@ -345,7 +345,10 @@ describe("automation thread", () => {
               type: AutomationStepType.TRIGGER,
               inputs: {},
               id: "trigger",
-              schema: { inputs: { properties: {} }, outputs: { properties: {} } },
+              schema: {
+                inputs: { properties: {} },
+                outputs: { properties: {} },
+              },
             },
             steps: [failingStep],
           },
