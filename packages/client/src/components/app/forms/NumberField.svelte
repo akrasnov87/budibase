@@ -31,10 +31,18 @@
     return isNaN(val) ? null : parseFloat(val)
   }
 
+  const clampValue = val => {
+    if (val == null) return val
+    if (min != null && val < min) return min
+    if (max != null && val > max) return max
+    return val
+  }
+
   const handleChange = e => {
-    const changed = fieldApi.setValue(e.detail)
+    const clamped = clampValue(e.detail)
+    const changed = fieldApi.setValue(clamped)
     if (changed) {
-      onChange?.({ value: e.detail })
+      onChange?.({ value: clamped })
     }
   }
 
@@ -99,9 +107,6 @@
         id={fieldState.fieldId}
         {placeholder}
         type="number"
-        {min}
-        {max}
-        {step}
       />
     {/if}
   {/if}
