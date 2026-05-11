@@ -91,7 +91,10 @@ const SCHEMA_MAP: Record<string, any> = {
 }
 
 function validateCalculation(calculation?: string) {
-  if (calculation && !SCHEMA_MAP[calculation]) {
+  if (
+    calculation &&
+    !Object.prototype.hasOwnProperty.call(SCHEMA_MAP, calculation)
+  ) {
     throw new HTTPError(`Invalid calculation type: ${calculation}`, 400)
   }
 }
