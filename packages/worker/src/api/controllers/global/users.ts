@@ -601,13 +601,17 @@ export const accountHolderLookup = async (
 export const onboardUsers = async (
   ctx: Ctx<InviteUsersRequest, InviteUsersResponse>
 ) => {
+  if (!users.isAdmin(ctx.user)) {
+    ctx.throw(403, "Admin user only endpoint.")
+  }
+
   if (await isEmailConfigured()) {
     await inviteMultiple(ctx)
     return
   }
 
   let createdPasswords: Record<string, string> = {}
-  const users = ctx.request.body.map<User>(invite => {
+  const newUsers = ctx.request.body.map<User>(invite => {
     const password = generatePassword(12)
     createdPasswords[invite.email] = password
 
@@ -622,7 +626,7 @@ export const onboardUsers = async (
     }
   })
 
-  let resp = await userSdk.db.bulkCreate(users)
+  let resp = await userSdk.db.bulkCreate(newUsers)
   for (const user of resp.successful) {
     user.password = createdPasswords[user.email]
   }

@@ -1391,6 +1391,27 @@ describe("/api/global/users", () => {
       expect(response.successful.length).toBe(0)
       expect(response.unsuccessful.length).toBe(1)
     })
+
+    it("should not allow builders to onboard users", async () => {
+      accounts.getAccount.mockReset()
+      accounts.getAccount.mockResolvedValue(undefined)
+
+      const builderUser = await config.createUser({
+        tenantId: config.getTenantId(),
+        builder: { global: true },
+        admin: { global: false },
+      })
+      await config.login(builderUser)
+
+      await config.withUser(builderUser, () =>
+        config.request
+          .post("/api/global/users/onboard")
+          .send([{ email: structures.users.newEmail(), userInfo: {} }])
+          .set(config.defaultHeaders())
+          .expect("Content-Type", /json/)
+          .expect(403)
+      )
+    })
   })
 
   describe("PUT /api/global/users/tenant/owner", () => {
