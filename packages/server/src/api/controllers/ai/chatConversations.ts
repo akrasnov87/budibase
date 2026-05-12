@@ -7,6 +7,7 @@ import {
 } from "@budibase/backend-core"
 import { v4 } from "uuid"
 import {
+  ActionFailureReason,
   ChatAgentRequest,
   ChatApp,
   ChatConversation,
@@ -325,6 +326,11 @@ export async function webhookChat({
 
   if (streamOutcome.status === "rejected") {
     console.error("Chat webhook stream delivery failed", streamOutcome.reason)
+    events.action.aiAgentFailed({
+      agentId,
+      reason: ActionFailureReason.ERROR,
+      errorMessage: getErrorMessage(streamOutcome.reason),
+    })
     throw streamOutcome.reason
   }
   const requestId =
@@ -341,6 +347,11 @@ export async function webhookChat({
       sessionId,
       error: textResult.reason,
     })
+    events.action.aiAgentFailed({
+      agentId,
+      reason: ActionFailureReason.ERROR,
+      errorMessage: getErrorMessage(textResult.reason),
+    })
     throw textResult.reason
   }
   if (responseResult.status === "rejected") {
@@ -349,6 +360,11 @@ export async function webhookChat({
       chatAppId,
       sessionId,
       error: responseResult.reason,
+    })
+    events.action.aiAgentFailed({
+      agentId,
+      reason: ActionFailureReason.ERROR,
+      errorMessage: getErrorMessage(responseResult.reason),
     })
     throw responseResult.reason
   }
@@ -467,6 +483,11 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
           chatAppId,
           sessionId,
           error,
+        })
+        events.action.aiAgentFailed({
+          agentId,
+          reason: ActionFailureReason.ERROR,
+          errorMessage: getErrorMessage(error),
         })
         return getErrorMessage(error)
       },
