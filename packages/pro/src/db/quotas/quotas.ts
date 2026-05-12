@@ -121,7 +121,7 @@ const setBreakdown = (
   values: UsageValues
 ) => {
   const breakdownName = utils.getBreakdownName(name, id)
-  if (!breakdownName || !values?.breakdown) {
+  if (!breakdownName || values?.breakdown == null) {
     return monthUsage
   }
   if (!monthUsage.breakdown) {

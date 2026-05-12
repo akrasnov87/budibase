@@ -190,6 +190,30 @@ describe("quotas", () => {
       })
     })
 
+    it("writes a zero breakdown value instead of leaving the stale count", async () => {
+      await config.doInTenant(async () => {
+        await quotas.increment(actions, QuotaUsageType.MONTHLY, {
+          id: ActionType.CRUD,
+        })
+
+        // Force the breakdown counter back to 0 via a direct decrement
+        await quotas.updateUsage({
+          usageChange: -1,
+          name: actions,
+          type: QuotaUsageType.MONTHLY,
+          opts: { id: ActionType.CRUD },
+        })
+
+        const month = db.quotas.utils.getCurrentMonthString()
+        const doc = await db.quotas.getQuotaUsage()
+        const monthDoc = doc.monthly[month]
+
+        // Total is 0, breakdown must also reflect 0, not the stale 1
+        expect(monthDoc.actions).toBe(0)
+        expect(monthDoc.breakdown?.actions?.values[ActionType.CRUD]).toBe(0)
+      })
+    })
+
     it("getCurrentUsageValues returns the per-type breakdown count", async () => {
       await config.doInTenant(async () => {
         await quotas.increment(actions, QuotaUsageType.MONTHLY, {
