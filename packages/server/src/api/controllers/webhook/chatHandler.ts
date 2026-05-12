@@ -20,7 +20,10 @@ import { AgentChannelProvider, DocumentType } from "@budibase/types"
 import sdk from "../../../sdk"
 import { getGlobalUser } from "../../../utilities/global"
 import { canAccessChatAppAgentForUser } from "../ai/chatApps"
-import { webhookChat } from "../ai/chatConversations"
+import {
+  webhookChat,
+  type WebhookAssistantStream,
+} from "../ai/chatConversations"
 import {
   isConversationExpired,
   pickLatestConversation,
@@ -357,6 +360,8 @@ const getIdleTimeoutMs = (configMinutes?: number) => {
 
 export interface HandleChatMessageParams {
   reply: (text: string) => Promise<void>
+  replyWithAssistantStream?: (stream: WebhookAssistantStream) => Promise<void>
+  beforeAssistantWebhook?: () => Promise<void>
   replyLinkPrompt: (message: LinkPromptMessage) => Promise<void>
   workspaceId: string
   chatAppId: string
@@ -394,6 +399,8 @@ const getLinkCommand = (provider: HandleChatMessageParams["provider"]) =>
 
 export const handleChatMessage = async ({
   reply,
+  replyWithAssistantStream,
+  beforeAssistantWebhook,
   replyLinkPrompt,
   workspaceId,
   chatAppId,
@@ -617,7 +624,14 @@ export const handleChatMessage = async ({
 
     let result: Awaited<ReturnType<typeof webhookChat>>
     try {
-      result = await webhookChat({ chat: draftChat, user: linkedUser })
+      await beforeAssistantWebhook?.()
+      result = await webhookChat({
+        chat: draftChat,
+        user: linkedUser,
+        ...(replyWithAssistantStream
+          ? { onAssistantStream: replyWithAssistantStream }
+          : {}),
+      })
     } catch (error) {
       const message =
         error instanceof HTTPError
@@ -644,6 +658,8 @@ export const handleChatMessage = async ({
       idleTimeoutMs,
     })
 
-    await reply(result.assistantText || "No response generated.")
+    if (!replyWithAssistantStream) {
+      await reply(result.assistantText || "No response generated.")
+    }
   })
 }
