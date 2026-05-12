@@ -1,11 +1,3 @@
-<script lang="ts" module>
-  export interface ContextSegment {
-    name: string
-    tokens: number
-    color: string
-  }
-</script>
-
 <script lang="ts">
   import {
     Icon,
@@ -13,20 +5,63 @@
     PopoverAlignment,
     type PopoverAPI,
   } from "@budibase/bbui"
+  import type {
+    AgentMessageUsage,
+    AgentMessageUsageSegment,
+  } from "@budibase/types"
+
+  type SegmentDetails = {
+    name: string
+    color: string
+  }
+  type VisibleSegment = AgentMessageUsageSegment & SegmentDetails
 
   interface Props {
-    breakdown: ContextSegment[]
-    maxTokens: number
-    tokensKnown?: boolean
+    usage?: AgentMessageUsage
   }
 
-  let { breakdown, maxTokens, tokensKnown = true }: Props = $props()
+  let { usage }: Props = $props()
 
   let open = $state(false)
   let triggerEl = $state<HTMLButtonElement>()
   let popover = $state<PopoverAPI>()
 
-  const visibleSegments = $derived(breakdown.filter(s => s.tokens > 0))
+  const DEFAULT_MAX_TOKENS = 200000
+  const SEGMENT_DETAILS: Record<
+    AgentMessageUsageSegment["type"],
+    SegmentDetails
+  > = {
+    system: {
+      name: "System prompt",
+      color: "var(--grey-7)",
+    },
+    input: {
+      name: "Input",
+      color: "var(--color-purple-500)",
+    },
+    cachedInput: {
+      name: "Cached input",
+      color: "var(--color-blue-400)",
+    },
+    output: {
+      name: "Output",
+      color: "var(--color-red-500)",
+    },
+    reasoning: {
+      name: "Reasoning",
+      color: "var(--color-orange-500)",
+    },
+  }
+
+  const maxTokens = $derived(usage?.maxTokens ?? DEFAULT_MAX_TOKENS)
+  const visibleSegments = $derived.by((): VisibleSegment[] =>
+    (usage?.segments || [])
+      .filter(segment => segment.tokens > 0)
+      .map(segment => ({
+        ...segment,
+        ...SEGMENT_DETAILS[segment.type],
+      }))
+  )
   const totalTokens = $derived(
     visibleSegments.reduce((sum, s) => sum + s.tokens, 0)
   )
@@ -88,7 +123,7 @@
       <span class="popover-title">Context</span>
       <span class="popover-fill">{percentage}% Full</span>
       <div class="popover-right">
-        {#if tokensKnown}
+        {#if usage}
           <span class="popover-total">
             ~{compact.format(totalTokens)} / {compact.format(maxTokens)} Tokens
           </span>

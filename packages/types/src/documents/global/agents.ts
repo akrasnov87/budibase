@@ -95,15 +95,21 @@ export interface AgentMessageRagSource {
   filename?: string
 }
 
+export type AgentMessageUsageSegmentType =
+  | "system"
+  | "input"
+  | "cachedInput"
+  | "output"
+  | "reasoning"
+
+export interface AgentMessageUsageSegment {
+  type: AgentMessageUsageSegmentType
+  tokens: number
+}
+
 export interface AgentMessageUsage {
-  inputTokens?: number
-  outputTokens?: number
-  totalTokens?: number
-  cachedInputTokens?: number
-  reasoningTokens?: number
-  systemPromptTokens?: number
-  toolsTokens?: number
-  contextWindowTokens?: number
+  maxTokens?: number
+  segments: AgentMessageUsageSegment[]
 }
 
 export interface AgentMessageMetadata {

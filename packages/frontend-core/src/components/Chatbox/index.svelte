@@ -18,7 +18,7 @@
   import { Chat } from "@ai-sdk/svelte"
   import { formatToolName } from "../../utils/aiTools"
   import ReasoningStatus from "./ReasoningStatus.svelte"
-  import ContextUsage, { type ContextSegment } from "./ContextUsage.svelte"
+  import ContextUsage from "./ContextUsage.svelte"
   import {
     DefaultChatTransport,
     isTextUIPart,
@@ -234,55 +234,10 @@
   let messages = $derived(chatInstance.messages)
   let lastMessage = $derived(messages[messages.length - 1])
 
-  const DEFAULT_CONTEXT_WINDOW_TOKENS = 200000
-
-  const CONTEXT_COLORS = {
-    system: "var(--grey-7)",
-    tools: "var(--color-green-500)",
-    cached: "var(--color-blue-400)",
-    input: "var(--color-purple-500)",
-    reasoning: "var(--color-orange-500)",
-    output: "var(--color-red-500)",
-  }
-
   let lastAssistantUsage = $derived(
     messages.findLast(m => m.role === "assistant" && m.metadata?.usage)
       ?.metadata?.usage
   )
-
-  let contextWindowTokens = $derived(
-    lastAssistantUsage?.contextWindowTokens ?? DEFAULT_CONTEXT_WINDOW_TOKENS
-  )
-
-  let contextBreakdown = $derived.by((): ContextSegment[] => {
-    const usage = lastAssistantUsage
-    if (!usage) return []
-    const cached = usage.cachedInputTokens ?? 0
-    let remaining = Math.max(0, (usage.inputTokens ?? 0) - cached)
-    const system = Math.min(usage.systemPromptTokens ?? 0, remaining)
-    remaining -= system
-    const tools = Math.min(usage.toolsTokens ?? 0, remaining)
-    remaining -= tools
-    const input = remaining
-    const reasoning = usage.reasoningTokens ?? 0
-    const output = Math.max(0, (usage.outputTokens ?? 0) - reasoning)
-    return [
-      {
-        name: "System prompt",
-        tokens: system,
-        color: CONTEXT_COLORS.system,
-      },
-      { name: "Tools", tokens: tools, color: CONTEXT_COLORS.tools },
-      { name: "Cached input", tokens: cached, color: CONTEXT_COLORS.cached },
-      { name: "Conversation", tokens: input, color: CONTEXT_COLORS.input },
-      {
-        name: "Reasoning",
-        tokens: reasoning,
-        color: CONTEXT_COLORS.reasoning,
-      },
-      { name: "Output", tokens: output, color: CONTEXT_COLORS.output },
-    ]
-  })
   let lastAssistantMessage = $derived(
     messages.findLast(message => message.role === "assistant")
   )
@@ -765,11 +720,7 @@
         </button>
       </div>
       <div class="input-footer">
-        <ContextUsage
-          breakdown={contextBreakdown}
-          maxTokens={contextWindowTokens}
-          tokensKnown={!!lastAssistantUsage}
-        />
+        <ContextUsage usage={lastAssistantUsage} />
       </div>
     </div>
   {/if}

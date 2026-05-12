@@ -18,9 +18,15 @@ import {
   UserCtx,
   WebhookChatCompleteResult,
 } from "@budibase/types"
-import { consumeStream, type StreamTextResult, type ToolSet } from "ai"
+import {
+  consumeStream,
+  type LanguageModelUsage,
+  type StreamTextResult,
+  type ToolSet,
+} from "ai"
 import sdk from "../../../sdk"
 import {
+  buildAgentMessageUsage,
   formatIncompleteToolCallError,
   prepareAgentChatRun,
 } from "../../../sdk/workspace/ai/agents"
@@ -423,7 +429,15 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
           const toolCallsIncomplete =
             pendingToolCalls.size > 0 || finishReason === "tool-calls"
 
-          const usage = part.totalUsage
+          const finishPart = part as {
+            totalUsage?: LanguageModelUsage | undefined
+          }
+          const usage = buildAgentMessageUsage({
+            inputUsage: run.contextUsage.input ?? finishPart.totalUsage,
+            outputUsage: run.contextUsage.output ?? finishPart.totalUsage,
+            maxTokens: run.contextWindowTokens,
+            systemPromptTokens: run.systemPromptTokens,
+          })
 
           return {
             ...sharedMetadata,
@@ -432,16 +446,7 @@ export async function agentChatStream(ctx: UserCtx<ChatAgentRequest, void>) {
               : {}),
             createdAt: streamStartTime,
             completedAt: Date.now(),
-            usage: {
-              inputTokens: usage?.inputTokens,
-              outputTokens: usage?.outputTokens,
-              totalTokens: usage?.totalTokens,
-              cachedInputTokens: usage?.inputTokenDetails?.cacheReadTokens,
-              reasoningTokens: usage?.outputTokenDetails?.reasoningTokens,
-              systemPromptTokens: run.systemPromptTokens,
-              toolsTokens: run.toolsTokens,
-              contextWindowTokens: run.contextWindowTokens,
-            },
+            ...(usage ? { usage } : {}),
             ...(toolCallsIncomplete && {
               error: formatIncompleteToolCallError([]),
             }),

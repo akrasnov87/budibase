@@ -9,6 +9,7 @@ import {
   extractReasoningMiddleware,
   stepCountIs,
   ToolLoopAgent,
+  type LanguageModelUsage,
   type StreamTextResult,
   type ToolSet,
   wrapLanguageModel,
@@ -20,6 +21,7 @@ import {
   prepareModelMessages,
 } from "../chatConversations"
 import { updatePendingToolCalls } from "./utils"
+import { estimateTokens } from "./usage"
 import { createReportUsedSourcesTool } from "../../../../ai/tools/budibase/knowledge/reportUsedSources"
 
 interface PrepareAgentChatRunParams {
@@ -39,9 +41,12 @@ export interface AgentChatRun {
     options?: AgentChatStreamOptions
   ) => Promise<StreamTextResult<ToolSet, never>>
   toolDisplayNames: Record<string, string>
-  systemPromptTokens: number
-  toolsTokens: number
   contextWindowTokens?: number
+  systemPromptTokens: number
+  contextUsage: {
+    input?: LanguageModelUsage
+    output?: LanguageModelUsage
+  }
 }
 
 export interface AgentChatStreamOptions {
@@ -117,19 +122,8 @@ export const prepareAgentChatRun = async ({
     providerOptions: llm.providerOptions?.(hasTools),
   })
 
-  const estimateTokens = (s: string) => Math.ceil(s.length / 4)
-
+  const contextUsage: AgentChatRun["contextUsage"] = {}
   const systemPromptTokens = estimateTokens(promptAndTools.systemPrompt || "")
-
-  const toolEntries = Object.entries(tools)
-  // 80 is a rough estimate of the number of tokens of schema overhead per tool.
-  const toolsTokens =
-    toolEntries.reduce(
-      (sum, [name, tool]) =>
-        sum + estimateTokens(name + (tool.description || "")),
-      0
-    ) +
-    toolEntries.length * 80
 
   return {
     latestQuestion,
@@ -137,13 +131,23 @@ export const prepareAgentChatRun = async ({
     getUsedKnowledgeSourcesMetadata: () =>
       Array.from(usedKnowledgeSourceById.values()),
     toolDisplayNames: promptAndTools.toolDisplayNames,
-    systemPromptTokens,
-    toolsTokens,
     contextWindowTokens: llm.contextWindowTokens,
+    systemPromptTokens,
+    contextUsage,
     stream: async ({ onFinish, pendingToolCalls } = {}) =>
       await agentRunner.stream({
         messages: modelMessages,
-        async onStepFinish({ content, toolCalls, toolResults, response }) {
+        async onStepFinish({
+          content,
+          toolCalls,
+          toolResults,
+          response,
+          usage,
+        }) {
+          if (!contextUsage.input) {
+            contextUsage.input = usage
+          }
+          contextUsage.output = usage
           sessionLogIndexer.addRequestId(response?.id)
           if (pendingToolCalls) {
             updatePendingToolCalls(pendingToolCalls, toolCalls, toolResults)
