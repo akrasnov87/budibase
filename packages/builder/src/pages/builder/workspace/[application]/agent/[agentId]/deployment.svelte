@@ -218,9 +218,11 @@
       } else if (provider === AgentChannelProvider.TELEGRAM) {
         if (isChannelEnabled) {
           await agentsStore.toggleTelegramDeployment(currentAgent._id, false)
+          channelUpdated = true
           notifications.success("Telegram channel disabled")
         } else if (telegramConfigured) {
           await agentsStore.toggleTelegramDeployment(currentAgent._id, true)
+          channelUpdated = true
           notifications.success("Telegram channel enabled")
         } else {
           telegramModal?.show()

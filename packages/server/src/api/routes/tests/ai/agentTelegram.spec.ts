@@ -214,6 +214,36 @@ describe("agent telegram integration provisioning", () => {
     expect(result.warning).toContain("Bad Request: bad webhook")
   })
 
+  it("returns an error when telegram setWebhook fails while enabling deployment", async () => {
+    global.fetch = jest.fn(() =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve({
+            ok: false,
+            error_code: 400,
+            description: "Bad Request: bad webhook",
+          }),
+        text: () => Promise.resolve('{"ok":false,"error_code":400}'),
+      })
+    ) as jest.Mock
+
+    const agent = await config.api.agent.create({
+      name: "Telegram Toggle Webhook Fail Agent",
+      telegramIntegration: {
+        botToken: "123:token-toggle-webhook-fail",
+      },
+    })
+
+    await config.api.agent.toggleTelegramDeployment(
+      agent._id!,
+      { enabled: true },
+      {
+        status: 400,
+      }
+    )
+  })
+
   describe("telegram webhook incoming messages", () => {
     const postTelegramUpdate = async ({
       path,

@@ -677,15 +677,11 @@ export async function toggleAgentTelegramDeployment(
         }),
     })
 
-    try {
-      await sdk.ai.deployments.telegram.setTelegramWebhook({
-        botToken: integration.botToken,
-        webhookUrl: endpointUrl,
-        secretToken: integration.webhookSecretToken,
-      })
-    } catch (error: any) {
-      console.warn("Telegram setWebhook failed during toggle:", error.message)
-    }
+    await sdk.ai.deployments.telegram.setTelegramWebhook({
+      botToken: integration.botToken,
+      webhookUrl: endpointUrl,
+      secretToken: integration.webhookSecretToken,
+    })
   } else {
     const chatAppId = agent.telegramIntegration?.chatAppId?.trim()
 

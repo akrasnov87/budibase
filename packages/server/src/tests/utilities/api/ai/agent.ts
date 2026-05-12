@@ -134,6 +134,20 @@ export class AgentAPI extends TestAPI {
     )
   }
 
+  toggleTelegramDeployment = async (
+    agentId: string,
+    body?: ToggleAgentDeploymentRequest | Record<string, unknown>,
+    expectations?: Expectations
+  ): Promise<ToggleAgentDeploymentResponse> => {
+    return await this._post<ToggleAgentDeploymentResponse>(
+      `/api/agent/${agentId}/telegram/toggle`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
   duplicate = async (
     agentId: string,
     expectations?: Expectations
