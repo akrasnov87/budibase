@@ -10,12 +10,14 @@ import {
   connectAgentSharePointSiteValidator,
   createAgentValidator,
   provisionAgentSlackChannelValidator,
+  provisionAgentTelegramChannelValidator,
   provisionAgentMSTeamsChannelValidator,
   syncAgentDiscordCommandsValidator,
   syncAgentKnowledgeSourcesValidator,
   toggleAgentDiscordDeploymentValidator,
   toggleAgentMSTeamsDeploymentValidator,
   toggleAgentSlackDeploymentValidator,
+  toggleAgentTelegramDeploymentValidator,
   updateAgentSharePointSiteValidator,
   updateAgentValidator,
 } from "./utils/validators/agent"
@@ -56,6 +58,16 @@ builderAdminRoutes
     provisionAgentSlackChannelValidator(),
     ai.provisionAgentSlackChannel
   )
+  .post(
+    "/api/agent/:agentId/telegram/toggle",
+    toggleAgentTelegramDeploymentValidator(),
+    ai.toggleAgentTelegramDeployment
+  )
+  .post(
+    "/api/agent/:agentId/telegram/provision",
+    provisionAgentTelegramChannelValidator(),
+    ai.provisionAgentTelegramChannel
+  )
   .get("/api/agent/tools", ai.fetchTools)
   .get("/api/agent/:agentId/logs", ai.fetchAgentLogs)
   .get("/api/agent/:agentId/logs/session", ai.fetchAgentLogSession)
@@ -67,10 +79,6 @@ const aiRagBuilderAdminRoutes = endpointGroupList
 
 aiRagBuilderAdminRoutes
   .get(
-    "/api/agent/knowledge-sources/connections",
-    ai.fetchAgentKnowledgeSourceConnections
-  )
-  .get(
     "/api/agent/knowledge-sources/sharepoint/connect",
     ai.startSharePointAuth
   )
@@ -78,7 +86,7 @@ aiRagBuilderAdminRoutes
   .post("/api/agent/:agentId/files", ai.uploadAgentFile)
   .delete("/api/agent/:agentId/files/:fileId", ai.deleteAgentFile)
   .get(
-    "/api/knowledge-sources/:connectionId/options",
+    "/api/knowledge-sources/:datasourceId/:authConfigId/options",
     ai.fetchAgentKnowledgeSourceOptions
   )
   .get(

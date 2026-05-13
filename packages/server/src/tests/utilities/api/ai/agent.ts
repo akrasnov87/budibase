@@ -10,6 +10,8 @@ import {
   FetchAgentKnowledgeSourceOptionsResponse,
   ProvisionAgentSlackChannelRequest,
   ProvisionAgentSlackChannelResponse,
+  ProvisionAgentTelegramChannelRequest,
+  ProvisionAgentTelegramChannelResponse,
   ProvisionAgentMSTeamsChannelRequest,
   ProvisionAgentMSTeamsChannelResponse,
   SyncAgentDiscordCommandsRequest,
@@ -104,6 +106,20 @@ export class AgentAPI extends TestAPI {
     )
   }
 
+  provisionTelegramChannel = async (
+    agentId: string,
+    body?: ProvisionAgentTelegramChannelRequest,
+    expectations?: Expectations
+  ): Promise<ProvisionAgentTelegramChannelResponse> => {
+    return await this._post<ProvisionAgentTelegramChannelResponse>(
+      `/api/agent/${agentId}/telegram/provision`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
   toggleDiscordDeployment = async (
     agentId: string,
     body?: ToggleAgentDeploymentRequest | Record<string, unknown>,
@@ -111,6 +127,20 @@ export class AgentAPI extends TestAPI {
   ): Promise<ToggleAgentDeploymentResponse> => {
     return await this._post<ToggleAgentDeploymentResponse>(
       `/api/agent/${agentId}/discord/toggle`,
+      {
+        body,
+        expectations,
+      }
+    )
+  }
+
+  toggleTelegramDeployment = async (
+    agentId: string,
+    body?: ToggleAgentDeploymentRequest | Record<string, unknown>,
+    expectations?: Expectations
+  ): Promise<ToggleAgentDeploymentResponse> => {
+    return await this._post<ToggleAgentDeploymentResponse>(
+      `/api/agent/${agentId}/telegram/toggle`,
       {
         body,
         expectations,
@@ -176,11 +206,12 @@ export class AgentAPI extends TestAPI {
   }
 
   fetchKnowledgeSourceOptions = async (
-    connectionId: string,
+    datasourceId: string,
+    authConfigId: string,
     expectations?: Expectations
   ): Promise<FetchAgentKnowledgeSourceOptionsResponse> => {
     return await this._get<FetchAgentKnowledgeSourceOptionsResponse>(
-      `/api/knowledge-sources/${encodeURIComponent(connectionId)}/options`,
+      `/api/knowledge-sources/${encodeURIComponent(datasourceId)}/${encodeURIComponent(authConfigId)}/options`,
       {
         expectations,
       }
