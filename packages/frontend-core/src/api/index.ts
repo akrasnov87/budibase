@@ -48,6 +48,7 @@ import { buildFilerEndpoints } from "./filer"
 import { buildRowActionEndpoints } from "./rowActions"
 import { buildOAuth2Endpoints } from "./oauth2"
 import { buildAgentEndpoints } from "./agents"
+import { buildAgentTestEndpoints } from "./agentTests"
 import { buildAgentLogEndpoints } from "./agentLogs"
 import { buildChatAppEndpoints } from "./chatApps"
 import { buildFeatureFlagEndpoints } from "./features"
@@ -319,6 +320,7 @@ export const createAPIClient = (config: APIClientConfig = {}): APIClient => {
     ...buildMigrationEndpoints(API),
     ...buildFilerEndpoints(API),
     ...buildAgentEndpoints(API),
+    ...buildAgentTestEndpoints(API),
     ...buildAgentLogEndpoints(API),
     ...buildChatAppEndpoints(API),
     ...buildFeatureFlagEndpoints(API),

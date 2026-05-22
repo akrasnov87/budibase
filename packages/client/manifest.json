@@ -8618,6 +8618,16 @@
       },
       {
         "type": "boolean",
+        "label": "Row selection",
+        "key": "allowRowSelection",
+        "defaultValue": true,
+        "dependsOn": {
+          "setting": "allowDeleteRows",
+          "value": false
+        }
+      },
+      {
+        "type": "boolean",
         "label": "Striped rows",
         "key": "stripeRows",
         "defaultValue": false
