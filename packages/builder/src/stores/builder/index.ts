@@ -15,6 +15,7 @@ import {
   selectedAutomation,
   automationHistoryStore,
   evaluationContext,
+  MAX_STICKY_NOTES_PER_AUTOMATION,
 } from "./automations"
 import { userStore, userSelectedResourceMap, isOnlyUser } from "./users"
 import { deploymentStore } from "./deployment"
@@ -64,6 +65,7 @@ export {
   automationStore,
   selectedAutomation,
   automationHistoryStore,
+  MAX_STICKY_NOTES_PER_AUTOMATION,
   sortedScreens,
   userStore,
   isOnlyUser,
