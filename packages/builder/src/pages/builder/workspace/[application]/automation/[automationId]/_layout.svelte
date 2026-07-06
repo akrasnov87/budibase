@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
   import { onDestroy } from "svelte"
   import { syncURLToState } from "@/helpers/urlStateSync"
   import * as routify from "@roxi/routify"
@@ -13,6 +13,11 @@
   import TopBar from "@/components/common/TopBar.svelte"
   import LogDetailsPanel from "@/components/automation/AutomationBuilder/FlowChart/LogDetailsPanel.svelte"
   import AutomationLogsPanel from "@/components/automation/AutomationBuilder/FlowChart/AutomationLogsPanel.svelte"
+  import type { AutomationLog } from "@budibase/types"
+
+  const SIDE_PANEL_STORAGE_KEY = "automation-side-panel-width"
+  const SIDE_PANEL_DEFAULT_WIDTH = 480
+  let sidePanelWidth = getSidePanelWidth()
 
   const { goto, params, url, redirect, isActive, page, layout } = routify
   $goto
@@ -25,7 +30,20 @@
 
   $: automationId = $selectedAutomation?.data?._id
   $: blockRefs = $selectedAutomation.blockRefs
-  $: builderStore.selectResource(automationId)
+  $: selectedNodeId = $automationStore.selectedNodeId
+  $: actionPanelOpen =
+    !!$automationStore.actionPanelBlock && !$automationStore.selectedNodeId
+  $: stepPanelOpen =
+    !!$automationStore.selectedNodeId &&
+    !!(
+      blockRefs[$automationStore.selectedNodeId] ||
+      $automationStore.selectedBranchNode
+    )
+  $: panelOpen = actionPanelOpen || stepPanelOpen
+  $: panelWidth = panelOpen ? sidePanelWidth : 0
+  $: if (automationId) {
+    builderStore.selectResource(automationId)
+  }
 
   const stopSyncing = syncURLToState({
     urlParam: "automationId",
@@ -37,9 +55,19 @@
     routify,
   })
 
-  onDestroy(stopSyncing)
+  onDestroy(() => {
+    stopSyncing?.()
+  })
 
-  const handleKeyDown = e => {
+  function getSidePanelWidth() {
+    const saved = localStorage.getItem(SIDE_PANEL_STORAGE_KEY)
+    const parsedWidth = saved ? parseInt(saved, 10) : SIDE_PANEL_DEFAULT_WIDTH
+    return Number.isFinite(parsedWidth) && parsedWidth > 0
+      ? parsedWidth
+      : SIDE_PANEL_DEFAULT_WIDTH
+  }
+
+  const handleKeyDown = (e: KeyboardEvent) => {
     if (e.key === "Escape" && $automationStore.actionPanelBlock) {
       automationStore.actions.closeActionPanel()
     }
@@ -57,18 +85,23 @@
     icon="path"
   />
   <div class="root">
-    <div class="content drawer-container">
+    <div
+      class="content drawer-container"
+      class:panel-open={panelOpen}
+      style:--automation-panel-width={`${panelWidth}px`}
+    >
       <slot />
     </div>
 
-    {#if (blockRefs[$automationStore.selectedNodeId] || $automationStore.selectedBranchNode) && $automationStore.selectedNodeId}
+    {#if selectedNodeId && (blockRefs[selectedNodeId] || $automationStore.selectedBranchNode)}
       <div class="step-panel-container">
         <ResizablePanel
-          storageKey="automation-side-panel-width"
-          defaultWidth={480}
+          storageKey={SIDE_PANEL_STORAGE_KEY}
+          defaultWidth={SIDE_PANEL_DEFAULT_WIDTH}
           minWidth={360}
           maxWidthRatio={0.6}
           position="right"
+          onResize={width => (sidePanelWidth = width)}
         >
           <div class="step-panel">
             <StepPanel />
@@ -77,11 +110,13 @@
       </div>
     {/if}
 
-    {#if $automationStore.actionPanelBlock && !$automationStore.selectedNodeId}
-      <SelectStepSidePanel
-        block={$automationStore.actionPanelBlock}
-        onClose={() => automationStore.actions.closeActionPanel()}
-      />
+    {#if actionPanelOpen}
+      <div class="action-panel-container">
+        <SelectStepSidePanel
+          block={$automationStore.actionPanelBlock}
+          onClose={() => automationStore.actions.closeActionPanel()}
+        />
+      </div>
     {/if}
 
     {#if $automationStore.showLogsPanel && $selectedAutomation?.data}
@@ -90,7 +125,7 @@
           <div class="logs-panel">
             <AutomationLogsPanel
               automation={$selectedAutomation.data}
-              onSelectLog={log =>
+              onSelectLog={(log: AutomationLog) =>
                 automationStore.actions.selectLogForDetails(log)}
               selectedLog={$automationStore.selectedLog}
             />
@@ -143,7 +178,7 @@
     flex: 1 1 auto;
     display: grid;
     grid-auto-flow: column dense;
-    grid-template-columns: minmax(510px, 1fr);
+    grid-template-columns: minmax(510px, 1fr) auto;
     overflow: hidden;
     position: relative;
   }
@@ -154,6 +189,10 @@
     justify-content: flex-start;
     align-items: stretch;
     overflow: auto;
+    min-width: 0;
+  }
+  .content.panel-open :global(.automation-heading) {
+    padding-right: calc(var(--spacing-l) + var(--automation-panel-width));
   }
   .step-panel-container {
     position: absolute;
@@ -165,6 +204,16 @@
     flex-direction: row;
     align-items: stretch;
     overflow: hidden;
+  }
+  .action-panel-container {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 99;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
   }
   .step-panel {
     display: flex;

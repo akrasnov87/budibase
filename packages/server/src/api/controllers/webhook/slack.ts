@@ -1,4 +1,4 @@
-import { configs, context, HTTPError } from "@budibase/backend-core"
+import { context, HTTPError } from "@budibase/backend-core"
 import { ChatCommands } from "@budibase/shared-core"
 import type { SlackEvent } from "@chat-adapter/slack"
 import { createSlackAdapter } from "@chat-adapter/slack"
@@ -10,50 +10,97 @@ import {
   type SlackConversationScope,
   type WebhookChatCompleteResult,
 } from "@budibase/types"
-import { Chat, type Message, type SlashCommandEvent, type Thread } from "chat"
+import {
+  Chat,
+  type ActionEvent,
+  type Message,
+  type SlashCommandEvent,
+  type Thread,
+} from "chat"
 import sdk from "../../../sdk"
-import { getLiveOperation } from "../../../sdk/workspace/ai/agents/utils"
+import { escalationProcessor } from "../../../escalation/processor"
 import { handleChatMessage } from "./chatHandler"
 import { getSlackState } from "./chatState"
 import { postLinkPromptPrivately, PrivatePostTarget } from "./linkPrompt"
 import { runChatWebhook } from "./runChatWebhook"
-import { pickLatestConversation } from "./utils"
+import { pickLatestConversation, toAbsoluteUrl } from "./utils"
 
 const SLACK_FALLBACK_ERROR_MESSAGE =
   "Sorry, something went wrong while processing your request."
 
-const isAbsoluteUrl = (url: string) =>
-  url.startsWith("http://") || url.startsWith("https://")
-
-const toAbsoluteUrl = async (url: string) => {
-  if (isAbsoluteUrl(url)) {
-    return url
-  }
-
-  if (!url.startsWith("/")) {
-    return url
-  }
-
-  const platformUrl = await configs.getPlatformUrl({ tenantAware: true })
-  return `${platformUrl.replace(/\/$/, "")}${url}`
-}
-
 const formatSlackLinkLabel = (value: string) =>
   value.replace(/[<>|]/g, " ").replace(/\s+/g, " ").trim()
+
+const preserveSlackLiteralSegments = (
+  text: string,
+  formatter: (text: string) => string
+) => {
+  const literals: string[] = []
+  const placeholderPrefix = "\u0000SLACK_LITERAL_"
+  const placeholderSuffix = "\u0000"
+  const protectedText = text.replace(
+    /```[\s\S]*?```|`[^`\n]*`|\[[^\]\n]+\]\([^\n)]+\)/g,
+    literal => {
+      const index = literals.push(literal) - 1
+      return `${placeholderPrefix}${index}${placeholderSuffix}`
+    }
+  )
+
+  return formatter(protectedText).replace(
+    new RegExp(`${placeholderPrefix}(\\d+)${placeholderSuffix}`, "g"),
+    (_placeholder, index) => literals[Number(index)] || ""
+  )
+}
+
+const markdownStrike = /~~(?=\S)([^\n]*?\S)~~/g
+const markdownItalicAsterisk = /(^|[^*])\*(?![\s*])([^*\n]*?\S)\*(?!\*)/g
+const markdownBoldAsterisk = /\*\*(?=\S)([^\n]*?\S)\*\*/g
+const markdownBoldUnderscore = /__(?=\S)([^\n]*?\S)__/g
+
+const formatSlackInlineMrkdwn = (text: string) =>
+  text
+    .replace(markdownStrike, "~$1~")
+    .replace(markdownItalicAsterisk, "$1_$2_")
+    .replace(markdownBoldAsterisk, "*$1*")
+    .replace(markdownBoldUnderscore, "*$1*")
+
+const formatSlackLineMrkdwn = (line: string) => {
+  const heading = line.match(/^#{1,6}\s+(.+?)\s*#*\s*$/)
+  if (!heading) {
+    const bullet = line.match(/^(\s*)[-*+]\s+(.+)$/)
+    if (bullet) {
+      return `${bullet[1]}• ${formatSlackInlineMrkdwn(bullet[2])}`
+    }
+    return formatSlackInlineMrkdwn(line)
+  }
+
+  const formattedHeading = formatSlackInlineMrkdwn(heading[1].trim())
+  if (!formattedHeading) {
+    return ""
+  }
+
+  if (formattedHeading.startsWith("*") && formattedHeading.endsWith("*")) {
+    return formattedHeading
+  }
+  return `*${formattedHeading}*`
+}
+
+export const formatSlackMrkdwn = (text: string) =>
+  preserveSlackLiteralSegments(text, value =>
+    value.split("\n").map(formatSlackLineMrkdwn).join("\n")
+  )
 
 export const formatSlackAssistantReply = async ({
   agentId,
   result,
-  allowKnowledgeSourceDownload,
   isDirectMessage,
 }: {
   agentId: string
   result: WebhookChatCompleteResult
-  allowKnowledgeSourceDownload?: boolean
   isDirectMessage?: boolean
 }) => {
-  const assistantText = result.assistantText || ""
-  if (allowKnowledgeSourceDownload === false || !isDirectMessage) {
+  const assistantText = formatSlackMrkdwn(result.assistantText || "")
+  if (result.allowKnowledgeSourceDownload === false || !isDirectMessage) {
     return assistantText
   }
 
@@ -155,7 +202,6 @@ const createSlackInputHandler = ({
   channelEnabled,
   idleTimeoutMinutes,
   requireUserLink,
-  allowKnowledgeSourceDownload,
 }: {
   workspaceId: string
   chatAppId: string
@@ -163,7 +209,6 @@ const createSlackInputHandler = ({
   channelEnabled: boolean
   idleTimeoutMinutes?: number
   requireUserLink?: boolean
-  allowKnowledgeSourceDownload?: boolean
 }) => {
   return async ({
     target,
@@ -222,7 +267,6 @@ const createSlackInputHandler = ({
           await formatSlackAssistantReply({
             agentId,
             result,
-            allowKnowledgeSourceDownload,
             isDirectMessage,
           }),
         workspaceId,
@@ -295,15 +339,12 @@ export async function slackWebhook(
         idleTimeoutMinutes,
         channelEnabled,
         requireUserLink,
-        allowKnowledgeSourceDownload,
       } = await context.doInWorkspaceContext(workspaceId, async () => {
         const agent = await sdk.ai.agents.getOrThrow(agentId)
         return {
           integration: sdk.ai.deployments.slack.validateSlackIntegration(agent),
           idleTimeoutMinutes: agent.slackIntegration?.idleTimeoutMinutes,
           requireUserLink: agent.slackIntegration?.requireUserLink,
-          allowKnowledgeSourceDownload:
-            getLiveOperation(agent)?.allowKnowledgeSourceDownload ?? true,
           channelEnabled:
             !!agent.slackIntegration?.messagingEndpointUrl?.trim(),
         }
@@ -333,7 +374,6 @@ export async function slackWebhook(
         channelEnabled,
         idleTimeoutMinutes,
         requireUserLink,
-        allowKnowledgeSourceDownload,
       })
       const handler = createSlackMessageHandler(handleSlackInput)
 
@@ -341,7 +381,8 @@ export async function slackWebhook(
         `/${ChatCommands.LINK}`,
         async (event: SlashCommandEvent) => {
           const raw = event.raw as Record<string, string | undefined>
-          if (!raw.channel_id || !event.user.userId) {
+          const channelId = raw.channel_id
+          if (!channelId || !event.user.userId) {
             await event.channel.post("Missing Slack command metadata.")
             return
           }
@@ -351,7 +392,7 @@ export async function slackWebhook(
             author: event.user,
             command: ChatCommands.LINK,
             content: event.text,
-            channelId: raw.channel_id,
+            channelId,
             externalUserId: event.user.userId,
             isDirectMessage: isSlackDirectMessage({
               type: "message",
@@ -361,6 +402,64 @@ export async function slackWebhook(
           })
         }
       )
+      // TODO: Make these a strict set
+      chat.onAction(async (event: ActionEvent) => {
+        if (!event.actionId.startsWith("esc_")) {
+          return
+        }
+
+        let parsed: {
+          escalationId: string
+          notificationDocId: string
+          appId: string
+        }
+        try {
+          parsed = JSON.parse(event.value ?? "")
+        } catch {
+          console.error("Escalation action: invalid button value", event.value)
+          return
+        }
+        const { escalationId, notificationDocId, appId } = parsed
+
+        const slackResponse = {
+          actionId: event.actionId,
+          user: event.user,
+          messageId: event.messageId,
+          threadId: event.threadId,
+          channel: (event.raw as any)?.channel,
+        }
+
+        try {
+          const result = await context.doInContext(appId, async () => {
+            // We can respond with closed or
+            return sdk.escalations.respond(
+              escalationId,
+              notificationDocId,
+              slackResponse,
+              (id, response) => escalationProcessor.resolve(id, response)
+            )
+          })
+
+          // TODO: Can these responses be more dynamic/informative
+          if (event.thread) {
+            const msg =
+              result.status === "closed"
+                ? "Escalation already closed."
+                : "Response recorded."
+            await event.thread.post(msg)
+          }
+        } catch (error) {
+          console.error("Escalation action: failed to record response", {
+            escalationId,
+            notificationDocId,
+            appId,
+            message: error instanceof Error ? error.message : String(error),
+          })
+          if (event.thread) {
+            await event.thread.post("Failed to record response.")
+          }
+        }
+      })
 
       chat.onNewMention(handler)
       chat.onSubscribedMessage(handler)

@@ -133,9 +133,7 @@ export const login = async (
     "local",
     async (err: any, user: User, info: any) => {
       if (err || !user) {
-        if (dbUser) {
-          await onFailed(email)
-        }
+        await onFailed(email)
         if (await isLocked(email)) {
           return handleLockoutResponse(ctx, email)
         }

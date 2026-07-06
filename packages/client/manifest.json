@@ -250,6 +250,12 @@
             "value": "stretch",
             "barIcon": "MoveLeftRight",
             "barTitle": "Align stretched horizontally"
+          },
+          {
+            "label": "Space Around",
+            "value": "space-around",
+            "barIcon": "arrows-out-line-horizontal",
+            "barTitle": "Align space around horizontally"
           }
         ],
         "defaultValue": "stretch",
@@ -289,6 +295,12 @@
             "value": "stretch",
             "barIcon": "MoveUpDown",
             "barTitle": "Align stretched vertically"
+          },
+          {
+            "label": "Space Around",
+            "value": "space-around",
+            "barIcon": "arrows-out-line-vertical",
+            "barTitle": "Align space around vertically"
           }
         ],
         "defaultValue": "top",
@@ -5542,17 +5554,6 @@
         "key": "helpText"
       },
       {
-        "type": "text",
-        "label": "Extensions",
-        "key": "extensions"
-      },
-      {
-        "type": "number",
-        "label": "Max attachments",
-        "key": "maximum",
-        "min": 1
-      },
-      {
         "type": "event",
         "label": "On change",
         "key": "onChange",
@@ -5562,12 +5563,6 @@
             "key": "value"
           }
         ]
-      },
-      {
-        "type": "boolean",
-        "label": "Compact",
-        "key": "compact",
-        "defaultValue": false
       },
       {
         "type": "boolean",
@@ -5611,7 +5606,7 @@
       },
       {
         "section": true,
-        "name": "Uploader Text Settings",
+        "name": "Dropzone settings",
         "dependsOn": [
           {
             "setting": "disabled",
@@ -5619,6 +5614,23 @@
           }
         ],
         "settings": [
+          {
+            "type": "text",
+            "label": "Extensions",
+            "key": "extensions"
+          },
+          {
+            "type": "number",
+            "label": "Max attachments",
+            "key": "maximum",
+            "min": 1
+          },
+          {
+            "type": "boolean",
+            "label": "Compact",
+            "key": "compact",
+            "defaultValue": false
+          },
           {
             "type": "text",
             "label": "Title Text",
@@ -5674,11 +5686,6 @@
         "key": "helpText"
       },
       {
-        "type": "text",
-        "label": "Extensions",
-        "key": "extensions"
-      },
-      {
         "type": "event",
         "label": "On change",
         "key": "onChange",
@@ -5688,12 +5695,6 @@
             "key": "value"
           }
         ]
-      },
-      {
-        "type": "boolean",
-        "label": "Compact",
-        "key": "compact",
-        "defaultValue": false
       },
       {
         "type": "boolean",
@@ -5737,7 +5738,7 @@
       },
       {
         "section": true,
-        "name": "Uploader Text Settings",
+        "name": "Dropzone settings",
         "dependsOn": [
           {
             "setting": "disabled",
@@ -5745,6 +5746,17 @@
           }
         ],
         "settings": [
+          {
+            "type": "text",
+            "label": "Extensions",
+            "key": "extensions"
+          },
+          {
+            "type": "boolean",
+            "label": "Compact",
+            "key": "compact",
+            "defaultValue": false
+          },
           {
             "type": "text",
             "label": "Title Text",
@@ -6054,6 +6066,52 @@
         "type": "validation/attachment",
         "label": "Validation",
         "key": "validation"
+      },
+      {
+        "section": true,
+        "name": "Dropzone settings",
+        "dependsOn": [
+          {
+            "setting": "disabled",
+            "value": false
+          }
+        ],
+        "settings": [
+          {
+            "type": "text",
+            "label": "Extensions",
+            "key": "extensions"
+          },
+          {
+            "type": "boolean",
+            "label": "Compact",
+            "key": "compact",
+            "defaultValue": false
+          },
+          {
+            "type": "text",
+            "label": "Title Text",
+            "key": "titleText",
+            "dependsOn": {
+              "setting": "compact",
+              "value": false
+            }
+          },
+          {
+            "type": "text",
+            "label": "Upload text",
+            "key": "clickText"
+          },
+          {
+            "type": "text",
+            "label": "Sub text",
+            "key": "addText",
+            "dependsOn": {
+              "setting": "compact",
+              "value": false
+            }
+          }
+        ]
       }
     ],
     "context": {
@@ -7935,13 +7993,13 @@
               {
                 "label": "Column",
                 "value": "column",
-                "barIcon": "TableSelectColumn",
+                "barIcon": "rows-plus-bottom",
                 "barTitle": "Column layout"
               },
               {
                 "label": "Row",
                 "value": "row",
-                "barIcon": "TableSelectRow",
+                "barIcon": "columns-plus-right",
                 "barTitle": "Row layout"
               }
             ],
@@ -10176,6 +10234,18 @@
               { "label": "Long", "value": "long" },
               { "label": "Narrow", "value": "narrow" }
             ]
+          },
+          {
+            "type": "select",
+            "label": "Weekday header format",
+            "key": "weekdayHeaderFormat",
+            "dependsOn": "showDayNames",
+            "options": [
+              { "label": "Narrow", "value": "narrow" },
+              { "label": "Short", "value": "short" },
+              { "label": "Long", "value": "long" }
+            ],
+            "defaultValue": "short"
           }
         ]
       },
@@ -10186,51 +10256,14 @@
         "defaultValue": true
       },
       {
-        "section": true,
-        "name": "Controls",
-        "dependsOn": "showButtons",
-        "settings": [
-          {
-            "type": "select",
-            "label": "Button type",
-            "key": "buttonType",
-            "options": [
-              { "label": "Action", "value": "action" },
-              { "label": "Primary", "value": "primary" }
-            ],
-            "defaultValue": "action"
-          },
-          {
-            "type": "text",
-            "label": "Month button Text",
-            "key": "monthText",
-            "defaultValue": "Month"
-          },
-          {
-            "type": "text",
-            "label": "Week button Text",
-            "key": "weekText",
-            "defaultValue": "Week"
-          },
-          {
-            "type": "text",
-            "label": "Day button Text",
-            "key": "dayText",
-            "defaultValue": "Day"
-          },
-          {
-            "type": "text",
-            "label": "Agenda button Text",
-            "key": "agendaText",
-            "defaultValue": "Agenda"
-          },
-          {
-            "type": "text",
-            "label": "Today button text",
-            "key": "todayText",
-            "defaultValue": "Today"
-          }
-        ]
+        "type": "select",
+        "label": "Button type",
+        "key": "buttonType",
+        "options": [
+          { "label": "Action", "value": "action" },
+          { "label": "Primary", "value": "primary" }
+        ],
+        "defaultValue": "action"
       }
     ]
   }
