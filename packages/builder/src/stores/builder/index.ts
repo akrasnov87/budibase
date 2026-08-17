@@ -1,7 +1,7 @@
 import { layoutStore } from "./layouts"
 import { workspaceAppStore } from "./workspaceApps"
 import { workspaceFavouriteStore } from "./workspaceFavourites"
-import { appStore } from "./app"
+import { appStore } from "./workspace"
 import { componentStore, selectedComponent } from "./components"
 import { navigationStore } from "./navigation"
 import { themeStore } from "./theme"
@@ -41,6 +41,7 @@ import { queries } from "./queries"
 import { flags } from "./flags"
 import { rowActions } from "./rowActions"
 import componentTreeNodesStore from "./componentTreeNodes"
+import { componentTreeSearchStore } from "./componentTreeSearch"
 import { oauth2 } from "./oauth2"
 import { recaptchaStore } from "./recaptcha"
 import { dataEnvironmentStore, dataAPI } from "./dataEnvironment"
@@ -52,6 +53,7 @@ import { agentsStore } from "../portal"
 import { restTemplates } from "./restTemplates"
 export {
   componentTreeNodesStore,
+  componentTreeSearchStore,
   layoutStore,
   appStore,
   componentStore,

@@ -90,6 +90,7 @@ export interface User
   email: string
   userId?: string
   firstName?: string
+  description?: string
   lastName?: string
   forceResetPassword?: boolean
   roles: UserRoles
