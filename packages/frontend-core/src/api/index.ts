@@ -59,6 +59,7 @@ import { buildFeatureFlagEndpoints } from "./features"
 import { buildNavigationEndpoints } from "./navigation"
 import { buildWorkspaceAppEndpoints } from "./workspaceApps"
 import { buildResourceEndpoints } from "./resource"
+import { buildRestTemplateEndpoints } from "./restTemplates"
 import { buildDeploymentEndpoints } from "./deploy"
 import { buildWorkspaceFavouriteEndpoints } from "./workspaceFavourites"
 import { buildWorkspaceHomeEndpoints } from "./workspaceHome"
@@ -310,6 +311,7 @@ export const createAPIClient = (config: APIClientConfig = {}): APIClient => {
     ...buildScreenEndpoints(API),
     ...buildTableEndpoints(API),
     ...buildTemplateEndpoints(API),
+    ...buildRestTemplateEndpoints(API),
     ...buildUserEndpoints(API),
     ...buildViewEndpoints(API),
     ...buildSelfEndpoints(API),
