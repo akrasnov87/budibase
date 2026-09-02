@@ -32,17 +32,8 @@ export interface ToolMetadata {
 }
 
 interface ChatAgentIntegration {
-  chatAppId?: string
   idleTimeoutMinutes?: number
   requireUserLink?: boolean
-}
-
-export interface DiscordAgentIntegration extends ChatAgentIntegration {
-  applicationId?: string
-  publicKey?: string
-  botToken?: string
-  guildId?: string
-  interactionsEndpointUrl?: string
 }
 
 export interface MSTeamsAgentIntegration extends ChatAgentIntegration {
@@ -51,22 +42,21 @@ export interface MSTeamsAgentIntegration extends ChatAgentIntegration {
   tenantId?: string
   teamId?: string
   messagingEndpointUrl?: string
+  appPackageVersion?: string
 }
 
 export interface SlackAgentIntegration extends ChatAgentIntegration {
+  appId?: string
+  clientId?: string
+  clientSecret?: string
   botToken?: string
+  botUserId?: string
   signingSecret?: string
+  teamName?: string
   messagingEndpointUrl?: string
   // Bots Slack workspace - derived via auth.test when the token is saved
   // Need this to filter the user picker
   teamId?: string
-}
-
-export interface TelegramAgentIntegration extends ChatAgentIntegration {
-  botToken?: string
-  webhookSecretToken?: string
-  botUserName?: string
-  messagingEndpointUrl?: string
 }
 
 export enum AgentKnowledgeSourceType {
@@ -181,10 +171,8 @@ export interface Agent extends Document {
   icon?: string
   iconColor?: string
   createdBy?: string
-  discordIntegration?: DiscordAgentIntegration
   MSTeamsIntegration?: MSTeamsAgentIntegration
   slackIntegration?: SlackAgentIntegration
-  telegramIntegration?: TelegramAgentIntegration
 }
 
 export interface AgentMessageRagSource {

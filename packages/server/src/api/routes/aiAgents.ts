@@ -9,18 +9,15 @@ import {
 } from "./endpointGroups"
 import {
   connectAgentSharePointSiteValidator,
+  createAgentSlackAppValidator,
   createAgentOperationValidator,
   createAgentValidator,
   provisionAgentSlackChannelValidator,
-  provisionAgentTelegramChannelValidator,
   provisionAgentMSTeamsChannelValidator,
-  syncAgentDiscordCommandsValidator,
   syncAgentKnowledgeSourcesValidator,
-  toggleAgentDiscordDeploymentValidator,
   toggleAgentMSTeamsDeploymentValidator,
   toggleAgentSlackDeploymentValidator,
   runAgentTestSuiteValidator,
-  toggleAgentTelegramDeploymentValidator,
   updateAgentSharePointSiteValidator,
   updateAgentOperationValidator,
   updateAgentTestSuiteValidator,
@@ -48,20 +45,11 @@ builderAdminRoutes
   .post("/api/agent/:agentId/duplicate", ai.duplicateAgent)
   .delete("/api/agent/:agentId", ai.deleteAgent)
   .post(
-    "/api/agent/:agentId/discord/sync",
-    syncAgentDiscordCommandsValidator(),
-    ai.syncAgentDiscordCommands
-  )
-  .post(
-    "/api/agent/:agentId/discord/toggle",
-    toggleAgentDiscordDeploymentValidator(),
-    ai.toggleAgentDiscordDeployment
-  )
-  .post(
     "/api/agent/:agentId/ms-teams/provision",
     provisionAgentMSTeamsChannelValidator(),
     ai.provisionAgentMSTeamsChannel
   )
+  .get("/api/agent/:agentId/ms-teams/package", ai.downloadAgentMSTeamsPackage)
   .post(
     "/api/agent/:agentId/ms-teams/toggle",
     toggleAgentMSTeamsDeploymentValidator(),
@@ -78,15 +66,11 @@ builderAdminRoutes
     ai.provisionAgentSlackChannel
   )
   .post(
-    "/api/agent/:agentId/telegram/toggle",
-    toggleAgentTelegramDeploymentValidator(),
-    ai.toggleAgentTelegramDeployment
+    "/api/agent/:agentId/slack/app/create",
+    createAgentSlackAppValidator(),
+    ai.createAgentSlackApp
   )
-  .post(
-    "/api/agent/:agentId/telegram/provision",
-    provisionAgentTelegramChannelValidator(),
-    ai.provisionAgentTelegramChannel
-  )
+  .get("/api/agent/:agentId/slack/manifest", ai.downloadAgentSlackManifest)
   .get("/api/agent/tools", ai.fetchTools)
   .get("/api/agent/requests", ai.fetchAgentRequests)
   .get("/api/agent/:agentId/logs", ai.fetchAgentLogs)
@@ -169,3 +153,4 @@ publicRoutes.get(
   "/api/agent/knowledge-sources/sharepoint/callback",
   ai.completeSharePointAuth
 )
+publicRoutes.get("/api/agent/slack/oauth/callback", ai.completeSlackOAuth)
