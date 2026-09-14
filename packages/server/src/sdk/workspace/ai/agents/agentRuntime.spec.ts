@@ -397,6 +397,7 @@ describe("prepareAgentRunContext", () => {
       systemPrompt: "system prompt",
       tools: {},
       toolDisplayNames: {},
+      toolSources: {},
     })
   })
 
@@ -501,8 +502,7 @@ describe("prepareAgentRunContext", () => {
       sessionId: "session_1",
       latestQuestion: "Show my leave requests",
       requester: {
-        userId: "user_1",
-        authorization: { mode: "current" },
+        executorRole: "BASIC",
       },
     })
 
@@ -517,8 +517,7 @@ describe("prepareAgentRunContext", () => {
           operationId: "operation_2",
           conversationId: "session_1",
           requester: {
-            userId: "user_1",
-            authorization: { mode: "current" },
+            executorRole: "BASIC",
           },
         },
       })
@@ -613,6 +612,7 @@ describe("prepareAgentChatRun - escalate tool selection", () => {
       systemPrompt: "system prompt",
       tools: { escalate: escalatePlaceholder },
       toolDisplayNames: {},
+      toolSources: {},
     })
 
     return prepareAgentChatRun({
@@ -652,6 +652,42 @@ describe("prepareAgentChatRun - escalate tool selection", () => {
     )
   })
 
+  it("does not configure structured output for an empty schema", async () => {
+    await runFor(operationWithoutRecipients, { outputSchema: {} })
+
+    expect(ToolLoopAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ output: undefined })
+    )
+  })
+
+  it("indexes the session log when run preparation fails", async () => {
+    const index = jest.fn().mockResolvedValue(undefined)
+    jest.mocked(createSessionLogIndexer).mockReturnValue({
+      addRequestId: jest.fn(),
+      getRequestIds: jest.fn().mockReturnValue([]),
+      index,
+    })
+    jest
+      .mocked(sdk.ai.llm.createLLM)
+      .mockRejectedValueOnce(new Error("Failed to prepare model"))
+
+    await expect(runFor(operationWithoutRecipients)).rejects.toThrow(
+      "Failed to prepare model"
+    )
+
+    expect(index).toHaveBeenCalledTimes(1)
+  })
+
+  it("configures structured output for a populated schema", async () => {
+    await runFor(operationWithoutRecipients, {
+      outputSchema: { sentiment: "string" },
+    })
+
+    expect(ToolLoopAgent).toHaveBeenCalledWith(
+      expect.objectContaining({ output: expect.anything() })
+    )
+  })
+
   it("passes the chat timezone to the agent system prompt", async () => {
     await runFor(operationWithoutRecipients, {
       chat: {
@@ -665,9 +701,25 @@ describe("prepareAgentChatRun - escalate tool selection", () => {
     expect(ai.agentSystemPrompt).toHaveBeenCalledWith(user, "Europe/London")
   })
 
+  it("uses the non-interactive automation prompt configuration", async () => {
+    await runFor(operationWithoutRecipients, { promptMode: "automation" })
+
+    const { ai } = jest.requireMock("@budibase/pro")
+    expect(ai.agentSystemPrompt).not.toHaveBeenCalled()
+    expect(buildPromptAndTools).toHaveBeenCalledWith(
+      agent,
+      operationWithoutRecipients,
+      expect.objectContaining({
+        includeGoal: true,
+      })
+    )
+    const buildOptions = jest.mocked(buildPromptAndTools).mock.calls.at(-1)?.[2]
+    expect(buildOptions).not.toHaveProperty("baseSystemPrompt")
+  })
+
   it("ignores a preview role when the chat is not in preview mode", async () => {
     await runFor(operationWithoutRecipients, {
-      user: { _id: "user_1" } as ContextUser,
+      user: { _id: "user_1", roleId: "BASIC" } as ContextUser,
       chat: {
         agentId: "agent_1",
         messages: [],
@@ -681,8 +733,51 @@ describe("prepareAgentChatRun - escalate tool selection", () => {
       expect.objectContaining({
         executionContext: expect.objectContaining({
           requester: {
-            userId: "user_1",
-            authorization: { mode: "current" },
+            executorRole: "BASIC",
+          },
+        }),
+      })
+    )
+  })
+
+  it("uses the workspace role for a global admin", async () => {
+    await runFor(operationWithoutRecipients, {
+      user: {
+        _id: "user_1",
+        roleId: "BASIC",
+        admin: { global: true },
+      } as ContextUser,
+    })
+
+    expect(buildPromptAndTools).toHaveBeenCalledWith(
+      agent,
+      operationWithoutRecipients,
+      expect.objectContaining({
+        executionContext: expect.objectContaining({
+          requester: {
+            executorRole: "BASIC",
+          },
+        }),
+      })
+    )
+  })
+
+  it("uses the workspace role for a builder", async () => {
+    await runFor(operationWithoutRecipients, {
+      user: {
+        _id: "user_1",
+        roleId: "BASIC",
+        builder: { global: true },
+      } as ContextUser,
+    })
+
+    expect(buildPromptAndTools).toHaveBeenCalledWith(
+      agent,
+      operationWithoutRecipients,
+      expect.objectContaining({
+        executionContext: expect.objectContaining({
+          requester: {
+            executorRole: "BASIC",
           },
         }),
       })
@@ -706,8 +801,7 @@ describe("prepareAgentChatRun - escalate tool selection", () => {
       expect.objectContaining({
         executionContext: expect.objectContaining({
           requester: {
-            userId: "user_1",
-            authorization: { mode: "preview", roleId: "PUBLIC" },
+            executorRole: "PUBLIC",
           },
         }),
       })

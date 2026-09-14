@@ -66,6 +66,7 @@
     "@spectrum-css/page": "^3.0.1",
     "@spectrum-css/vars": "^3.0.1",
     "@xyflow/svelte": "^0.1.39",
+    "ajv": "^8.17.1",
     "codemirror": "^5.65.16",
     "dayjs": "^1.10.8",
     "downloadjs": "1.4.7",
@@ -74,7 +75,6 @@
     "posthog-js": "^1.118.0",
     "remixicon": "2.5.0",
     "sanitize-html": "^2.13.0",
-    "ajv": "^8.17.1",
     "svelte-dnd-action": "^0.9.64",
     "svelte-loading-spinners": "^0.3.6",
     "svelte-portal": "^2.2.1",
@@ -83,7 +83,6 @@
     "yup": "^0.32.11"
   },
   "devDependencies": {
-    "@types/to-json-schema": "^0.2.4",
     "@babel/plugin-transform-runtime": "^7.13.10",
     "@babel/preset-env": "^7.13.12",
     "@budibase/client": "*",
@@ -93,6 +92,7 @@
     "@testing-library/jest-dom": "6.4.2",
     "@testing-library/svelte": "^5.2.8",
     "@types/sanitize-html": "^2.13.0",
+    "@types/to-json-schema": "^0.2.4",
     "@types/uuid": "8.3.4",
     "babel-jest": "^29.6.2",
     "identity-obj-proxy": "^3.0.0",

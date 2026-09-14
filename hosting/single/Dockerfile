@@ -9,7 +9,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 WORKDIR /app
 COPY package.json .
 COPY yarn.lock .
-COPY lerna.json .
 COPY .yarnrc .
 
 COPY packages/server/package.json packages/server/package.json

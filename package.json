@@ -1,6 +1,6 @@
 {
   "name": "budibase-root",
-  "version": "0.810.485",
+  "version": "0.822.788",
   "birthday": "2024-06-14",
   "private": true,
   "author": "Budibase",
@@ -59,7 +59,6 @@
     "check:unused-deps:fix": "yarn check:unused-deps --fix",
     "build:sdk": "lerna run --stream build:sdk",
     "deps:circular": "madge packages/server/dist/index.js packages/worker/src/index.ts packages/backend-core/dist/src/index.js packages/cli/src/index.js --circular",
-    "release": "lerna publish from-package --yes --force-publish --no-git-tag-version --no-push --no-git-reset",
     "pending-releases": "node scripts/pendingReleases.js",
     "restore": "yarn run clean && yarn && yarn run build",
     "nuke": "yarn run nuke:packages && yarn run nuke:docker",
@@ -144,7 +143,6 @@
     "passport": "0.6.0",
     "@azure/identity": "4.2.1",
     "kind-of": "6.0.3",
-    "**/nan": "2.22.0",
     "globals": "15.13.0",
     "esm": "npm:esm-wallaby@3.2.35",
     "@types/koa": "3.0.1",
@@ -154,12 +152,12 @@
     "node": ">=22.13.0 <23.0.0"
   },
   "dependencies": {
-    "i18n": "0.15.1",
-    "svelte-i18n": "4.0.0",
     "@fullcalendar/core": "^6.1.20",
     "@fullcalendar/daygrid": "^6.1.20",
     "@fullcalendar/list": "^6.1.20",
     "@fullcalendar/timegrid": "^6.1.20",
-    "svelte-fullcalendar": "^3.0.0"
+    "i18n": "0.15.1",
+    "svelte-fullcalendar": "^3.0.0",
+    "svelte-i18n": "4.0.0"
   }
 }
