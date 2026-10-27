@@ -59,7 +59,6 @@ export const fetch = async (ctx: Ctx<void, GetEnvironmentResponse>) => {
     passwordMinLength: security.PASSWORD_POLICY.minLength.toString(),
     passwordPolicy: security.PASSWORD_POLICY,
     friendMode: !!env.FRIEND_MODE,
-    onlineMode: !!env.ONLINE_MODE,
     supportEmail: env.SUPPORT_EMAIL
   }
 
