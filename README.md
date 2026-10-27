@@ -276,9 +276,7 @@ __Примечание__:
 
 ### Старт контейнера single-undeground
 
-`docker run --rm --name=budibase -p 10000:80 -v [your path to data]:/data -e OFFLINE_MODE=true -e ONLINE_MODE=true akrasnov87/budibase:latest`
-
-**Примечание**: нужно обязательно передать `OFFLINE_MODE` с параметром `true` и `ONLINE_MODE=true`, если хотите видеть шаблоны
+`docker run --rm --name=budibase -p 10000:80 -v [your path to data]:/data -e OFFLINE_MODE=true -e AWS_REGION=eu-west-1 akrasnov87/budibase:latest`
 
 ## Подключение OIDC провайдера
 
@@ -319,7 +317,6 @@ COUCH_DB_PASSWORD=IdbIWtAHLXcYiDIxesjocnPobWFgmhEs
 # This section contains variables that do not need to be altered under normal circumstances
 BUDIBASE_ENVIRONMENT=PRODUCTION
 OFFLINE_MODE=true
-ONLINE_MODE=true
 </pre>
 
 И переименовал файл в .env.single
