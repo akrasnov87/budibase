@@ -51,7 +51,7 @@ const getErrorMessage = () => {
 describe("sso", () => {
   describe("authenticate", () => {
     beforeEach(() => {
-      jest.clearAllMocks()
+      jest.resetAllMocks()
       testEnv.singleTenant()
       nock.cleanAll()
       mockInvite.getExistingInvites.mockResolvedValue([])
@@ -298,7 +298,7 @@ describe("sso", () => {
       })
     })
 
-    describe("when there is a linkable account for the email (invite already accepted)", () => {
+    describe("when an existing account has the same unverified email", () => {
       let existingUser: User & Partial<SSOUser>
       let details: SSOAuthDetails
 
@@ -306,6 +306,7 @@ describe("sso", () => {
         existingUser = structures.users.user()
         existingUser._id = structures.uuid()
         delete existingUser.password
+        existingUser.roles = {}
 
         details = structures.sso.authDetails(existingUser)
         details.emailVerified = false
@@ -319,24 +320,26 @@ describe("sso", () => {
         })
       })
 
-      it("links an unclaimed account (no password) on first login", async () => {
+      it("does not link an unclaimed account when the email is unverified", async () => {
         users.getGlobalUserByEmail.mockResolvedValueOnce(existingUser)
-        const ssoUser = structures.users.ssoUser({
-          user: existingUser,
-          details,
-        })
+        const ssoUser = structures.users.ssoUser({ details })
         mockSaveUser.mockReturnValueOnce(ssoUser)
 
         await sso.authenticate(details, false, mockDone, mockSaveUser)
 
-        expect(mockSaveUser).toHaveBeenCalledWith(
+        expect(users.getGlobalUserByEmail).not.toHaveBeenCalled()
+        expect(mockSaveUser).not.toHaveBeenCalledWith(
           expect.objectContaining({ _id: existingUser._id }),
+          expect.anything()
+        )
+        expect(mockSaveUser).toHaveBeenCalledWith(
+          expect.objectContaining({ _id: "us_" + details.userId }),
           expect.anything()
         )
         expect(mockDone).toHaveBeenCalledWith(null, ssoUser)
       })
 
-      it("keeps resolving the account on a later login from the same identity provider", async () => {
+      it("does not link an account previously linked to the same identity provider", async () => {
         // simulates the account state after a first successful login: syncUser
         // has already stamped provider/providerType onto the document
         existingUser.provider = details.provider
@@ -351,7 +354,7 @@ describe("sso", () => {
         await sso.authenticate(details, false, mockDone, mockSaveUser)
 
         expect(mockSaveUser).toHaveBeenCalledWith(
-          expect.objectContaining({ _id: existingUser._id }),
+          expect.objectContaining({ _id: "us_" + details.userId }),
           expect.anything()
         )
         expect(mockDone).toHaveBeenCalledWith(null, ssoUser)
@@ -374,6 +377,39 @@ describe("sso", () => {
 
       it("does not link a global admin account", async () => {
         existingUser.admin = { global: true }
+        users.getGlobalUserByEmail.mockResolvedValueOnce(existingUser)
+        const ssoUser = structures.users.ssoUser({ details })
+        mockSaveUser.mockReturnValueOnce(ssoUser)
+
+        await sso.authenticate(details, false, mockDone, mockSaveUser)
+
+        expect(mockSaveUser).toHaveBeenCalledWith(
+          expect.objectContaining({ _id: "us_" + details.userId }),
+          expect.anything()
+        )
+      })
+
+      it.each([
+        {
+          name: "global builder",
+          update: () => {
+            existingUser.builder = { global: true }
+          },
+        },
+        {
+          name: "app builder",
+          update: () => {
+            existingUser.builder = { apps: [structures.uuid()] }
+          },
+        },
+        {
+          name: "user with app roles",
+          update: () => {
+            existingUser.roles = { [structures.uuid()]: "BASIC" }
+          },
+        },
+      ])("does not link a $name account", async ({ update }) => {
+        update()
         users.getGlobalUserByEmail.mockResolvedValueOnce(existingUser)
         const ssoUser = structures.users.ssoUser({ details })
         mockSaveUser.mockReturnValueOnce(ssoUser)
@@ -414,17 +450,16 @@ describe("sso", () => {
         )
       })
 
-      it("reconciles even when a local account would otherwise be required", async () => {
+      it("requires a verified email when a local account is required", async () => {
         users.getGlobalUserByEmail.mockResolvedValueOnce(existingUser)
-        const ssoUser = structures.users.ssoUser({
-          user: existingUser,
-          details,
-        })
-        mockSaveUser.mockReturnValueOnce(ssoUser)
 
         await sso.authenticate(details, true, mockDone, mockSaveUser)
 
-        expect(mockDone).toHaveBeenCalledWith(null, ssoUser)
+        expect(users.getGlobalUserByEmail).not.toHaveBeenCalled()
+        expect(mockSaveUser).not.toHaveBeenCalled()
+        expect(getErrorMessage()).toContain(
+          "Email does not yet exist. You must set up your local budibase account first."
+        )
       })
     })
 
@@ -466,14 +501,24 @@ describe("sso", () => {
         mockInvite.deleteCode.mockResolvedValueOnce(undefined)
       })
 
-      it("reconciles the invite without requiring a verified email, deletes it, and fires the accepted event", async () => {
+      it("rejects the login rather than creating an account when the email is unverified", async () => {
+        await sso.authenticate(details, false, mockDone, mockSaveUser)
+
+        expect(mockSaveUser).not.toHaveBeenCalled()
+        expect(mockInvite.deleteCode).not.toHaveBeenCalled()
+        expect(events.user.inviteAccepted).not.toHaveBeenCalled()
+        expect(mockDone.mock.calls.length).toBe(1)
+        expect(getErrorMessage()).toContain(
+          "Email verification is required to accept this invite."
+        )
+      })
+
+      it("reconciles the invite when the email is verified, deletes it, and fires the accepted event", async () => {
+        details.emailVerified = true
         const ssoUser = structures.users.ssoUser({ details })
         mockSaveUser.mockReturnValueOnce(ssoUser)
 
         await sso.authenticate(details, false, mockDone, mockSaveUser)
-
-        // the invite is matched purely on email - no account-linking lookup happens
-        expect(users.getGlobalUserByEmail).not.toHaveBeenCalled()
 
         expect(mockSaveUser).toHaveBeenCalledWith(
           expect.objectContaining({
@@ -493,16 +538,61 @@ describe("sso", () => {
         expect(mockDone).toHaveBeenCalledWith(null, ssoUser)
       })
 
-      it("reconciles the invite even when a local account would otherwise be required", async () => {
+      it("reconciles a non-admin invite when unverified email linking is explicitly allowed", async () => {
         const ssoUser = structures.users.ssoUser({ details })
         mockSaveUser.mockReturnValueOnce(ssoUser)
 
-        await sso.authenticate(details, true, mockDone, mockSaveUser)
+        await sso.authenticate(details, true, mockDone, mockSaveUser, true)
 
         expect(mockDone).toHaveBeenCalledWith(null, ssoUser)
       })
 
+      it("reconciles an eligible invite when an admin invite for the same email appears first", async () => {
+        const adminInvite: InviteWithCode = {
+          code: structures.uuid(),
+          email: details.email!,
+          info: {
+            tenantId: context.getTenantId(),
+            admin: { global: true },
+          },
+        }
+        mockInvite.getExistingInvites.mockReset()
+        mockInvite.getExistingInvites.mockResolvedValueOnce([
+          adminInvite,
+          invite,
+        ])
+        const ssoUser = structures.users.ssoUser({ details })
+        mockSaveUser.mockReturnValueOnce(ssoUser)
+
+        await sso.authenticate(details, true, mockDone, mockSaveUser, true)
+
+        expect(mockInvite.getCode).toHaveBeenCalledWith(
+          invite.code,
+          invite.info.tenantId
+        )
+        expect(mockInvite.deleteCode).toHaveBeenCalledWith(
+          invite.code,
+          invite.info.tenantId
+        )
+        expect(mockDone).toHaveBeenCalledWith(null, ssoUser)
+      })
+
+      it("rejects an unverified login for an admin invite even when unverified email linking is allowed", async () => {
+        invite.info.admin = { global: true }
+
+        await sso.authenticate(details, false, mockDone, mockSaveUser, true)
+
+        expect(mockSaveUser).not.toHaveBeenCalled()
+        expect(mockInvite.deleteCode).not.toHaveBeenCalled()
+        expect(events.user.inviteAccepted).not.toHaveBeenCalled()
+        expect(mockDone.mock.calls.length).toBe(1)
+        expect(getErrorMessage()).toContain(
+          "Email verification is required to accept this invite."
+        )
+      })
+
       it("reuses the account when the same identity's own concurrent login already claimed the invite", async () => {
+        details.emailVerified = true
         // simulates a second, racing request for this exact identity
         // (e.g. a double-submitted login) losing the lock race: the
         // winner already consumed the invite and saved the account for
@@ -524,8 +614,6 @@ describe("sso", () => {
 
         await sso.authenticate(details, false, mockDone, mockSaveUser)
 
-        // reused via the deterministic id, never by email match
-        expect(users.getGlobalUserByEmail).not.toHaveBeenCalled()
         // the winner's account is reused - no second document is created
         expect(mockSaveUser).toHaveBeenCalledWith(
           expect.objectContaining({ _id: existingUser._id }),
@@ -537,6 +625,7 @@ describe("sso", () => {
       })
 
       it("fails closed when the invite can no longer be validated and no concurrent claim for this identity can be confirmed", async () => {
+        details.emailVerified = true
         // covers expired/revoked invites and failed reads alike - none of
         // these are a positively identified concurrent claim, so this must
         // not fall back to linking by email or creating a fresh account
@@ -548,7 +637,6 @@ describe("sso", () => {
 
         await sso.authenticate(details, false, mockDone, mockSaveUser)
 
-        expect(users.getGlobalUserByEmail).not.toHaveBeenCalled()
         expect(mockSaveUser).not.toHaveBeenCalled()
         expect(mockInvite.deleteCode).not.toHaveBeenCalled()
         expect(events.user.inviteAccepted).not.toHaveBeenCalled()

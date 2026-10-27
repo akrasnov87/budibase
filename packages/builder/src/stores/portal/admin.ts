@@ -1,11 +1,12 @@
-import { API } from "@/api"
 import { banner } from "@budibase/bbui"
+import { DEFAULT_PASSWORD_POLICY } from "@budibase/shared-core"
 import {
   ConfigChecklistResponse,
   GetEnvironmentResponse,
   SystemStatusResponse,
 } from "@budibase/types"
 import { get } from "svelte/store"
+import { API } from "@/api"
 import Analytics from "../../analytics"
 import { BudiStore } from "../BudiStore"
 import { auth } from "./auth"
@@ -27,7 +28,8 @@ export class AdminStore extends BudiStore<AdminState> {
       offlineMode: false,
       maintenance: [],
       friendMode: false,
-      supportEmail: 'support@budibase.com'
+      supportEmail: 'support@budibase.com',
+      passwordPolicy: DEFAULT_PASSWORD_POLICY,
     })
   }
 
@@ -61,6 +63,7 @@ export class AdminStore extends BudiStore<AdminState> {
       store.passwordMinLength = environment.passwordMinLength
       store.friendMode = environment.friendMode
       store.supportEmail = environment.supportEmail
+      store.passwordPolicy = environment.passwordPolicy
       return store
     })
   }

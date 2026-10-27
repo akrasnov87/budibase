@@ -1,20 +1,16 @@
 import {
   Agent,
   AgentOperation,
-  ToolType,
   ToolMetadata,
   SourceName,
   WebSearchProvider,
-  EscalateToolResultStatus,
-  ToolExecutionPrincipal,
+  ApprovalToolResultStatus,
   type AgentExecutionContext,
 } from "@budibase/types"
 import { ai } from "@budibase/pro"
 import {
   createKnowledgeFilesTool,
   createKnowledgeSearchTool,
-  createEscalatePlaceholderTool,
-  createTableTools,
   getBudibaseTools,
 } from "../../../../ai/tools/budibase"
 import type { ToolSet, UIMessage, TypedToolCall, TypedToolResult } from "ai"
@@ -30,6 +26,7 @@ import {
 } from "../../../../ai/tools"
 import {
   createEscalationGateRuntime,
+  resolveToolArgsKey,
   type EscalationGateContext,
 } from "./escalationGate"
 import sdk from "../../.."
@@ -47,7 +44,6 @@ const HELPER_TOOL_NAMES = new Set([
   "get_automation",
   "list_knowledge_files",
   "search_knowledge",
-  "list_session_escalations",
 ])
 
 const isHelperTool = (tool: Pick<AiToolDefinition, "name">) =>
@@ -77,6 +73,8 @@ export function toToolMetadata(tool: AiToolDefinition): ToolMetadata {
     sourceType: tool.sourceType,
     sourceLabel: tool.sourceLabel,
     sourceIconType: tool.sourceIconType,
+    sourceId: tool.sourceId,
+    action: tool.action,
     executionPolicy: tool.executionPolicy,
   }
 }
@@ -141,7 +139,6 @@ export async function getAvailableTools(
     ),
     ...restQueryTools,
     ...datasourceQueryTools,
-    createEscalatePlaceholderTool(),
   ]
   if (webSearchConfig?.apiKey) {
     if (webSearchConfig.provider === WebSearchProvider.EXA) {
@@ -166,7 +163,6 @@ export interface BuildPromptAndToolsOptions {
   includeGoal?: boolean
   fallbackPromptInstructions?: string
   executionContext?: AgentExecutionContext
-  toolSecurityEnabled?: boolean
   escalationGateContext?: EscalationGateContext
 }
 
@@ -197,11 +193,9 @@ export async function buildPromptAndTools(
   const configuredTools = allTools.filter(
     tool => enabledToolNames.has(tool.name) && !isHelperTool(tool)
   )
-  let enabledTools = options.toolSecurityEnabled
-    ? configuredTools
-    : addLegacyHelperTools(configuredTools, allTools)
+  let enabledTools = configuredTools
 
-  if (options.toolSecurityEnabled && options.executionContext) {
+  if (options.executionContext) {
     const executionContext = options.executionContext
     const visibilityByTable = new Map<string, Promise<boolean>>()
     enabledTools = await Promise.all(
@@ -244,9 +238,7 @@ export async function buildPromptAndTools(
     const { executionContext } = options
     for (const tool of enabledTools) {
       const config = toolConfigs.find(config => config.toolName === tool.name)
-      const principal = options.toolSecurityEnabled
-        ? resolveToolExecutionPrincipal(tool, config)
-        : ToolExecutionPrincipal.ADMIN
+      const principal = resolveToolExecutionPrincipal(tool, config)
       runtimes.set(tool.name, {
         executionContext,
         principal,
@@ -271,6 +263,8 @@ export async function buildPromptAndTools(
           toolName: tool.name,
           readableName: tool.readableName,
           sourceId: tool.sourceId,
+          action: tool.action,
+          argsKey: resolveToolArgsKey(tool),
           rules: config.executionRules,
           gateContext: escalationGateContext,
         })
@@ -290,19 +284,13 @@ export async function buildPromptAndTools(
   })
 
   let resolvedSystemPrompt = systemPrompt
-  if (options.toolSecurityEnabled) {
-    resolvedSystemPrompt += `\n\nA configured tool may still be unavailable to the requesting user. If a tool call fails because it is unavailable in the security context, do not substitute a different tool or resource and do not claim the action succeeded. Tell the user that they do not have permission to perform the requested action.`
-  }
+  resolvedSystemPrompt += `\n\nA configured tool may still be unavailable to the requesting user. If a tool call fails because it is unavailable in the security context, do not substitute a different tool or resource and do not claim the action succeeded. Tell the user that they do not have permission to perform the requested action.`
   if (hasKnowledgeBases) {
     resolvedSystemPrompt += `\n\nWhen users ask about attached files (for example size, type, upload status, processing errors, or file counts), call list_knowledge_files with a filename when possible. Do not guess file metadata. If list_knowledge_files returns ambiguous results, ask a clarification question before answering. If it returns no matches, say that you couldn't find a matching file.\n\nFor any non-trivial user question, call search_knowledge before answering. Do not say the answer is unavailable, unknown, or unsupported until after you have searched knowledge. If search_knowledge returns no relevant context, say that you couldn't find supporting knowledge.\n\nIf you used search_knowledge context in your final answer, call report_used_sources immediately before your final response and pass only sourceIds that directly support the final answer. Do not include sources that were merely searched/consulted. If your conclusion is that the answer is not found in the documents, call report_used_sources with an empty sourceIds list.`
   }
   if (options.escalationGateContext) {
     resolvedSystemPrompt += `\n\nYou have no escalation or approval-request capability of your own. Never claim to have escalated, flagged, or referred anything for human review - approvals happen automatically when you use tools that require them. If instructions ask you to escalate a topic, tell the user you cannot escalate it and continue normally.`
   }
-  if (enabledToolNames.has("escalate") && !options.escalationGateContext) {
-    resolvedSystemPrompt += `\n\nBefore calling escalate, call list_session_escalations to check whether this same request is already awaiting approval or has already been approved in this conversation. If an equivalent request is still pending, do not escalate again - tell the user it is already awaiting approval. If it has already been approved, proceed instead of escalating again. Only escalate genuinely new requests.`
-  }
-
   return {
     systemPrompt: resolvedSystemPrompt,
     tools: toToolSet(enabledTools, runtimes, gates),
@@ -311,37 +299,6 @@ export async function buildPromptAndTools(
       enabledTools.map(tool => [tool.name, tool.sourceId])
     ),
   }
-}
-
-const addLegacyHelperTools = (
-  enabledTools: AiToolDefinition[],
-  allTools: AiToolDefinition[]
-) => {
-  const seenTools = new Set(enabledTools.map(tool => tool.name))
-  const toolByName = new Map(allTools.map(tool => [tool.name, tool]))
-
-  if (enabledTools.some(tool => tool.tableId)) {
-    const tableIds = enabledTools.flatMap(tool =>
-      tool.tableId ? [tool.tableId] : []
-    )
-    for (const tool of createTableTools(tableIds)) {
-      if (seenTools.has(tool.name)) continue
-      enabledTools.push(tool)
-      seenTools.add(tool.name)
-    }
-  }
-
-  if (enabledTools.some(tool => tool.sourceType === ToolType.AUTOMATION)) {
-    for (const toolName of ["get_automation", "list_automations"]) {
-      if (seenTools.has(toolName)) continue
-      const tool = toolByName.get(toolName)
-      if (!tool) continue
-      enabledTools.push(tool)
-      seenTools.add(tool.name)
-    }
-  }
-
-  return enabledTools
 }
 
 export interface IncompleteToolCall {
@@ -411,10 +368,10 @@ export function updateUnrecoveredToolFailures(
 
 // Escalation results can be technically-successful tool-results that aren't a
 // real escalation (status "unavailable" when no reviewers are configured -
-// from the escalate placeholder or a misconfigured gate). Split tool results
+// from a misconfigured gate). Split tool results
 // so callers can treat that case as a failure rather than a genuine success,
 // while every other tool keeps its normal success/failure handling untouched.
-// Keyed on the output status so it covers the escalate tool and gated tools
+// Keyed on the output status so it covers gated tools
 // alike.
 export function groupToolResultsByOutcome(
   toolResults: TypedToolResult<ToolSet>[]
@@ -433,14 +390,14 @@ export function groupToolResultsByOutcome(
     const status = (toolResult.output as { status?: string } | undefined)
       ?.status
 
-    if (status === EscalateToolResultStatus.UNAVAILABLE) {
+    if (status === ApprovalToolResultStatus.UNAVAILABLE) {
       semanticFailureNames.push(toolResult.toolName)
       semanticFailureResults.push(toolResult)
       continue
     }
 
     successResults.push(toolResult)
-    if (status !== EscalateToolResultStatus.ALREADY_APPROVED) {
+    if (status !== ApprovalToolResultStatus.ALREADY_APPROVED) {
       successNames.push(toolResult.toolName)
     }
   }

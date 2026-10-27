@@ -135,7 +135,7 @@
                 {menuLabels.password}
               </MenuItem>
               {#if sdk.users.hasBuilderPermissions($auth.user)}
-                <MenuItem icon="code" on:click={() => $goto("/builder/apps")}>
+                <MenuItem icon="code" on:click={() => $goto("/builder")}>
                   {menuLabels.portal}
                 </MenuItem>
               {/if}
@@ -215,7 +215,7 @@
   <Modal bind:this={changePasswordModal}>
     <ChangePasswordModal
       {API}
-      passwordMinLength={$admin.passwordMinLength}
+      passwordPolicy={$admin.passwordPolicy}
       on:save={() => auth.getSelf()}
       labels={passwordLabels}
     />

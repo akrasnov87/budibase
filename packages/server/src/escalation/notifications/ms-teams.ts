@@ -9,14 +9,18 @@ import {
   EscalationNotificationChannel,
 } from "@budibase/types"
 import sdk from "../../sdk"
-import { findIntegrationAgent, getEscalationText } from "./utils"
+import {
+  DEFAULT_MSTEAMS_SERVICE_URL,
+  validateMSTeamsServiceUrl,
+} from "../../utilities/msTeams"
+import {
+  findIntegrationAgent,
+  getEscalationText,
+  ProviderResponseError,
+} from "./utils"
 
 export const MS_SCOPE_BOT = "https://api.botframework.com/.default"
 export const MS_SCOPE_GRAPH = "https://graph.microsoft.com/.default"
-
-// Commercial Teams service URL — region-specific installs can override via TEAMS_API_URL
-const DEFAULT_SERVICE_URL =
-  process.env.TEAMS_API_URL ?? "https://smba.trafficmanager.net/apis/"
 
 export const getMSTeamsIntegration = async (
   appId: string,
@@ -72,8 +76,10 @@ export const getOAuthToken = async (
         }
       )
       if (!resp.ok) {
-        throw new Error(
-          `Teams OAuth token request failed (${resp.status}): ${await resp.text()}`
+        throw new ProviderResponseError(
+          resp.status,
+          await resp.text(),
+          "Teams OAuth token request failed"
         )
       }
       const data = (await resp.json()) as {
@@ -209,9 +215,11 @@ const teamsPost = async <T = void>(
   conversationId: string,
   body: object
 ): Promise<T> => {
-  const url = `${serviceUrl.replace(/\/$/, "")}/v3/conversations/${encodeURIComponent(conversationId)}/activities`
+  const safeServiceUrl = validateMSTeamsServiceUrl(serviceUrl)
+  const url = `${safeServiceUrl.replace(/\/$/, "")}/v3/conversations/${encodeURIComponent(conversationId)}/activities`
   const resp = await fetch(url, {
     method: "POST",
+    redirect: "error",
     headers: {
       Authorization: `Bearer ${token}`,
       "Content-Type": "application/json",
@@ -219,7 +227,11 @@ const teamsPost = async <T = void>(
     body: JSON.stringify(body),
   })
   if (!resp.ok) {
-    throw new Error(`Teams Bot API ${resp.status}: ${await resp.text()}`)
+    throw new ProviderResponseError(
+      resp.status,
+      await resp.text(),
+      "Teams Bot API"
+    )
   }
   return resp.json()
 }
@@ -256,7 +268,7 @@ export async function replyToConversation({
     integration.msTenantId,
     MS_SCOPE_BOT
   )
-  const serviceUrl = channel.serviceUrl || DEFAULT_SERVICE_URL
+  const serviceUrl = channel.serviceUrl || DEFAULT_MSTEAMS_SERVICE_URL
 
   const isChannel =
     !!channel.channelId && channel.conversationType !== "personal"
@@ -288,9 +300,9 @@ export async function sendMSTeamsNotification({
 }: {
   notifDoc: EscalationNotificationDoc
   contextDoc: EscalationContextDoc
-}): Promise<void> {
+}): Promise<boolean> {
   if (notifDoc.recipient.type !== EscalationNotificationChannel.MSTEAMS) {
-    return
+    return false
   }
 
   const config = notifDoc.recipient.config as Record<string, string>
@@ -305,7 +317,7 @@ export async function sendMSTeamsNotification({
       escalationId: contextDoc._id,
       appId: contextDoc.appId,
     })
-    return
+    return false
   }
 
   const token = await getOAuthToken(
@@ -335,12 +347,17 @@ export async function sendMSTeamsNotification({
   }
 
   if (config.channelId && config.teamId) {
-    await teamsPost(DEFAULT_SERVICE_URL, token, config.channelId, message)
+    await teamsPost(
+      DEFAULT_MSTEAMS_SERVICE_URL,
+      token,
+      config.channelId,
+      message
+    )
     console.log("sendMSTeamsNotification: message sent to channel", {
       escalationId: notifDoc.escalationId,
       channelId: config.channelId,
     })
-    return
+    return true
   }
 
   // User DM — always resolve via identity link to get the Teams-specific externalUserId
@@ -359,7 +376,7 @@ export async function sendMSTeamsNotification({
           globalUserId: config.globalUserId,
         }
       )
-      return
+      return false
     }
     const link = await tenancy.doInTenant(contextDoc.tenantId, () =>
       sdk.ai.chatIdentityLinks.getChatIdentityLinkByGlobalUserId({
@@ -373,7 +390,7 @@ export async function sendMSTeamsNotification({
         globalUserId: config.globalUserId,
         escalationId: contextDoc._id,
       })
-      return
+      return false
     }
     externalUserId = link.externalUserId
     providerTenantId = providerTenantId || link.providerTenantId
@@ -384,10 +401,12 @@ export async function sendMSTeamsNotification({
     console.warn("sendMSTeamsNotification: no recipient target in config", {
       escalationId: contextDoc._id,
     })
-    return
+    return false
   }
 
-  const dmServiceUrl = linkServiceUrl || DEFAULT_SERVICE_URL
+  const dmServiceUrl = validateMSTeamsServiceUrl(
+    linkServiceUrl || DEFAULT_MSTEAMS_SERVICE_URL
+  )
   const msTenantId = providerTenantId || integration.msTenantId
   const createBody = {
     channelId: "msteams",
@@ -405,6 +424,7 @@ export async function sendMSTeamsNotification({
     `${dmServiceUrl.replace(/\/$/, "")}/v3/conversations`,
     {
       method: "POST",
+      redirect: "error",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
@@ -413,15 +433,19 @@ export async function sendMSTeamsNotification({
     }
   )
   if (!createResp.ok) {
-    throw new Error(
-      `Teams create conversation failed (${createResp.status}): ${await createResp.text()}`
+    throw new ProviderResponseError(
+      createResp.status,
+      await createResp.text(),
+      "Teams create conversation failed"
     )
   }
   const conversation = (await createResp.json()) as {
     id: string
     serviceUrl?: string
   }
-  const postServiceUrl = conversation.serviceUrl || DEFAULT_SERVICE_URL
+  const postServiceUrl = validateMSTeamsServiceUrl(
+    conversation.serviceUrl || DEFAULT_MSTEAMS_SERVICE_URL
+  )
   console.log("sendMSTeamsNotification: conversation created", {
     conversationId: conversation.id,
     serviceUrl: conversation.serviceUrl,
@@ -433,4 +457,5 @@ export async function sendMSTeamsNotification({
     escalationId: notifDoc.escalationId,
     externalUserId,
   })
+  return true
 }

@@ -1,6 +1,5 @@
 <script lang="ts">
   import {
-    FeatureFlag,
     type AgentMessageMetadata,
     type DraftChatConversation,
     type WithoutDocMetadata,
@@ -10,7 +9,7 @@
   import { Constants } from "@budibase/frontend-core"
   import { Select } from "@budibase/bbui"
   import { escalationsStore } from "@/stores/portal/escalations"
-  import { auth, featureFlags } from "@/stores/portal"
+  import { auth } from "@/stores/portal"
   import { roles } from "@/stores/builder"
   import { onMount } from "svelte"
   import {
@@ -39,9 +38,6 @@
   let promptHistory = $state<string[]>([])
   let previewRoleId = $state(Constants.Roles.ADMIN)
   let previewRolesLoading = $state(false)
-  let toolSecurityEnabled = $derived(
-    $featureFlags[FeatureFlag.AI_AGENT_TOOL_SECURITY]
-  )
 
   const refreshPreviewRoles = async () => {
     if (previewRolesLoading) {
@@ -177,22 +173,20 @@
   <div class="chat-preview-header">
     <span class="chat-preview-pill">Chat preview</span>
     <div class="chat-preview-actions">
-      {#if toolSecurityEnabled}
-        <label class="preview-user-picker">
-          <span>Test as</span>
-          <Select
-            value={previewRoleId}
-            options={previewRoleOptions}
-            placeholder={false}
-            size="S"
-            autoWidth
-            popoverAutoWidth
-            loading={previewRolesLoading}
-            on:click={refreshPreviewRoles}
-            on:change={event => selectPreviewRole(event.detail)}
-          />
-        </label>
-      {/if}
+      <label class="preview-user-picker">
+        <span>Test as</span>
+        <Select
+          value={previewRoleId}
+          options={previewRoleOptions}
+          placeholder={false}
+          size="S"
+          autoWidth
+          popoverAutoWidth
+          loading={previewRolesLoading}
+          on:click={refreshPreviewRoles}
+          on:change={event => selectPreviewRole(event.detail)}
+        />
+      </label>
       <button class="chat-preview-refresh" type="button" onclick={refreshChat}>
         Clear chat
       </button>
@@ -204,12 +198,12 @@
         bind:this={chatbox}
         bind:chat
         {workspaceId}
-        previewRoleId={toolSecurityEnabled ? previewRoleId : undefined}
+        {previewRoleId}
         {promptHistory}
         onpromptsubmitted={handlePromptSubmitted}
         onEscalationPending={handleEscalationPending}
         escalationState={$escalationsStore.escalations}
-        showInlineApproval={$featureFlags[FeatureFlag.ESCALATION]}
+        showInlineApproval
         onResolve={resolveEscalation}
       />
     {/key}

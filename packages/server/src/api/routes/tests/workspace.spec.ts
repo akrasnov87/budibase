@@ -11,6 +11,7 @@ import {
   roles,
 } from "@budibase/backend-core"
 import { mocks, structures } from "@budibase/backend-core/tests"
+import { encodeJSBinding } from "@budibase/string-templates"
 import {
   type Workspace,
   AppFontFamily,
@@ -968,6 +969,16 @@ describe("/applications", () => {
       const res = await config.api.workspace.getDefinition(workspace.appId)
       expect(res.libraries.length).toEqual(1)
     })
+
+    it("should reject users from another tenant", async () => {
+      await config.newTenant()
+
+      await config.withHeaders({ [Header.WORKSPACE_ID]: workspace.appId }, () =>
+        config.api.workspace.getDefinition(workspace.appId, {
+          status: 401,
+        })
+      )
+    })
   })
 
   describe("fetchAppPackage", () => {
@@ -976,6 +987,37 @@ describe("/applications", () => {
       expect(res.application).toBeDefined()
       expect(res.application.appId).toEqual(config.getDevWorkspaceId())
     })
+
+    it.each([
+      { published: false, requestType: "client" },
+      { published: true, requestType: "client" },
+      { published: false, requestType: "builder" },
+      { published: true, requestType: "builder" },
+    ])(
+      "should reject cross-tenant access to snippets (published: $published, type: $requestType)",
+      async ({ published, requestType }) => {
+        await config.api.workspace.update(workspace.appId, {
+          snippets: [{ name: "MySnippet", code: "return value => value" }],
+        })
+        await config.publish()
+        const appId = published
+          ? config.getProdWorkspaceId()
+          : config.getDevWorkspaceId()
+        await config.newTenant()
+
+        await config.withHeaders(
+          {
+            [Header.WORKSPACE_ID]: appId,
+            [Header.TYPE]: requestType,
+            referer: `https://example.com/app${workspace.url}`,
+          },
+          () =>
+            config.api.workspace.getAppPackage(appId, {
+              expectations: { status: 401 },
+            })
+        )
+      }
+    )
 
     it("should retrieve all the screens for builder calls", async () => {
       await config.api.screen.save(basicScreen())
@@ -1012,6 +1054,52 @@ describe("/applications", () => {
       expect(res.screens).toContainEqual(
         expect.objectContaining({ _id: screen2._id })
       )
+    })
+
+    it.each([roles.BUILTIN_ROLE_IDS.PUBLIC, roles.BUILTIN_ROLE_IDS.BASIC])(
+      "should provide published snippets to %s clients",
+      async roleId => {
+        const snippets = [{ name: "MySnippet", code: "return value => value" }]
+        await config.api.workspace.update(workspace.appId, {
+          snippets,
+        })
+        const screen = customScreen({ roleId, route: "/" })
+        screen.props.text = encodeJSBinding(
+          'return snippets.MySnippet("apple")'
+        )
+        await config.api.screen.save(screen)
+        await config.publish()
+        await config.api.workspace.update(workspace.appId, {
+          snippets: [{ name: "MySnippet", code: "return 'unpublished'" }],
+        })
+        mocks.licenses.useCloudFree()
+        const user = await config.createUser({
+          builder: { global: false },
+          admin: { global: false },
+          roles: { [config.getProdWorkspaceId()]: roleId },
+        })
+        const res = await config.withUser(user, () =>
+          config.api.workspace.getAppPackage(config.getProdWorkspaceId(), {
+            useProdApp: true,
+            publicUser: roleId === roles.BUILTIN_ROLE_IDS.PUBLIC,
+            headers: {
+              [Header.TYPE]: "client",
+              referer: `https://example.com/app${workspace.url}`,
+            },
+          })
+        )
+        expect(res.application.snippets).toEqual(snippets)
+        expect(res.screens).toEqual([
+          expect.objectContaining({ props: screen.props }),
+        ])
+      }
+    )
+
+    it("should provide snippets to builder calls", async () => {
+      const snippets = [{ name: "MySnippet", code: "return value => value" }]
+      await config.api.workspace.update(workspace.appId, { snippets })
+      const res = await config.api.workspace.getAppPackage(workspace.appId)
+      expect(res.application.snippets).toEqual(snippets)
     })
 
     it("should expose recaptcha availability to public app packages", async () => {
